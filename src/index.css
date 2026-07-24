@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-ink text-[#EDEBF6] font-sans antialiased;
+    background: radial-gradient(ellipse 120% 80% at 50% -10%, rgba(139,92,246,.08), transparent 60%), #050508;
+  }
+  input[type="date"] { color-scheme: dark; }
+  ::selection { background: rgba(139,92,246,.4); color: #fff; }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7C3AED, #5B21B6); border-radius: 8px; border: 2px solid #050508; }
+  ::-webkit-scrollbar-thumb:hover { background: #A78BFA; }
+
+  :focus-visible { outline: 2px solid #A78BFA; outline-offset: 2px; }
+}
+
+@layer components {
+  /* ── Tarjeta de vidrio v2: borde que respira + glow en hover ── */
+  .card {
+    @apply relative rounded-[20px] p-5 transition-all duration-300;
+    background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .card:hover {
+    border-color: rgba(167,139,250,.35);
+    box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(139,92,246,.15), 0 0 40px rgba(139,92,246,.12), inset 0 1px 0 rgba(255,255,255,.06);
+    transform: translateY(-2px);
+  }
+
+  /* ── Campos: glow al enfocar, línea inferior animada ── */
+  .field {
+    @apply w-full bg-white/[.035] border border-white/[.09] rounded-xl px-3.5 py-[11px] text-[13.5px] outline-none transition-all duration-200;
+  }
+  .field:hover { @apply border-white/[.16]; }
+  .field:focus {
+    @apply border-violet-light/70 bg-white/[.05];
+    box-shadow: 0 0 0 4px rgba(139,92,246,.14), 0 0 18px rgba(139,92,246,.18);
+  }
+  .field-label { @apply block text-[10.5px] font-bold text-violet-light/70 mb-1.5 tracking-[.08em] uppercase; }
+
+  .pill { @apply text-[10.5px] font-bold rounded-full px-2.5 py-[3px] whitespace-nowrap tracking-wide; }
+
+  /* ── Botón neón de vidrio ── */
+  .btn-glass {
+    @apply relative inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-bold text-white overflow-hidden transition-all duration-[250ms] disabled:opacity-50 disabled:cursor-wait;
+    background: linear-gradient(135deg, rgba(139,92,246,.5), rgba(124,58,237,.32));
+    border: 1px solid rgba(167,139,250,.55);
+    box-shadow: 0 0 0 1px rgba(139,92,246,.15), 0 4px 16px rgba(139,92,246,.25);
+  }
+  .btn-glass::before {
+    content: ""; position: absolute; inset: 0 0 55% 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,.22), transparent);
+    pointer-events: none;
+  }
+  .btn-glass::after {
+    content: ""; position: absolute; inset: -40%;
+    background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.35) 50%, transparent 60%);
+    background-size: 250% 250%; background-position: 200% 0;
+    transition: background-position .7s ease; pointer-events: none;
+  }
+  .btn-glass:hover::after { background-position: -50% 0; }
+  .btn-glass:hover {
+    border-color: rgba(196,181,253,.9);
+    box-shadow: 0 0 0 1px rgba(167,139,250,.3), 0 0 26px rgba(139,92,246,.55), 0 4px 20px rgba(139,92,246,.3);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-white/50 bg-white/[.03] border border-white/[.08] transition-all duration-200;
+  }
+  .btn-ghost:hover { @apply text-white border-violet-light/40 bg-white/[.06]; }
+}
+
+select.field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A78BFA' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+select.field option { background: #0A0A10; color: #EDEBF6; }
+
+.text-gradient {
+  background: linear-gradient(90deg, #C4B5FD, #F472F0, #A78BFA);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: gradientX 6s ease infinite;
+}
+
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .04; mix-blend-mode: overlay;
+}
