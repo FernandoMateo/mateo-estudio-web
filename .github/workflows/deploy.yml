@@ -1,0 +1,45 @@
+name: Deploy Web Mateo Estudio
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código de GitHub
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependencias y compilar
+        run: |
+          npm ci
+          npm run build
+
+      - name: Transferir archivos a Hostinger
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "dist/*"
+          target: "/tmp/mateo-deploy"
+          strip_components: 1
+
+      - name: Reemplazar archivos en PocketBase
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            docker exec pocketbase-d4iq-pocketbase-1 sh -c "rm -rf /pb_public/*"
+            docker cp /tmp/mateo-deploy/. pocketbase-d4iq-pocketbase-1:/pb_public/
+            rm -rf /tmp/mateo-deploy
