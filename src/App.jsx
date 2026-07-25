@@ -9,6 +9,7 @@ import Proyectos from './pages/Proyectos'
 import Tareas from './pages/Tareas'
 import Finanzas from './pages/Finanzas'
 import Servicios from './pages/Servicios'
+import Cotizador from './pages/Cotizador'
 import Portal from './pages/Portal'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="tareas" element={<Tareas />} />
               <Route path="finanzas" element={<Finanzas />} />
               <Route path="servicios" element={<Servicios />} />
+              <Route path="cotizador" element={<Cotizador />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
           </Routes>

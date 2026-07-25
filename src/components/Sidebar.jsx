@@ -9,6 +9,7 @@ const ICONS = {
   tareas: <><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M8.5 12.5l2.5 2.5 4.8-5.5"/></>,
   finanzas: <><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3.2-4 3 2.4L19 7.5"/></>,
   servicios: <path d="M12 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L7.5 16.8l.9-5L4.8 8.3l5-.7z"/>,
+  cotizador: <><path d="M9 7h6M9 11h6M9 15h3"/><rect x="4" y="3" width="16" height="18" rx="2"/></>,
 }
 
 const ITEMS = [
@@ -18,6 +19,7 @@ const ITEMS = [
   { to: '/app/tareas', label: 'Tareas', icon: 'tareas' },
   { to: '/app/finanzas', label: 'Finanzas', icon: 'finanzas', adminOnly: true },
   { to: '/app/servicios', label: 'Servicios', icon: 'servicios' },
+  { to: '/app/cotizador', label: 'Cotizador', icon: 'cotizador' },
 ]
 
 export default function Sidebar({ me, open, setOpen }) {

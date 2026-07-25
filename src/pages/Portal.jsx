@@ -6,11 +6,15 @@ import { PHASES } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon } from '../components/ui'
 import CountUp from '../components/CountUp'
+import QuoteBuilder from '../components/QuoteBuilder'
+import QuoteViewer from '../components/QuoteViewer'
+import QuoteRow from '../components/QuoteRow'
 
 const PHASE_ORDER = ['descubrimiento', 'diseno', 'desarrollo', 'revision', 'entrega']
 const TABS = [
   ['resumen', 'Resumen'],
   ['datos', 'Mis datos'],
+  ['presupuestos', 'Presupuestos'],
   ['facturas', 'Facturas'],
   ['credenciales', 'Credenciales'],
 ]
@@ -115,6 +119,22 @@ export default function Portal() {
   // formulario de datos propios
   const [dataForm, setDataForm] = useState({ contact_name: '', email: '', phone: '', website: '', instagram: '', facebook: '' })
   const [dataSaving, setDataSaving] = useState(false)
+  const [brandColor, setBrandColor] = useState('#8B5CF6')
+  const [logoFile, setLogoFile] = useState(null)
+  const [logoPreview, setLogoPreview] = useState('')
+
+  // presupuestos (blanco: propios + recibidos + catálogo)
+  const [myQuotes, setMyQuotes] = useState([])
+  const [receivedQuotes, setReceivedQuotes] = useState([])
+  const [catalogItems, setCatalogItems] = useState([])
+  const [quoteSub, setQuoteSub] = useState('mias')
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const [editingQuote, setEditingQuote] = useState(null)
+  const [viewingQuote, setViewingQuote] = useState(null)
+  const [itemOpen, setItemOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [itemForm, setItemForm] = useState({ name: '', type: 'material', unit: 'unidad', unit_cost: '', currency: 'ARS' })
+  const [itemSaving, setItemSaving] = useState(false)
 
   // bóveda de credenciales
   const [credOpen, setCredOpen] = useState(false)
@@ -140,14 +160,20 @@ export default function Portal() {
           contact_name: mine.contact_name || '', email: mine.email || '', phone: mine.phone || '',
           website: mine.website || '', instagram: mine.instagram || '', facebook: mine.facebook || '',
         })
+        if (/^#[0-9a-fA-F]{6}$/.test(mine.brand_color || '')) setBrandColor(mine.brand_color)
+        if (mine.logo) setLogoPreview(fileUrl('clients', mine.id, mine.logo, '200x200'))
       }
-      const [ps, ts, txs, cds] = await Promise.all([
+      const [ps, ts, txs, cds, myQ, recQ, items] = await Promise.all([
         list('projects', '&sort=-created'),
         list('tasks', '&sort=-created&expand=project'),
         list('transactions', '&sort=-date&filter=' + encodeURIComponent('type="ingreso"')),
         list('client_access', '&sort=-created'),
+        list('quotes', '&sort=-created&filter=' + encodeURIComponent('issuer_type="cliente"')),
+        list('quotes', '&sort=-created&filter=' + encodeURIComponent('issuer_type="estudio"')),
+        list('quote_items', '&sort=name'),
       ])
       setProjects(ps); setTasks(ts); setInvoices(txs); setCreds(cds)
+      setMyQuotes(myQ); setReceivedQuotes(recQ); setCatalogItems(items)
     } catch {
       toast('No se pudo cargar tu información. Recarga la página.', true)
     } finally { setLoading(false) }
@@ -183,21 +209,54 @@ export default function Portal() {
     } finally { setReqSaving(false) }
   }
 
-  /* ── Guardar mis datos ── */
+  /* ── Guardar mis datos + marca ── */
   async function saveMyData() {
     if (!client) return
     setDataSaving(true)
     try {
-      const body = { ...dataForm }
-      if (!body.email) delete body.email
-      if (!body.website) delete body.website
-      await updateRec('clients', client.id, body)
-      toast('Datos actualizados ✓')
+      const fd = new FormData()
+      Object.entries(dataForm).forEach(([k, v]) => fd.append(k, v || ''))
+      if (!dataForm.email) fd.delete('email')
+      if (!dataForm.website) fd.delete('website')
+      fd.append('brand_color', brandColor)
+      if (logoFile) fd.append('logo', logoFile)
+      await updateRec('clients', client.id, fd, true)
+      toast('Datos y marca actualizados ✓')
       loadAll()
     } catch (e) {
       const d = e?.data?.data
       toast(d?.email ? 'El correo no tiene un formato válido.' : d?.website ? 'El sitio web debe iniciar con https://' : 'No se pudieron guardar los cambios.', true)
     } finally { setDataSaving(false) }
+  }
+
+  /* ── Catálogo propio (materiales / mano de obra) ── */
+  function openItemNew() { setEditingItem(null); setItemForm({ name: '', type: 'material', unit: 'unidad', unit_cost: '', currency: 'ARS' }); setItemOpen(true) }
+  function openItemEdit(it) { setEditingItem(it.id); setItemForm({ name: it.name || '', type: it.type || 'material', unit: it.unit || 'unidad', unit_cost: it.unit_cost || '', currency: it.currency || 'ARS' }); setItemOpen(true) }
+
+  async function saveItem() {
+    if (!itemForm.name.trim()) { toast('Ponele un nombre al ítem.', true); return }
+    if (!client) return
+    setItemSaving(true)
+    try {
+      const body = { ...itemForm, name: itemForm.name.trim(), unit_cost: Number(itemForm.unit_cost) || 0, client: client.id }
+      if (editingItem) await updateRec('quote_items', editingItem, body)
+      else await createRec('quote_items', body)
+      setItemOpen(false); toast(editingItem ? 'Ítem actualizado ✓' : '✦ Ítem agregado a tu catálogo'); loadAll()
+    } catch { toast('No se pudo guardar el ítem.', true) } finally { setItemSaving(false) }
+  }
+  async function delItem(it) {
+    if (!confirm(`¿Eliminar "${it.name}" de tu catálogo?`)) return
+    try { await removeRec('quote_items', it.id); toast('Ítem eliminado ✓'); loadAll() }
+    catch { toast('No se pudo eliminar.', true) }
+  }
+  async function delQuote(q) {
+    if (!confirm(`¿Eliminar la cotización "${q.title}"?`)) return
+    try {
+      const lines = await list('quote_lines', '&filter=' + encodeURIComponent('quote="' + q.id + '"'))
+      await Promise.all(lines.map(l => removeRec('quote_lines', l.id)))
+      await removeRec('quotes', q.id)
+      toast('Cotización eliminada ✓'); loadAll()
+    } catch { toast('No se pudo eliminar.', true) }
   }
 
   /* ── Bóveda de credenciales ── */
@@ -380,22 +439,153 @@ export default function Portal() {
 
             {/* ═══════════ MIS DATOS ═══════════ */}
             {tab === 'datos' && (
-              <div className="card !p-6 max-w-2xl">
-                <h3 className="text-[15px] font-bold">Tus datos de contacto</h3>
-                <p className="text-[12.5px] text-white/40 mt-1.5 mb-6">Mantenelos al día para que podamos comunicarnos sin vueltas.</p>
-                <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
-                  <Field label="Persona de contacto"><input className="field" value={dataForm.contact_name} onChange={e => setDataForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Nombre y apellido" /></Field>
-                  <Field label="Teléfono"><input className="field" value={dataForm.phone} onChange={e => setDataForm(f => ({ ...f, phone: e.target.value }))} placeholder="11 0000 0000" /></Field>
-                  <Field label="Correo" full><input type="email" className="field" value={dataForm.email} onChange={e => setDataForm(f => ({ ...f, email: e.target.value }))} placeholder="correo@empresa.com" /></Field>
-                  <Field label="Sitio web" full><input className="field" value={dataForm.website} onChange={e => setDataForm(f => ({ ...f, website: e.target.value }))} placeholder="https://tuempresa.com" /></Field>
-                  <Field label="Instagram"><input className="field" value={dataForm.instagram} onChange={e => setDataForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@cuenta" /></Field>
-                  <Field label="Facebook"><input className="field" value={dataForm.facebook} onChange={e => setDataForm(f => ({ ...f, facebook: e.target.value }))} placeholder="/pagina" /></Field>
+              <div className="grid gap-5 max-w-2xl">
+                <div className="card !p-6">
+                  <h3 className="text-[15px] font-bold flex items-center gap-2">Tu marca <span className="text-[9.5px] font-bold text-neon-cyan/90 bg-[#5EEAD4]/[.1] border border-[#5EEAD4]/30 rounded-full px-2 py-0.5 uppercase tracking-wide">marca blanca</span></h3>
+                  <p className="text-[12.5px] text-white/40 mt-1.5 mb-5 leading-relaxed">Tu logo y color aparecen en los presupuestos que generes para tus propios clientes, desde la pestaña Presupuestos.</p>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <label className="flex items-center gap-3 border-[1.5px] border-dashed border-violet-light/30 rounded-xl p-3 cursor-pointer hover:border-violet-light/60 hover:bg-violet/5 transition flex-1 min-w-[220px]">
+                      <div className="w-12 h-12 rounded-lg bg-violet/[.12] flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {logoPreview ? <img src={logoPreview} className="w-full h-full object-cover" /> :
+                          <svg className="w-5 h-5 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5-9 9" /></svg>}
+                      </div>
+                      <span className="text-xs text-white/55"><b className="text-violet-light font-semibold">Subí tu logo</b><br />PNG, JPG, SVG o WebP</span>
+                      <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) { setLogoFile(f); setLogoPreview(URL.createObjectURL(f)) } }} />
+                    </label>
+                    <div className="flex items-center gap-2.5">
+                      <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)} className="w-11 h-11 p-1 rounded-xl bg-white/[.04] border border-white/[.09] cursor-pointer" />
+                      <div>
+                        <div className="text-[11px] text-white/40">Color de marca</div>
+                        <div className="text-[12.5px] font-mono">{brandColor}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-end mt-6">
-                  <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={dataSaving} onClick={saveMyData}>
-                    {dataSaving ? 'Guardando…' : 'Guardar cambios'}
-                  </motion.button>
+
+                <div className="card !p-6">
+                  <h3 className="text-[15px] font-bold">Tus datos de contacto</h3>
+                  <p className="text-[12.5px] text-white/40 mt-1.5 mb-6">Mantenelos al día para que podamos comunicarnos sin vueltas.</p>
+                  <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+                    <Field label="Persona de contacto"><input className="field" value={dataForm.contact_name} onChange={e => setDataForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Nombre y apellido" /></Field>
+                    <Field label="Teléfono"><input className="field" value={dataForm.phone} onChange={e => setDataForm(f => ({ ...f, phone: e.target.value }))} placeholder="11 0000 0000" /></Field>
+                    <Field label="Correo" full><input type="email" className="field" value={dataForm.email} onChange={e => setDataForm(f => ({ ...f, email: e.target.value }))} placeholder="correo@empresa.com" /></Field>
+                    <Field label="Sitio web" full><input className="field" value={dataForm.website} onChange={e => setDataForm(f => ({ ...f, website: e.target.value }))} placeholder="https://tuempresa.com" /></Field>
+                    <Field label="Instagram"><input className="field" value={dataForm.instagram} onChange={e => setDataForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@cuenta" /></Field>
+                    <Field label="Facebook"><input className="field" value={dataForm.facebook} onChange={e => setDataForm(f => ({ ...f, facebook: e.target.value }))} placeholder="/pagina" /></Field>
+                  </div>
+                  <div className="flex justify-end mt-6">
+                    <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={dataSaving} onClick={saveMyData}>
+                      {dataSaving ? 'Guardando…' : 'Guardar cambios'}
+                    </motion.button>
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* ═══════════ PRESUPUESTOS (marca blanca) ═══════════ */}
+            {tab === 'presupuestos' && (
+              <div className="grid gap-5">
+                <div className="card flex items-center gap-4 flex-wrap !p-5">
+                  <div className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
+                    <svg className="w-5 h-5 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[14px] font-bold">Tu cotizador con tu marca</h3>
+                    <p className="text-[12.5px] text-white/40 mt-1 leading-relaxed">Armá presupuestos para tus propios clientes con tu logo y tu color. El total se calcula solo con tu margen de ganancia.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-1.5 flex-wrap">
+                  {[['mias', `Mis cotizaciones (${myQuotes.length})`], ['recibidas', `De Mateo Estudio (${receivedQuotes.length})`], ['catalogo', `Mi catálogo (${catalogItems.length})`]].map(([key, label]) => (
+                    <button key={key} onClick={() => setQuoteSub(key)}
+                      className={`relative text-xs font-bold px-4 py-2 rounded-full transition-colors z-0
+                        ${quoteSub === key ? 'text-white' : 'text-white/45 hover:text-white/80'}`}>
+                      {quoteSub === key && (
+                        <motion.span layoutId="quote-sub-tab" transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+                          className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-violet-dark to-violet-light shadow-[0_0_18px_rgba(139,92,246,.55)]" />
+                      )}
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {quoteSub === 'mias' && (
+                  <div>
+                    <div className="flex justify-end mb-3">
+                      <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" onClick={() => { setEditingQuote(null); setQuoteOpen(true) }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                        Nueva cotización
+                      </motion.button>
+                    </div>
+                    {!myQuotes.length ? (
+                      <div className="card text-center py-14">
+                        <p className="text-[14px] font-semibold">Todavía no armaste ninguna cotización</p>
+                        <p className="text-[12.5px] text-white/40 mt-1.5">Empezá cargando algunos ítems en "Mi catálogo" o creá una cotización directamente.</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2.5">
+                        {myQuotes.map(q => (
+                          <QuoteRow key={q.id} quote={q} subtitle={q.recipient_name || 'Sin destinatario'}
+                            onView={() => setViewingQuote(q)}
+                            onEdit={() => { setEditingQuote(q); setQuoteOpen(true) }}
+                            onDelete={() => delQuote(q)} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {quoteSub === 'recibidas' && (
+                  !receivedQuotes.length ? (
+                    <div className="card text-center py-14">
+                      <p className="text-[14px] font-semibold">Sin cotizaciones recibidas</p>
+                      <p className="text-[12.5px] text-white/40 mt-1.5">Cuando Mateo Estudio te arme un presupuesto, va a aparecer acá.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      {receivedQuotes.map(q => (
+                        <QuoteRow key={q.id} quote={q} subtitle="Mateo Estudio" onView={() => setViewingQuote(q)}
+                          tag={<span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">recibida</span>} />
+                      ))}
+                    </div>
+                  )
+                )}
+
+                {quoteSub === 'catalogo' && (
+                  <div>
+                    <div className="flex justify-end mb-3">
+                      <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" onClick={openItemNew}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                        Agregar ítem
+                      </motion.button>
+                    </div>
+                    {!catalogItems.length ? (
+                      <div className="card text-center py-14">
+                        <p className="text-[14px] font-semibold">Tu catálogo está vacío</p>
+                        <p className="text-[12.5px] text-white/40 mt-1.5">Cargá materiales o mano de obra con su costo — después los sumás con un clic al armar una cotización.</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))' }}>
+                        {catalogItems.map(it => (
+                          <motion.div key={it.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card !p-4">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="text-[13px] font-bold truncate">{it.name}</div>
+                                <div className="text-[10.5px] text-white/35 mt-0.5">{it.type === 'mano_obra' ? 'Mano de obra' : it.type === 'material' ? 'Material' : 'Otro'} · {it.unit}</div>
+                              </div>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <IconBtn onClick={() => openItemEdit(it)} title="Editar"><EditIcon /></IconBtn>
+                                <IconBtn onClick={() => delItem(it)} danger title="Eliminar"><TrashIcon /></IconBtn>
+                              </div>
+                            </div>
+                            <div className="text-[15px] font-extrabold mt-2.5">{it.currency === 'USD' ? fmtUSD(it.unit_cost) : fmtARS(it.unit_cost)}</div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -573,6 +763,38 @@ export default function Portal() {
           <button className="btn-ghost" onClick={() => setCredOpen(false)}>Cancelar</button>
           <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={credSaving} onClick={saveCred}>
             {credSaving ? 'Guardando…' : 'Guardar acceso ✦'}
+          </motion.button>
+        </div>
+      </Modal>
+
+      {/* ── Cotizador propio (marca blanca) ── */}
+      <QuoteBuilder open={quoteOpen} onClose={() => setQuoteOpen(false)} mode="cliente"
+        ownClientId={client?.id} catalog={catalogItems} editingQuote={editingQuote} onSaved={loadAll} />
+      <QuoteViewer open={!!viewingQuote} onClose={() => setViewingQuote(null)} quote={viewingQuote} brandClient={client} />
+
+      {/* ── Modal: ítem de catálogo propio ── */}
+      <Modal open={itemOpen} onClose={() => setItemOpen(false)}>
+        <ModalHead title={editingItem ? 'Editar ítem' : 'Agregar ítem al catálogo'} onClose={() => setItemOpen(false)} />
+        <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+          <Field label="Nombre *" full><input className="field" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Cemento (bolsa 50kg), Hora de instalación…" /></Field>
+          <Field label="Tipo">
+            <Select value={itemForm.type} onChange={v => setItemForm(f => ({ ...f, type: v }))}
+              options={[{ value: 'material', label: 'Material' }, { value: 'mano_obra', label: 'Mano de obra' }, { value: 'otro', label: 'Otro' }]} />
+          </Field>
+          <Field label="Unidad"><input className="field" value={itemForm.unit} onChange={e => setItemForm(f => ({ ...f, unit: e.target.value }))} placeholder="unidad, hora, m², kg…" /></Field>
+          <Field label="Costo" full>
+            <div className="flex gap-2">
+              <input type="number" min="0" step="0.01" className="field flex-1" value={itemForm.unit_cost} onChange={e => setItemForm(f => ({ ...f, unit_cost: e.target.value }))} placeholder="0.00" />
+              <div className="w-[104px] flex-shrink-0">
+                <Select value={itemForm.currency} onChange={v => setItemForm(f => ({ ...f, currency: v }))} options={[{ value: 'ARS', label: 'ARS $' }, { value: 'USD', label: 'USD US$' }]} />
+              </div>
+            </div>
+          </Field>
+        </div>
+        <div className="flex justify-end gap-2.5 mt-5">
+          <button className="btn-ghost" onClick={() => setItemOpen(false)}>Cancelar</button>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={itemSaving} onClick={saveItem}>
+            {itemSaving ? 'Guardando…' : 'Guardar ítem ✦'}
           </motion.button>
         </div>
       </Modal>

@@ -124,3 +124,23 @@ Módulos que todavía no están: Servicios, Usuarios, Notificaciones, Configurac
 ## Nota
 
 Este entorno no tiene acceso a red, así que no pude ejecutar `npm run build` para probarlo antes de entregarlo. Verifiqué la sintaxis de los 16 archivos con un validador que ignora comentarios y strings, y todos pasan. Si el build tira algún error, pasámelo y lo corrijo.
+
+---
+
+## Cotizador (marca blanca)
+
+Sistema de presupuestos con dos caras, pensado para generar dependencia real sin competir con herramientas que tus clientes ya usan (como un CRM).
+
+**Para vos** (`/app/cotizador`, admin y equipo): armás presupuestos para tu cartera usando tu catálogo de **Servicios**. Elegís cliente, sumás ítems, definís margen de ganancia y moneda — el total se calcula solo y queda congelado al guardar.
+
+**Para tus clientes** (pestaña "Presupuestos" en el Portal): cada cliente tiene:
+- **Su propio catálogo** de materiales y mano de obra — privado, nadie más lo ve.
+- **Su cotizador**, para armar presupuestos a sus propios clientes con su margen.
+- **Su marca**: logo y color propios (los suben desde "Mis datos"), que aparecen en el PDF/vista impresa de cada presupuesto que emiten. Blanco total — no dice "Mateo Estudio" en ningún lado de lo que ellos generan.
+- Una pestaña "De Mateo Estudio" donde ven los presupuestos que vos les armaste a ellos.
+
+Todo aislado por cliente vía las reglas de PocketBase (`client.user = @request.auth.id`), igual que el resto del sistema.
+
+### Instalación
+
+Importá **`pb-schema-cotizador.json`** en PocketBase (Settings → Import collections → Merge) antes de compilar. Crea 3 colecciones nuevas: `quote_items`, `quotes`, `quote_lines`.
