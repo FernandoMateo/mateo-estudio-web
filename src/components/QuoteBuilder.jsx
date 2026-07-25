@@ -93,7 +93,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
   async function save() {
     if (!title.trim()) { toast('Ponele un título a la cotización.', true); return }
     if (mode === 'estudio' && !client) { toast('Elegí a quién va dirigida.', true); return }
-    const validLines = lines.filter(l => l.description.trim() && Number(l.quantity) > 0)
+    const validLines = lines.filter(l => (l.description || '').trim() && Number(l.quantity) > 0)
     if (!validLines.length) { toast('Agregá al menos un ítem con descripción y cantidad.', true); return }
     setSaving(true)
     try {
@@ -124,7 +124,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
         quoteId = created.id
       }
       await Promise.all(validLines.map(l => createRec('quote_lines', {
-        quote: quoteId, description: l.description.trim(), unit: l.unit || '',
+        quote: quoteId, description: (l.description || '').trim(), unit: l.unit || '',
         quantity: Number(l.quantity), unit_cost: Number(l.unit_cost) || 0,
         line_total: Math.round((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0) * 100) / 100,
       })))
@@ -213,16 +213,17 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
               <div className="flex flex-col gap-2">
                 <AnimatePresence initial={false}>
                   {lines.map(l => (
-                    <motion.div key={l.tempId} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                      <input className="field flex-[3] min-w-[140px]" placeholder="Descripción" value={l.description} onChange={e => updateLine(l.tempId, { description: e.target.value })} />
-                      <input className="field w-20 flex-shrink-0" placeholder="Unidad" value={l.unit} onChange={e => updateLine(l.tempId, { unit: e.target.value })} />
-                      <input type="number" min="0" step="0.01" className="field w-20 flex-shrink-0" placeholder="Cant." value={l.quantity} onChange={e => updateLine(l.tempId, { quantity: e.target.value })} />
-                      <input type="number" min="0" step="0.01" className="field w-28 flex-shrink-0" placeholder="Costo u." value={l.unit_cost} onChange={e => updateLine(l.tempId, { unit_cost: e.target.value })} />
-                      <span className="text-[12px] text-white/50 w-24 flex-shrink-0 text-right">{fmt((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</span>
-                      <button onClick={() => removeLine(l.tempId)} title="Eliminar ítem" className="text-white/25 hover:text-coral transition-colors flex-shrink-0 p-1.5">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                      </button>
+                    <motion.div key={l.tempId} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="w-full overflow-hidden">
+                      <div className="grid grid-cols-[1fr_auto] sm:flex sm:items-center gap-2 w-full">
+                        <input className="field sm:flex-[3] sm:min-w-[120px] col-span-2 sm:col-span-1" placeholder="Descripción" value={l.description || ''} onChange={e => updateLine(l.tempId, { description: e.target.value })} />
+                        <input className="field sm:w-[76px] sm:flex-shrink-0 min-w-0" placeholder="Unidad" value={l.unit || ''} onChange={e => updateLine(l.tempId, { unit: e.target.value })} />
+                        <input type="number" min="0" step="0.01" className="field sm:w-[72px] sm:flex-shrink-0 min-w-0" placeholder="Cant." value={l.quantity ?? ''} onChange={e => updateLine(l.tempId, { quantity: e.target.value })} />
+                        <input type="number" min="0" step="0.01" className="field sm:w-[100px] sm:flex-shrink-0 min-w-0" placeholder="Costo u." value={l.unit_cost ?? ''} onChange={e => updateLine(l.tempId, { unit_cost: e.target.value })} />
+                        <span className="text-[12px] text-white/50 sm:w-24 sm:flex-shrink-0 text-right self-center truncate">{fmt((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</span>
+                        <button onClick={() => removeLine(l.tempId)} title="Eliminar ítem" className="text-white/25 hover:text-coral transition-colors flex-shrink-0 p-1.5 justify-self-end sm:justify-self-auto">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                        </button>
+                      </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>

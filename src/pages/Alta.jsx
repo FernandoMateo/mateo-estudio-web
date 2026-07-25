@@ -79,13 +79,13 @@ export default function Alta() {
           email: form.email.trim(), password: form.password, passwordConfirm: form.passwordConfirm,
           name: form.contact_name.trim() || form.name.trim(), role: 'cliente', verified: true,
         }),
-      }).then(async r => { const d = await r.json(); if (!r.ok) throw d; return d })
+      }).then(async r => { const d = await r.json(); if (!r.ok) throw { step: 'usuario', data: d }; return d })
 
       // 2) Autenticar para poder crear su propia ficha de cliente
       const auth = await fetch(`${PB_URL}/api/collections/users/auth-with-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity: form.email.trim(), password: form.password }),
-      }).then(r => r.json())
+      }).then(async r => { const d = await r.json(); if (!r.ok || !d.token) throw { step: 'acceso', data: d }; return d })
       const token = auth.token
 
       // 3) Crear la ficha de cliente vinculada
@@ -98,7 +98,7 @@ export default function Alta() {
           interested_service: form.interested_service, status: 'activo', source: 'referido',
           user: auth.record.id, brand_color: '#8B5CF6',
         }),
-      }).then(async r => { const d = await r.json(); if (!r.ok) throw d; return d })
+      }).then(async r => { const d = await r.json(); if (!r.ok) throw { step: 'negocio', data: d }; return d })
 
       // 4) Marcar la invitación como completada
       if (invite) {
@@ -110,9 +110,14 @@ export default function Alta() {
 
       setStatus('success')
     } catch (e) {
-      const d = e?.data || e
-      let msg = 'Algo no salió bien. Revisá los datos e intentá de nuevo.'
-      if (d?.email?.message || d?.data?.email) msg = 'Ese correo ya tiene una cuenta — iniciá sesión directamente en vez de crear una nueva.'
+      const d = e?.data?.data || {}
+      const firstFieldMsg = Object.values(d)[0]?.message
+      let msg = firstFieldMsg || 'Algo no salió bien. Revisá los datos e intentá de nuevo.'
+      if (d?.email?.message?.includes('valid') || d?.email?.message?.includes('unique')) {
+        msg = 'Ese correo ya tiene una cuenta, o no es válido — iniciá sesión directamente si ya te registraste.'
+      }
+      if (e?.step === 'acceso') msg = 'Creamos tu usuario pero no pudimos iniciar sesión automáticamente. Intentá de nuevo en unos segundos.'
+      console.error('[Alta de cliente] Error en el paso:', e?.step, e?.data || e)
       setError(msg)
       setStatus('form')
     } finally { setSaving(false) }

@@ -57,7 +57,7 @@ function MiniStatus({ items, empty, statusOf }) {
           <motion.div key={it.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
             className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] text-[13px] transition-colors">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color, boxShadow: `0 0 8px ${glow}` }} />
-            <span className="flex-1 truncate">{label}</span>
+            <span className="flex-1 min-w-0 truncate">{label}</span>
             <span className="text-[11px] text-white/35 flex-shrink-0">{sub}</span>
           </motion.div>
         )
@@ -112,7 +112,7 @@ export default function Dashboard() {
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))' }}>
+      <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(210px,100%),1fr))' }}>
         {isAdmin && (
           <Kpi label="Ingresos del mes" value={<CountUp value={monthIncome} format={fmtMoney} />} sub="Transacciones registradas" accent="text-gradient" delay={0} />
         )}
@@ -123,7 +123,7 @@ export default function Dashboard() {
         <Kpi label="Clientes activos" value={activeClients.length} sub={`${clients.length} en cartera total`} delay={0.18} />
       </div>
 
-      <div className="grid gap-5" style={{ gridTemplateColumns: '1.6fr 1fr' }}>
+      <div className="grid gap-5 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
         <div className="flex flex-col gap-5">
           {isAdmin && (
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="card relative overflow-hidden">

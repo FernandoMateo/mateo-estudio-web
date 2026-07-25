@@ -95,7 +95,7 @@ export default function Servicios() {
       ) : !filtered.length ? (
         <p className="text-[12.5px] text-white/35 px-1">Sin resultados para este filtro.</p>
       ) : (
-        <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))' }}>
+        <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(260px,100%),1fr))' }}>
           {filtered.map((s, i) => {
             const billing = BILLING[s.billing_type] || BILLING.unico
             const inactive = s.active === false

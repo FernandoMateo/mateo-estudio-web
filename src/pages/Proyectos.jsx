@@ -38,7 +38,7 @@ export default function Proyectos() {
   const filtered = projects.filter(p => {
     const q = search.toLowerCase().trim()
     if (!q) return true
-    return p.name.toLowerCase().includes(q) || clientName(p).toLowerCase().includes(q)
+    return (p.name || '').toLowerCase().includes(q) || clientName(p).toLowerCase().includes(q)
   })
 
   function openNew() { setEditId(null); setForm(emptyForm); setStep(0); setOpen(true) }
@@ -125,7 +125,7 @@ export default function Proyectos() {
             {step === 0 && (
               <>
                 <p className="text-[11.5px] text-white/35 -mt-1.5 mb-4">Qué se va a construir y para quién.</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Nombre del proyecto *" full><input className="field" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Rediseño de sitio web" /></Field>
                   <Field label="Cliente *" full>
                     <Select value={form.client} onChange={v => set('client', v)} placeholder="Selecciona un cliente…"
@@ -149,7 +149,7 @@ export default function Proyectos() {
             {step === 1 && (
               <>
                 <p className="text-[11.5px] text-white/35 -mt-1.5 mb-4">Tiempos, dinero y avance.</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Fecha de inicio"><input type="date" className="field" value={form.start_date} onChange={e => set('start_date', e.target.value)} /></Field>
                   <Field label="Fecha de entrega"><input type="date" className="field" value={form.due_date} onChange={e => set('due_date', e.target.value)} /></Field>
                   {isAdmin && (

@@ -408,7 +408,7 @@ export default function Portal() {
                 )}
 
                 {/* Solicitudes + actividad */}
-                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))' }}>
+                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))' }}>
                   <div className="card flex flex-col">
                     <h3 className="text-[13.5px] font-bold mb-2">¿Necesitás algo del equipo?</h3>
                     <p className="text-[12.5px] text-white/40 mb-4 leading-relaxed">
@@ -577,7 +577,7 @@ export default function Portal() {
                         <p className="text-[12.5px] text-white/40 mt-1.5">Cargá materiales o mano de obra con su costo — después los sumás con un clic al armar una cotización.</p>
                       </div>
                     ) : (
-                      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))' }}>
+                      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(230px,100%),1fr))' }}>
                         {catalogItems.map(it => (
                           <motion.div key={it.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card !p-4">
                             <div className="flex items-start justify-between gap-2">
@@ -687,7 +687,7 @@ export default function Portal() {
                     <p className="text-[12.5px] text-white/40 mt-1.5">Sumá el primer acceso para que el equipo pueda trabajar sin pedirte datos cada vez.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))' }}>
+                  <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(280px,100%),1fr))' }}>
                     {creds.map((c, i) => (
                       <motion.div key={c.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                         whileHover={{ y: -2 }} className="card !p-4">
@@ -704,13 +704,13 @@ export default function Portal() {
                           {c.username && (
                             <div className="flex items-center gap-2 text-[12px]">
                               <span className="text-white/30 w-[62px] flex-shrink-0">Usuario</span>
-                              <span className="font-mono truncate">{c.username}</span>
+                              <span className="font-mono truncate min-w-0 flex-1">{c.username}</span>
                             </div>
                           )}
                           {c.password && (
                             <div className="flex items-center gap-2 text-[12px]">
                               <span className="text-white/30 w-[62px] flex-shrink-0">Clave</span>
-                              <span className="font-mono truncate flex-1">{revealed[c.id] ? c.password : '••••••••••'}</span>
+                              <span className="font-mono truncate min-w-0 flex-1">{revealed[c.id] ? c.password : '••••••••••'}</span>
                               <button onClick={() => setRevealed(r => ({ ...r, [c.id]: !r[c.id] }))}
                                 className="text-white/35 hover:text-violet-light transition-colors flex-shrink-0" title={revealed[c.id] ? 'Ocultar' : 'Mostrar'}>
                                 {revealed[c.id]
@@ -736,7 +736,7 @@ export default function Portal() {
       <Modal open={reqOpen} onClose={() => setReqOpen(false)}>
         <ModalHead title="Enviar una solicitud" onClose={() => setReqOpen(false)} />
         <p className="text-[12px] text-white/40 -mt-1.5 mb-4">Contanos qué necesitás. El equipo lo recibe al instante.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="¿De qué se trata? *" full><input className="field" value={reqForm.title} onChange={e => setReqForm(f => ({ ...f, title: e.target.value }))} placeholder="Ej. Cambiar los textos del inicio" /></Field>
           {projects.length > 0 && (
             <Field label="Proyecto" full>
@@ -763,7 +763,7 @@ export default function Portal() {
       <Modal open={credOpen} onClose={() => setCredOpen(false)}>
         <ModalHead title={credEditId ? 'Editar acceso' : 'Agregar acceso'} onClose={() => setCredOpen(false)} />
         <p className="text-[12px] text-white/40 -mt-1.5 mb-4">Estos datos quedan guardados para que el equipo pueda administrar tus plataformas.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Plataforma *" full><input className="field" value={credForm.platform} onChange={e => setCredForm(f => ({ ...f, platform: e.target.value }))} placeholder="Ej. Instagram, Hosting, Google Ads" /></Field>
           <Field label="Usuario"><input className="field" value={credForm.username} onChange={e => setCredForm(f => ({ ...f, username: e.target.value }))} placeholder="usuario o correo" /></Field>
           <Field label="Contraseña"><input className="field font-mono" value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" /></Field>

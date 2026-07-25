@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 @layer base {
+  html, body, #root { overflow-x: hidden; max-width: 100%; }
   html { scroll-behavior: smooth; }
   body {
     @apply bg-ink text-[#EDEBF6] font-sans antialiased;
@@ -86,6 +87,12 @@ select.field {
   background-position: right 12px center;
 }
 select.field option { background: #0A0A10; color: #EDEBF6; }
+
+/* iOS hace zoom automático en inputs con letra < 16px al enfocarlos.
+   En mobile forzamos 16px (se ve más grande, pero evita el zoom no deseado). */
+@media (max-width: 639px) {
+  input.field, select.field, textarea.field, .field { font-size: 16px !important; }
+}
 
 .text-gradient {
   background: linear-gradient(90deg, #C4B5FD, #F472F0, #A78BFA);

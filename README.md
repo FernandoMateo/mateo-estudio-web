@@ -195,3 +195,25 @@ Esto es lo que garantiza, a nivel de base de datos, que **nadie pueda crear una 
 5. El enlace es de un solo uso: una vez completado, si alguien vuelve a abrirlo ve "Este enlace ya no está disponible".
 
 La página **Usuarios** también lista todas las invitaciones (pendientes/completadas) y tu equipo interno (solo lectura — las cuentas de equipo se siguen creando desde el panel de PocketBase).
+
+---
+
+## Corrección de errores y auditoría responsive completa
+
+### Bugs reales corregidos
+
+1. **Alta de cliente fallaba al finalizar**: faltaba verificación de error en el paso "autenticar tras crear el usuario" — si esa petición fallaba, el resto del proceso se rompía en cascada con un mensaje inútil. Corregido, y ahora los errores muestran el motivo real (y lo dejan en la consola del navegador para diagnóstico).
+2. **`ErrorBoundary` global**: si cualquier parte de la app llega a fallar, ahora ves un mensaje en pantalla con el detalle del error (en vez de una página en blanco sin explicación). Si esto aparece alguna vez, una captura de ese mensaje es oro para diagnosticar rápido.
+3. **Filtros de búsqueda blindados** (Cotizador, Finanzas, Proyectos, Tareas): antes llamaban `.toLowerCase()` directo sobre campos que, si llegan vacíos desde la base, rompían toda la página.
+
+> Si "Cotizador" seguía sin abrir después de todo esto, el sospechoso número uno es un **despliegue desactualizado** — asegurate de reemplazar `pb_public` por completo con el `dist/` más nuevo y probar en una ventana de incógnito.
+
+### Auditoría responsive (sin scroll horizontal, sin textos superpuestos)
+
+- **CSS Grid con ancho mínimo fijo** (`minmax(300px,1fr)` y similares) desbordaba en pantallas angostas — corregido con `minmax(min(Xpx,100%),1fr)` en los 7 lugares donde aparecía.
+- **10 formularios en 6 páginas** tenían una grilla de 2 columnas que no colapsaba a 1 en mobile — era la causa más probable de los textos apretados/superpuestos. Corregido en todos.
+- **Zoom automático de iOS**: los campos con letra menor a 16px hacen zoom solo al tocarlos en Safari. Ahora se agrandan a 16px en mobile.
+- **Stepper de los wizards**: las etiquetas podían no entrar en pantallas de 320px. En mobile ahora se ve "Paso X de N" en texto, y las etiquetas completas aparecen desde tablet en adelante.
+- **`truncate` sin `min-w-0`**: encontramos 3 casos reales donde el texto largo no se recortaba con "…" sino que desbordaba (Dashboard, selector de moneda, credenciales del Portal). Corregidos.
+- **Tablas de los PDF imprimibles** (cotización y catálogo): ahora tienen scroll horizontal contenido si no entran, en vez de forzar el desborde de toda la página.
+- Blindaje global: `overflow-x: hidden` en toda la app como red de seguridad final.

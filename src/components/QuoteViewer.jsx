@@ -83,7 +83,7 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-5 text-[13px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 text-[13px]">
           <div>
             <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wide mb-1">Dirigido a</div>
             <div className="font-semibold">{quote.recipient_name || quote.expand?.client?.name || '—'}</div>
@@ -93,7 +93,7 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
             <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wide mb-1">Método de pago</div>
             <div className="font-semibold">{PAYMENT_LABELS[quote.payment_method] || 'A convenir'}</div>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wide mb-1">Válido hasta</div>
             <div className="font-semibold">{quote.valid_until ? quote.valid_until.slice(0, 10) : 'Sin vencimiento'}</div>
           </div>
@@ -101,7 +101,8 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
 
         <div className="text-[15px] font-bold mb-3">{quote.title}</div>
 
-        <table className="w-full text-[12.5px] mb-5">
+        <div className="overflow-x-auto -mx-1 px-1 mb-5">
+        <table className="w-full text-[12.5px] min-w-[420px]">
           <thead>
             <tr className="text-left text-gray-400 text-[10.5px] uppercase tracking-wide border-b border-gray-200">
               <th className="pb-2 font-bold">Descripción</th>
@@ -123,6 +124,7 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
             ))}
           </tbody>
         </table>
+        </div>
 
         <div className="flex justify-end">
           <div className="w-56 flex flex-col gap-1.5 text-[12.5px]">

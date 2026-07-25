@@ -135,7 +135,7 @@ export default function Clientes() {
             {step === 0 && (
               <>
                 <p className="text-[11.5px] text-white/35 -mt-1.5 mb-4">Lo esencial: quién es y de dónde es.</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Nombre del cliente *" full><input className="field" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Panadería La Espiga" /></Field>
                   <Field label="Empresa / razón comercial"><input className="field" value={form.company} onChange={e => set('company', e.target.value)} placeholder="Nombre comercial" /></Field>
                   <Field label="País">
@@ -166,7 +166,7 @@ export default function Clientes() {
             {step === 1 && (
               <>
                 <p className="text-[11.5px] text-white/35 -mt-1.5 mb-4">Con quién hablamos y dónde vive su marca en internet.</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Persona de contacto"><input className="field" value={form.contact_name} onChange={e => set('contact_name', e.target.value)} placeholder="Nombre y apellido" /></Field>
                   <Field label="Teléfono"><input className="field" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="55 0000 0000" /></Field>
                   <Field label="Correo" full><input type="email" className="field" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@cliente.com" /></Field>
@@ -182,7 +182,7 @@ export default function Clientes() {
                   Datos para facturación <span className="text-[9.5px] font-bold text-amber bg-amber/[.08] border border-amber/30 rounded px-1.5 py-0.5 ml-1.5">OPCIONAL</span>
                   <br />Si tu cliente es del extranjero o aún no factura, puedes saltarte este paso.
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="RFC / ID fiscal"><input className="field" value={form.rfc} onChange={e => set('rfc', e.target.value)} placeholder="XXXX000000XXX" /></Field>
                   <Field label="Régimen fiscal"><input className="field" value={form.tax_regime} onChange={e => set('tax_regime', e.target.value)} placeholder="Ej. Persona moral" /></Field>
                   <Field label="Razón social" full><input className="field" value={form.legal_name} onChange={e => set('legal_name', e.target.value)} placeholder="Nombre legal completo" /></Field>
@@ -193,7 +193,7 @@ export default function Clientes() {
             {step === 3 && (
               <>
                 <p className="text-[11.5px] text-white/35 -mt-1.5 mb-4">Cómo llegó, qué le interesa y su acceso al portal.</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Estado">
                     <Select value={form.status} onChange={v => set('status', v)}
                       options={[{ value: 'prospecto', label: 'Prospecto' }, { value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} />

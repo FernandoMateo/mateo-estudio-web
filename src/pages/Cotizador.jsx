@@ -34,7 +34,7 @@ export default function Cotizador() {
     if (filter !== 'todas' && q.status !== filter) return false
     const s = search.toLowerCase().trim()
     if (!s) return true
-    return q.title.toLowerCase().includes(s) || clientName(q).toLowerCase().includes(s)
+    return (q.title || '').toLowerCase().includes(s) || clientName(q).toLowerCase().includes(s)
   })
 
   const catalogFromServices = services.map(s => ({ id: s.id, name: s.name, unit_cost: s.price, currency: s.price_currency || 'ARS', unit: s.billing_type === 'por_hora' ? 'hora' : 'unidad' }))

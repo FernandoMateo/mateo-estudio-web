@@ -56,39 +56,44 @@ export const ModalHead = ({ title, onClose }) => (
 export function Stepper({ steps, current }) {
   const pct = steps.length > 1 ? (current / (steps.length - 1)) * 100 : 0
   return (
-    <div className="relative flex justify-between mx-1.5 mb-8">
-      <div className="absolute top-[14px] left-[24px] right-[24px] h-[2px] bg-white/[.07] rounded overflow-hidden">
-        <motion.div
-          className="h-full rounded bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink"
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-          style={{ boxShadow: '0 0 14px rgba(139,92,246,.8)' }}
-        />
+    <div className="mb-6">
+      <div className="relative flex justify-between mx-1.5">
+        <div className="absolute top-[14px] left-[24px] right-[24px] h-[2px] bg-white/[.07] rounded overflow-hidden">
+          <motion.div
+            className="h-full rounded bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink"
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            style={{ boxShadow: '0 0 14px rgba(139,92,246,.8)' }}
+          />
+        </div>
+        {steps.map((label, i) => {
+          const active = i === current, done = i < current
+          return (
+            <div key={label} className="relative z-10 flex flex-col items-center gap-1.5 w-9 sm:w-16">
+              {active && (
+                <motion.span
+                  className="absolute -top-1 w-9 h-9 rounded-full border border-violet-light/50"
+                  animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                />
+              )}
+              <motion.div
+                animate={active ? { scale: 1.2 } : { scale: 1 }}
+                transition={spring}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-colors flex-shrink-0
+                  ${active ? 'border-transparent text-white bg-gradient-to-br from-violet-light to-neon-pink shadow-[0_0_18px_rgba(139,92,246,.75)]'
+                  : done ? 'border-violet/50 text-violet-light bg-violet/[.18]'
+                  : 'border-white/10 text-white/30 bg-white/[.02]'}`}
+              >{done ? '✓' : i + 1}</motion.div>
+              <span className={`hidden sm:block text-[9px] uppercase font-bold tracking-wider text-center transition-colors
+                ${active ? 'text-violet-light' : done ? 'text-white/45' : 'text-white/25'}`}>{label}</span>
+            </div>
+          )
+        })}
       </div>
-      {steps.map((label, i) => {
-        const active = i === current, done = i < current
-        return (
-          <div key={label} className="relative z-10 flex flex-col items-center gap-1.5 w-16">
-            {active && (
-              <motion.span
-                className="absolute -top-1 w-9 h-9 rounded-full border border-violet-light/50"
-                animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-              />
-            )}
-            <motion.div
-              animate={active ? { scale: 1.2 } : { scale: 1 }}
-              transition={spring}
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-colors
-                ${active ? 'border-transparent text-white bg-gradient-to-br from-violet-light to-neon-pink shadow-[0_0_18px_rgba(139,92,246,.75)]'
-                : done ? 'border-violet/50 text-violet-light bg-violet/[.18]'
-                : 'border-white/10 text-white/30 bg-white/[.02]'}`}
-            >{done ? '✓' : i + 1}</motion.div>
-            <span className={`text-[9px] uppercase font-bold tracking-wider text-center transition-colors
-              ${active ? 'text-violet-light' : done ? 'text-white/45' : 'text-white/25'}`}>{label}</span>
-          </div>
-        )
-      })}
+      <p className="sm:hidden text-center text-[11px] font-semibold text-violet-light tracking-wide mt-2.5">
+        Paso {current + 1} de {steps.length} · {steps[current]}
+      </p>
     </div>
   )
 }
@@ -219,7 +224,7 @@ export function Select({ value, onChange, options, placeholder = 'Selecciona…'
       <button type="button" onClick={() => setOpen(o => !o)}
         className={`field flex items-center justify-between gap-2 text-left cursor-pointer select-none
           ${open ? 'border-violet-light/70 shadow-[0_0_0_4px_rgba(139,92,246,.14),0_0_18px_rgba(139,92,246,.18)] bg-white/[.05]' : ''}`}>
-        <span className={`truncate ${current ? '' : 'text-white/30'}`}>{current ? current.label : placeholder}</span>
+        <span className={`truncate min-w-0 ${current ? '' : 'text-white/30'}`}>{current ? current.label : placeholder}</span>
         <motion.svg animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}
           className="w-3 h-3 text-violet-light flex-shrink-0" viewBox="0 0 10 6" fill="none">
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />

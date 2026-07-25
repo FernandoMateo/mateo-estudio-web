@@ -57,7 +57,7 @@ export default function CatalogViewer({ open, onClose, items = [], client, autoP
               <tbody>
                 {g.items.map(it => (
                   <tr key={it.id} className="border-b border-gray-100">
-                    <td className="py-2">{it.name}{it.unit ? <span className="text-gray-400"> · {it.unit}</span> : ''}</td>
+                    <td className="py-2 break-words">{it.name}{it.unit ? <span className="text-gray-400"> · {it.unit}</span> : ''}</td>
                     <td className="py-2 text-right font-semibold">{fmtByCurrency(it.unit_cost, it.currency)}</td>
                   </tr>
                 ))}

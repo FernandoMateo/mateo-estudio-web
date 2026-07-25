@@ -104,7 +104,7 @@ export default function Usuarios() {
       {!!team.length && (
         <div>
           <h3 className="text-[13px] font-bold text-white/50 uppercase tracking-wide mb-3">Tu equipo</h3>
-          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))' }}>
+          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(220px,100%),1fr))' }}>
             {team.map(u => (
               <div key={u.id} className="card !p-4 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
