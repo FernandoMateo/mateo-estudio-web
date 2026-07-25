@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField, MoneyDisplay, FilterTabs } from '../components/ui'
-import { useFx, usdToArs } from '../context/FxContext'
+import { useFx, toArs } from '../context/FxContext'
 
 const BILLING = {
   unico: { label: 'Único', recurring: false },
@@ -57,13 +57,12 @@ export default function Servicios() {
     if (!form.name.trim()) { toast('El nombre del servicio es obligatorio.', true); return }
     setSaving(true)
     const priceNum = form.price ? Number(form.price) : 0
-    const isUsd = form.price_currency === 'USD'
-    const rate = usdToArs(rates)
+    const priceArs = Math.round(toArs(priceNum, form.price_currency, rates))
     const body = {
       name: form.name.trim(), category: form.category.trim(), icon: form.icon || '🎨',
       price: priceNum, price_currency: form.price_currency || 'ARS',
-      price_fx_rate: isUsd ? (rate || 0) : 1,
-      price_ars: isUsd ? (rate ? Math.round(priceNum * rate) : priceNum) : priceNum,
+      price_fx_rate: (form.price_currency && form.price_currency !== 'ARS') ? (priceNum ? priceArs / priceNum : 0) : 1,
+      price_ars: priceArs,
       billing_type: form.billing_type, description: form.description.trim(), active: !!form.active,
     }
     try {
@@ -122,7 +121,7 @@ export default function Servicios() {
 
                 <div className="flex items-end justify-between mt-4 pt-3.5 border-t border-white/[.06]">
                   <div>
-                    <MoneyDisplay amount={s.price} currency={s.price_currency} amountArs={s.price_currency === 'USD' ? s.price_ars : null} className="text-[16px] font-extrabold" />
+                    <MoneyDisplay amount={s.price} currency={s.price_currency} amountArs={s.price_currency && s.price_currency !== 'ARS' ? s.price_ars : null} className="text-[16px] font-extrabold" />
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <span className={`pill ${billing.recurring ? 'text-violet-light bg-violet/10 border border-violet/35' : 'text-white/45 bg-white/5 border border-white/10'}`}>
                         {billing.recurring && <span className="mr-1">↻</span>}{billing.label}

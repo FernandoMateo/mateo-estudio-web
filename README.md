@@ -144,3 +144,54 @@ Todo aislado por cliente vía las reglas de PocketBase (`client.user = @request.
 ### Instalación
 
 Importá **`pb-schema-cotizador.json`** en PocketBase (Settings → Import collections → Merge) antes de compilar. Crea 3 colecciones nuevas: `quote_items`, `quotes`, `quote_lines`.
+
+---
+
+## Actualización: catálogo mixto, MXN, PDF y flujo de envío
+
+### ⚠️ Importante: usá el esquema más nuevo
+
+El archivo **`pb-schema-mxn-catalogo-update.json`** reemplaza a todos los JSON de esquema anteriores (currency-update, services-update, cotizador). Es el estado completo y final — impórtalo con **Merge** y no hace falta correr los anteriores.
+
+### Qué cambia
+
+- **Tercera moneda**: Pesos Mexicanos (MXN), disponible en todos los montos del sistema (Finanzas, Proyectos, Clientes, Servicios, Catálogo y Cotizador). Se congela igual que ARS/USD — la cotización del día queda fija al guardar.
+- **Catálogo del cliente**: ahora los ítems pueden ser Material, Mano de obra o **Servicio** (antes solo materiales/mano de obra).
+- **Descargar catálogo en PDF**: botón nuevo en "Mi catálogo" del Portal — genera una vista imprimible con su marca (logo + color), agrupada por tipo, lista para mandarle a un cliente potencial.
+- **Método de pago** en cada cotización: Efectivo, Transferencia, Cheque u Otro — se define al crearla y se imprime en el PDF.
+- **El margen de ganancia nunca se imprime**: en el PDF/impresión, el margen se diluye dentro del precio unitario de cada ítem (matemáticamente exacto), así el que emite la cotización nunca expone su costo real ni su ganancia.
+- **Más datos del emisor en el PDF**: cuando lo emite un cliente (marca blanca), aparecen también su teléfono, correo y web si los cargó.
+- **Animación de éxito**: al crear una cotización aparece una animación con el color de marca del cliente (o violeta si sos vos) con checkmark y anillos, y dos botones: **Crear otro** (arranca una nueva de cero) o **Enviar** (elige WhatsApp o Correo — abre la app correspondiente con un mensaje precargado).
+  - *Aclaración honesta:* como todavía no hay un link público de solo-lectura para compartir la cotización, el mensaje de WhatsApp/Correo es un resumen de texto (título, total, vigencia) — no un link clickeable. Si querés que el destinatario vea el detalle completo, por ahora conviene adjuntar el PDF descargado a mano. Puedo construir un link público más adelante si te sirve.
+- **Ícono de descarga** en el listado de cotizaciones (junto al de editar): abre el PDF y dispara la impresión automáticamente.
+
+### Multi-moneda: cómo se congela
+
+`toArs(monto, moneda, cotizaciones)` en `src/context/FxContext.jsx` centraliza la conversión. El USD usa el dólar cripto (USDT) como puente; el MXN se puentea vía USD (USD→ARS y USD→MXN, ambos de fuentes públicas). Todo lo que se guarda en el sistema fija esa conversión en el momento — nunca se recalcula después.
+
+---
+
+## Alta de clientes por invitación
+
+### ⚠️ Paso extra obligatorio (uno solo, y es manual por seguridad)
+
+Además de importar `pb-schema-invites.json` (Merge, igual que siempre), hay que agregar **a mano** una regla en el panel de PocketBase — no se puede hacer por import porque toca la colección de autenticación (`users`), que es más delicada:
+
+1. Panel de PocketBase → **Collections → users → ⚙️ → API rules**
+2. En **Create rule**, pegá exactamente esto:
+   ```
+   @request.auth.id = "" && @request.body.role = "cliente"
+   ```
+3. Guardá.
+
+Esto es lo que garantiza, a nivel de base de datos, que **nadie pueda crear una cuenta que no sea de tipo cliente** por esta vía — aunque alguien intente manipular la petición a mano, el servidor la rechaza. Sin este paso, el formulario público de alta no va a poder crear usuarios.
+
+### Cómo se usa
+
+1. En **Usuarios** (admin/equipo) → **"Enviar alta de cliente"** → completás nombre/correo/teléfono (todo opcional, solo para personalizar el mensaje).
+2. Se genera un enlace único (`tu-dominio/alta/ID`) y aparece la opción de mandarlo por **WhatsApp**, **Correo** o copiarlo.
+3. Tu cliente abre el link: ve la animación "Todo comienza aquí", completa sus datos (negocio, contacto, y crea su contraseña) en un wizard de 3 pasos, y al terminar ve la pantalla de bienvenida con tu logo y el botón "Iniciar sesión".
+4. Automáticamente queda creado: el usuario (rol cliente), la ficha en tu módulo de Clientes, y vinculados entre sí — vos no tenés que cargar nada a mano.
+5. El enlace es de un solo uso: una vez completado, si alguien vuelve a abrirlo ve "Este enlace ya no está disponible".
+
+La página **Usuarios** también lista todas las invitaciones (pendientes/completadas) y tu equipo interno (solo lectura — las cuentas de equipo se siguen creando desde el panel de PocketBase).

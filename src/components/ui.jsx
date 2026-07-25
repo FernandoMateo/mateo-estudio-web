@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PILL } from '../lib/constants'
-import { fmtARS, fmtUSD } from '../lib/api'
-import { useFx, usdToArs } from '../context/FxContext'
+import { fmtARS, fmtUSD, fmtMXN, fmtByCurrency } from '../lib/api'
+import { useFx, convertAmount } from '../context/FxContext'
 
 const spring = { type: 'spring', stiffness: 340, damping: 28 }
 
@@ -259,23 +259,22 @@ export function Select({ value, onChange, options, placeholder = 'Selecciona…'
   )
 }
 
-/* ── Campo de monto dual-moneda (ARS/USD) con conversión en vivo ── */
+/* ── Campo de monto multi-moneda (ARS/USD/MXN) con conversión en vivo ── */
 export function MoneyField({ amount, currency, onAmount, onCurrency, placeholder }) {
   const { rates } = useFx()
-  const rate = usdToArs(rates)
-  const isUsd = currency === 'USD'
-  const preview = isUsd && rate && amount ? Number(amount) * rate : null
+  const isForeign = currency && currency !== 'ARS'
+  const preview = isForeign && amount ? convertAmount(amount, currency, 'ARS', rates) : null
   return (
     <div>
       <div className="flex gap-2">
         <input type="number" min="0" step="0.01" className="field flex-1" value={amount}
           onChange={e => onAmount(e.target.value)} placeholder={placeholder || '0.00'} />
-        <div className="w-[104px] flex-shrink-0">
+        <div className="w-[112px] flex-shrink-0">
           <Select value={currency || 'ARS'} onChange={onCurrency}
-            options={[{ value: 'ARS', label: 'ARS $' }, { value: 'USD', label: 'USD US$' }]} />
+            options={[{ value: 'ARS', label: 'ARS $' }, { value: 'USD', label: 'USD US$' }, { value: 'MXN', label: 'MXN MX$' }]} />
         </div>
       </div>
-      {isUsd && (
+      {isForeign && (
         <p className="text-[11px] text-white/35 mt-1.5 flex items-center gap-1.5">
           <svg className="w-3 h-3 text-violet-light/60 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M7 10h10M7 14h6"/><circle cx="12" cy="12" r="9"/></svg>
           {preview != null
@@ -289,10 +288,10 @@ export function MoneyField({ amount, currency, onAmount, onCurrency, placeholder
 
 /* ── Muestra un monto guardado, con su conversión congelada al momento del registro ── */
 export function MoneyDisplay({ amount, currency, amountArs, className }) {
-  if (currency === 'USD') {
+  if (currency && currency !== 'ARS') {
     return (
       <span className={className}>
-        {fmtUSD(amount)}
+        {fmtByCurrency(amount, currency)}
         {amountArs != null && <span className="block text-[10px] text-white/30 font-normal mt-0.5">≈ {fmtARS(amountArs)} ARS al registrarse</span>}
       </span>
     )

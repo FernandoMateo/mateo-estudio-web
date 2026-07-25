@@ -18,6 +18,7 @@ export default function Cotizador() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [viewing, setViewing] = useState(null)
+  const [autoPrint, setAutoPrint] = useState(false)
 
   const load = () => list('quotes', '&sort=-created&filter=' + encodeURIComponent('issuer_type="estudio"') + '&expand=client')
     .then(setQuotes).catch(() => toast('No se pudieron cargar las cotizaciones.', true))
@@ -37,6 +38,7 @@ export default function Cotizador() {
   })
 
   const catalogFromServices = services.map(s => ({ id: s.id, name: s.name, unit_cost: s.price, currency: s.price_currency || 'ARS', unit: s.billing_type === 'por_hora' ? 'hora' : 'unidad' }))
+  const clientOptions = clients.map(c => ({ value: c.id, label: c.name, phone: c.phone, email: c.email }))
 
   async function del(q) {
     if (!confirm(`¿Eliminar la cotización "${q.title}"?`)) return
@@ -62,7 +64,8 @@ export default function Cotizador() {
         <div className="flex flex-col gap-2.5">
           {filtered.map(q => (
             <QuoteRow key={q.id} quote={q} subtitle={clientName(q) || q.recipient_name || 'Sin destinatario'}
-              onView={() => setViewing(q)}
+              onView={() => { setAutoPrint(false); setViewing(q) }}
+              onDownload={() => { setAutoPrint(true); setViewing(q) }}
               onEdit={() => { setEditing(q); setOpen(true) }}
               onDelete={() => del(q)} />
           ))}
@@ -70,10 +73,10 @@ export default function Cotizador() {
       )}
 
       <QuoteBuilder open={open} onClose={() => setOpen(false)} mode="estudio"
-        clientOptions={clients.map(c => ({ value: c.id, label: c.name }))}
-        catalog={catalogFromServices} editingQuote={editing} onSaved={load} />
+        clientOptions={clientOptions} catalog={catalogFromServices} editingQuote={editing}
+        brandName="Mateo Estudio" onSaved={load} />
 
-      <QuoteViewer open={!!viewing} onClose={() => setViewing(null)} quote={viewing} />
+      <QuoteViewer open={!!viewing} onClose={() => setViewing(null)} quote={viewing} autoPrint={autoPrint} />
     </div>
   )
 }

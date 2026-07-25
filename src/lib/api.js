@@ -34,5 +34,9 @@ export const fileUrl = (col, id, name, thumb) =>
 export const fmtARS = n => '$' + (Number(n) || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
 // Dólares estadounidenses
 export const fmtUSD = n => 'US$' + (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })
+// Pesos mexicanos
+export const fmtMXN = n => 'MX$' + (Number(n) || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })
+// Formatea según la moneda indicada (ARS por defecto)
+export const fmtByCurrency = (n, currency) => currency === 'USD' ? fmtUSD(n) : currency === 'MXN' ? fmtMXN(n) : fmtARS(n)
 // Alias retrocompatible (algunos módulos ya usan fmtMoney para ARS)
 export const fmtMoney = fmtARS

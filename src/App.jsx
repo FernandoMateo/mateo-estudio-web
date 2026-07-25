@@ -10,7 +10,9 @@ import Tareas from './pages/Tareas'
 import Finanzas from './pages/Finanzas'
 import Servicios from './pages/Servicios'
 import Cotizador from './pages/Cotizador'
+import Usuarios from './pages/Usuarios'
 import Portal from './pages/Portal'
+import Alta from './pages/Alta'
 
 export default function App() {
   return (
@@ -27,8 +29,10 @@ export default function App() {
               <Route path="finanzas" element={<Finanzas />} />
               <Route path="servicios" element={<Servicios />} />
               <Route path="cotizador" element={<Cotizador />} />
+              <Route path="usuarios" element={<Usuarios />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
+            <Route path="/alta/:id" element={<Alta />} />
           </Routes>
         </BrowserRouter>
       </FxProvider>

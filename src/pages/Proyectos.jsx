@@ -5,7 +5,7 @@ import { list, createRec, updateRec, removeRec } from '../lib/api'
 import { PHASES } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
-import { useFx, usdToArs } from '../context/FxContext'
+import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Básicos', 'Plan']
 const emptyForm = { name: '', client: '', status: 'propuesta', phase: 'descubrimiento', description: '', start_date: '', due_date: '', budget: '', budget_currency: 'ARS', progress: 0 }
@@ -67,12 +67,11 @@ export default function Proyectos() {
     }
     if (isAdmin) {
       const bAmount = form.budget ? Number(form.budget) : 0
-      const isUsd = form.budget_currency === 'USD'
-      const rate = usdToArs(rates)
+      const bArs = Math.round(toArs(bAmount, form.budget_currency, rates))
       body.budget = bAmount
       body.budget_currency = form.budget_currency || 'ARS'
-      body.budget_fx_rate = isUsd ? (rate || 0) : 1
-      body.budget_ars = isUsd ? (rate ? Math.round(bAmount * rate) : bAmount) : bAmount
+      body.budget_fx_rate = (form.budget_currency && form.budget_currency !== 'ARS') ? (bAmount ? bArs / bAmount : 0) : 1
+      body.budget_ars = bArs
     }
     try {
       if (editId) await updateRec('projects', editId, body)

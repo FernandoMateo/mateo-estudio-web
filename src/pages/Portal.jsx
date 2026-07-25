@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtUSD } from '../lib/api'
+import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency } from '../lib/api'
 import { PHASES } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon } from '../components/ui'
@@ -9,6 +9,7 @@ import CountUp from '../components/CountUp'
 import QuoteBuilder from '../components/QuoteBuilder'
 import QuoteViewer from '../components/QuoteViewer'
 import QuoteRow from '../components/QuoteRow'
+import CatalogViewer from '../components/CatalogViewer'
 
 const PHASE_ORDER = ['descubrimiento', 'diseno', 'desarrollo', 'revision', 'entrega']
 const TABS = [
@@ -131,6 +132,9 @@ export default function Portal() {
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [editingQuote, setEditingQuote] = useState(null)
   const [viewingQuote, setViewingQuote] = useState(null)
+  const [quoteAutoPrint, setQuoteAutoPrint] = useState(false)
+  const [catalogViewOpen, setCatalogViewOpen] = useState(false)
+  const [catalogAutoPrint, setCatalogAutoPrint] = useState(false)
   const [itemOpen, setItemOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [itemForm, setItemForm] = useState({ name: '', type: 'material', unit: 'unidad', unit_cost: '', currency: 'ARS' })
@@ -527,7 +531,8 @@ export default function Portal() {
                       <div className="flex flex-col gap-2.5">
                         {myQuotes.map(q => (
                           <QuoteRow key={q.id} quote={q} subtitle={q.recipient_name || 'Sin destinatario'}
-                            onView={() => setViewingQuote(q)}
+                            onView={() => { setQuoteAutoPrint(false); setViewingQuote(q) }}
+                            onDownload={() => { setQuoteAutoPrint(true); setViewingQuote(q) }}
                             onEdit={() => { setEditingQuote(q); setQuoteOpen(true) }}
                             onDelete={() => delQuote(q)} />
                         ))}
@@ -545,7 +550,9 @@ export default function Portal() {
                   ) : (
                     <div className="flex flex-col gap-2.5">
                       {receivedQuotes.map(q => (
-                        <QuoteRow key={q.id} quote={q} subtitle="Mateo Estudio" onView={() => setViewingQuote(q)}
+                        <QuoteRow key={q.id} quote={q} subtitle="Mateo Estudio"
+                          onView={() => { setQuoteAutoPrint(false); setViewingQuote(q) }}
+                          onDownload={() => { setQuoteAutoPrint(true); setViewingQuote(q) }}
                           tag={<span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">recibida</span>} />
                       ))}
                     </div>
@@ -554,7 +561,11 @@ export default function Portal() {
 
                 {quoteSub === 'catalogo' && (
                   <div>
-                    <div className="flex justify-end mb-3">
+                    <div className="flex justify-end gap-2.5 mb-3">
+                      <button className="btn-ghost" onClick={() => { setCatalogAutoPrint(false); setCatalogViewOpen(true) }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>
+                        Descargar catálogo
+                      </button>
                       <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" onClick={openItemNew}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                         Agregar ítem
@@ -572,14 +583,14 @@ export default function Portal() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
                                 <div className="text-[13px] font-bold truncate">{it.name}</div>
-                                <div className="text-[10.5px] text-white/35 mt-0.5">{it.type === 'mano_obra' ? 'Mano de obra' : it.type === 'material' ? 'Material' : 'Otro'} · {it.unit}</div>
+                                <div className="text-[10.5px] text-white/35 mt-0.5">{it.type === 'mano_obra' ? 'Mano de obra' : it.type === 'material' ? 'Material' : it.type === 'servicio' ? 'Servicio' : 'Otro'} · {it.unit}</div>
                               </div>
                               <div className="flex gap-1 flex-shrink-0">
                                 <IconBtn onClick={() => openItemEdit(it)} title="Editar"><EditIcon /></IconBtn>
                                 <IconBtn onClick={() => delItem(it)} danger title="Eliminar"><TrashIcon /></IconBtn>
                               </div>
                             </div>
-                            <div className="text-[15px] font-extrabold mt-2.5">{it.currency === 'USD' ? fmtUSD(it.unit_cost) : fmtARS(it.unit_cost)}</div>
+                            <div className="text-[15px] font-extrabold mt-2.5">{fmtByCurrency(it.unit_cost, it.currency)}</div>
                           </motion.div>
                         ))}
                       </div>
@@ -618,7 +629,7 @@ export default function Portal() {
                   ) : (
                     <div className="flex flex-col gap-2.5">
                       {invoices.map((inv, i) => {
-                        const isUsd = inv.currency === 'USD'
+                        const isForeign = inv.currency && inv.currency !== 'ARS'
                         return (
                           <motion.div key={inv.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                             whileHover={{ y: -2 }}
@@ -636,8 +647,8 @@ export default function Portal() {
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <div className="text-[15px] font-extrabold">{isUsd ? fmtUSD(inv.amount) : fmtARS(inv.amount)}</div>
-                              {isUsd && inv.amount_ars != null && (
+                              <div className="text-[15px] font-extrabold">{fmtByCurrency(inv.amount, inv.currency)}</div>
+                              {isForeign && inv.amount_ars != null && (
                                 <div className="text-[10px] text-white/30 mt-0.5">≈ {fmtARS(inv.amount_ars)} ARS al emitirse</div>
                               )}
                             </div>
@@ -769,8 +780,10 @@ export default function Portal() {
 
       {/* ── Cotizador propio (marca blanca) ── */}
       <QuoteBuilder open={quoteOpen} onClose={() => setQuoteOpen(false)} mode="cliente"
-        ownClientId={client?.id} catalog={catalogItems} editingQuote={editingQuote} onSaved={loadAll} />
-      <QuoteViewer open={!!viewingQuote} onClose={() => setViewingQuote(null)} quote={viewingQuote} brandClient={client} />
+        ownClientId={client?.id} catalog={catalogItems} editingQuote={editingQuote} onSaved={loadAll}
+        brandColor={brandColor} brandName={client?.name} />
+      <QuoteViewer open={!!viewingQuote} onClose={() => setViewingQuote(null)} quote={viewingQuote} brandClient={client} autoPrint={quoteAutoPrint} />
+      <CatalogViewer open={catalogViewOpen} onClose={() => setCatalogViewOpen(false)} items={catalogItems} client={client} autoPrint={catalogAutoPrint} />
 
       {/* ── Modal: ítem de catálogo propio ── */}
       <Modal open={itemOpen} onClose={() => setItemOpen(false)}>
@@ -779,14 +792,14 @@ export default function Portal() {
           <Field label="Nombre *" full><input className="field" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Cemento (bolsa 50kg), Hora de instalación…" /></Field>
           <Field label="Tipo">
             <Select value={itemForm.type} onChange={v => setItemForm(f => ({ ...f, type: v }))}
-              options={[{ value: 'material', label: 'Material' }, { value: 'mano_obra', label: 'Mano de obra' }, { value: 'otro', label: 'Otro' }]} />
+              options={[{ value: 'servicio', label: 'Servicio' }, { value: 'material', label: 'Material' }, { value: 'mano_obra', label: 'Mano de obra' }, { value: 'otro', label: 'Otro' }]} />
           </Field>
           <Field label="Unidad"><input className="field" value={itemForm.unit} onChange={e => setItemForm(f => ({ ...f, unit: e.target.value }))} placeholder="unidad, hora, m², kg…" /></Field>
           <Field label="Costo" full>
             <div className="flex gap-2">
               <input type="number" min="0" step="0.01" className="field flex-1" value={itemForm.unit_cost} onChange={e => setItemForm(f => ({ ...f, unit_cost: e.target.value }))} placeholder="0.00" />
               <div className="w-[104px] flex-shrink-0">
-                <Select value={itemForm.currency} onChange={v => setItemForm(f => ({ ...f, currency: v }))} options={[{ value: 'ARS', label: 'ARS $' }, { value: 'USD', label: 'USD US$' }]} />
+                <Select value={itemForm.currency} onChange={v => setItemForm(f => ({ ...f, currency: v }))} options={[{ value: 'ARS', label: 'ARS $' }, { value: 'USD', label: 'USD US$' }, { value: 'MXN', label: 'MXN MX$' }]} />
               </div>
             </div>
           </Field>

@@ -4,7 +4,7 @@ import { list, createRec, updateRec, removeRec, fileUrl } from '../lib/api'
 import { COUNTRIES, flagOf } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
-import { useFx, usdToArs } from '../context/FxContext'
+import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Identidad', 'Contacto', 'Fiscal', 'Comercial']
 const emptyForm = {
@@ -72,12 +72,11 @@ export default function Clientes() {
     if (form.email) fd.append('email', form.email)
     if (form.estimated_value) {
     fd.append('estimated_value', form.estimated_value)
-    const isUsd = form.estimated_value_currency === 'USD'
-    const rate = usdToArs(rates)
     const val = Number(form.estimated_value)
+    const valArs = Math.round(toArs(val, form.estimated_value_currency, rates))
     fd.append('estimated_value_currency', form.estimated_value_currency || 'ARS')
-    fd.append('estimated_value_fx_rate', isUsd ? (rate || 0) : 1)
-    fd.append('estimated_value_ars', isUsd ? (rate ? Math.round(val * rate) : val) : val)
+    fd.append('estimated_value_fx_rate', (form.estimated_value_currency && form.estimated_value_currency !== 'ARS') ? (val ? valArs / val : 0) : 1)
+    fd.append('estimated_value_ars', valArs)
   }
     fd.append('user', form.user || '')
     if (form.logoFile) fd.append('logo', form.logoFile)

@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, FilterTabs, PlusIcon, Select, MoneyField, MoneyDisplay } from '../components/ui'
 import CountUp from '../components/CountUp'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import { useFx, usdToArs } from '../context/FxContext'
+import { useFx, toArs } from '../context/FxContext'
 
 const emptyForm = { type: 'ingreso', concept: '', amount: '', currency: 'ARS', date: new Date().toISOString().slice(0, 10), status: 'pagado', method: '', client: '', project: '', due_date: '', notes: '' }
 const TABS = [['todas', 'Todas'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos'], ['pendientes', 'Pendientes / Vencidas']]
@@ -93,11 +93,10 @@ export default function Finanzas() {
     if (!form.concept.trim()) { toast('El concepto es obligatorio.', true); return }
     if (!amount || amount <= 0) { toast('Escribe un monto válido mayor a 0.', true); return }
     setSaving(true)
-    const isUsd = form.currency === 'USD'
-    const rate = usdToArs(rates)
+    const isForeign = form.currency && form.currency !== 'ARS'
     // Congelamos la cotización del día al momento de guardar: si sube o baja después, este registro no se mueve.
-    const fxRate = isUsd ? rate : 1
-    const amountArs = isUsd ? (rate ? Math.round(amount * rate) : amount) : amount
+    const amountArs = Math.round(toArs(amount, form.currency, rates))
+    const fxRate = isForeign ? (amount ? amountArs / amount : 0) : 1
     const body = {
       type: form.type, concept: form.concept.trim(), amount, status: form.status,
       currency: form.currency, fx_rate: fxRate || 0, amount_ars: amountArs,
@@ -239,7 +238,7 @@ export default function Finanzas() {
                   </div>
                 </div>
                 <span className={`font-extrabold whitespace-nowrap text-right ${isIn ? 'text-mint' : 'text-coral'}`}>
-                  {isIn ? '+' : '−'}<MoneyDisplay amount={t.amount} currency={t.currency} amountArs={t.currency === 'USD' ? t.amount_ars : null} />
+                  {isIn ? '+' : '−'}<MoneyDisplay amount={t.amount} currency={t.currency} amountArs={t.currency && t.currency !== 'ARS' ? t.amount_ars : null} />
                 </span>
                 <Pill value={t.status || 'pendiente'} />
                 <div className="flex gap-1.5 flex-shrink-0">
