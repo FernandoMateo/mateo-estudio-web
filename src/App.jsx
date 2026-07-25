@@ -8,6 +8,7 @@ import Clientes from './pages/Clientes'
 import Proyectos from './pages/Proyectos'
 import Tareas from './pages/Tareas'
 import Finanzas from './pages/Finanzas'
+import Servicios from './pages/Servicios'
 import Portal from './pages/Portal'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
               <Route path="proyectos" element={<Proyectos />} />
               <Route path="tareas" element={<Tareas />} />
               <Route path="finanzas" element={<Finanzas />} />
+              <Route path="servicios" element={<Servicios />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
           </Routes>

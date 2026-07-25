@@ -8,6 +8,7 @@ const ICONS = {
   proyectos: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>,
   tareas: <><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M8.5 12.5l2.5 2.5 4.8-5.5"/></>,
   finanzas: <><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3.2-4 3 2.4L19 7.5"/></>,
+  servicios: <path d="M12 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L7.5 16.8l.9-5L4.8 8.3l5-.7z"/>,
 }
 
 const ITEMS = [
@@ -16,6 +17,7 @@ const ITEMS = [
   { to: '/app/proyectos', label: 'Proyectos', icon: 'proyectos' },
   { to: '/app/tareas', label: 'Tareas', icon: 'tareas' },
   { to: '/app/finanzas', label: 'Finanzas', icon: 'finanzas', adminOnly: true },
+  { to: '/app/servicios', label: 'Servicios', icon: 'servicios' },
 ]
 
 export default function Sidebar({ me, open, setOpen }) {

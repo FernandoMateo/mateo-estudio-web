@@ -30,15 +30,6 @@ export const removeRec = (col, id) =>
 export const fileUrl = (col, id, name, thumb) =>
   `${PB_URL}/api/files/${col}/${id}/${encodeURIComponent(name)}${thumb ? `?thumb=${thumb}` : ''}`
 
-export async function auth(identity, password) {
-  const data = await api('/api/collections/users/auth-with-password', {
-    method: 'POST',
-    json: { identity, password },
-  })
-  setAuth(data)
-  return data
-}
-
 // Pesos argentinos (moneda principal)
 export const fmtARS = n => '$' + (Number(n) || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
 // Dólares estadounidenses

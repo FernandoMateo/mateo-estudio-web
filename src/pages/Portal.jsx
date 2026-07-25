@@ -15,76 +15,6 @@ const TABS = [
   ['credenciales', 'Credenciales'],
 ]
 
-/* ── Iconos para la animación de carga ── */
-function SpinnerIcon() {
-  return (
-    <motion.svg
-      className="w-8 h-8 text-violet-light/70"
-      animate={{ rotate: 360 }}
-      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-    >
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-    </motion.svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg className="w-10 h-10 text-mint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <motion.path
-        d="M5 13l4 4L19 7"
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}
-      />
-    </svg>
-  );
-}
-
-function WaveIcon() {
-  return (
-    <motion.span
-      className="text-4xl inline-block"
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-    >
-      👋
-    </motion.span>
-  );
-}
-
-/* ── Animación de carga del portal ── */
-function PortalLoader({ auth }) {
-  const [step, setStep] = useState(0); // 0: verificando, 1: permitido, 2: bienvenida
-  const name = (auth?.record?.name || auth?.record?.email || '').split(' ')[0].split('@')[0];
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 1500);
-    const t2 = setTimeout(() => setStep(2), 2800);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
-  const messages = [
-    { icon: <SpinnerIcon />, text: "Verificando credenciales..." },
-    { icon: <CheckIcon />, text: "Acceso Permitido" },
-    { icon: <WaveIcon />, text: `Hola, ${name}` }
-  ];
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <PortalAurora />
-      <AnimatePresence mode="wait">
-        <motion.div key={step} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="flex flex-col items-center gap-4 text-center">
-          {messages[step].icon}
-          <p className="text-[14px] text-white/60 tracking-wide font-medium">{messages[step].text}</p>
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-}
-
 /* ── Fondo aurora intensificado, exclusivo del portal ── */
 function PortalAurora() {
   return (
@@ -196,19 +126,11 @@ export default function Portal() {
   useEffect(() => {
     if (!auth?.token || !auth?.record) { nav('/'); return }
     if (auth.record.role !== 'cliente') { nav('/app'); return }
-
-    const minLoadingTime = 3500; // Duración de la animación de entrada
-
-    // Esperamos a que los datos carguen y que la animación termine
-    Promise.all([
-      loadAll(),
-      new Promise(resolve => setTimeout(resolve, minLoadingTime))
-    ]).finally(() => {
-      setLoading(false);
-    });
+    loadAll()
   }, [])
 
   async function loadAll() {
+    setLoading(true)
     try {
       const cs = await list('clients')
       const mine = cs[0] || null
@@ -228,7 +150,7 @@ export default function Portal() {
       setProjects(ps); setTasks(ts); setInvoices(txs); setCreds(cds)
     } catch {
       toast('No se pudo cargar tu información. Recarga la página.', true)
-    }
+    } finally { setLoading(false) }
   }
 
   const firstName = (client?.contact_name || auth?.record?.name || auth?.record?.email || '').split(' ')[0].split('@')[0]
@@ -300,7 +222,13 @@ export default function Portal() {
   }
 
   if (loading) {
-    return <PortalLoader auth={auth} />
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <PortalAurora />
+        <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.6, repeat: Infinity }}
+          className="text-[13px] text-white/50 tracking-wide">Preparando tu espacio…</motion.div>
+      </div>
+    )
   }
 
   return (
