@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { list, fileUrl, fmtARS, fmtByCurrency } from '../lib/api'
 import { Modal } from './ui'
 
@@ -9,7 +10,7 @@ const PAYMENT_LABELS = { efectivo: 'Efectivo', transferencia: 'Transferencia', c
  * brandClient: registro de clients del emisor (para marca blanca, cuando issuer_type='cliente')
  * autoPrint: si true, dispara el diálogo de impresión apenas carga (para el botón "descargar" de la lista)
  */
-export default function QuoteViewer({ open, onClose, quote, brandClient, autoPrint }) {
+export default function QuoteViewer({ open, onClose, quote, brandClient, autoPrint, canDecide, onDecide, deciding }) {
   const [lines, setLines] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -139,6 +140,23 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
           <div className="mt-5 pt-4 border-t border-gray-100 text-[11.5px] text-gray-500 whitespace-pre-line">{quote.notes}</div>
         )}
       </div>
+
+      {canDecide && (
+        <div className="print:hidden flex items-center gap-3 mt-5 justify-center flex-wrap">
+          <p className="text-[12.5px] text-white/45 w-full text-center mb-1">¿Qué decidís sobre esta cotización?</p>
+          <motion.button whileTap={{ scale: 0.97 }} disabled={deciding} onClick={() => onDecide?.('rechazado')}
+            className="flex-1 max-w-[180px] justify-center flex items-center gap-2 py-3 rounded-xl border text-[13px] font-semibold transition-colors disabled:opacity-50"
+            style={{ background: 'rgba(251,113,133,.08)', borderColor: 'rgba(251,113,133,.3)', color: '#FB7185' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            Rechazar
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.97 }} disabled={deciding} onClick={() => onDecide?.('aprobado')}
+            className="btn-glass flex-1 max-w-[180px] justify-center disabled:opacity-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 13l4 4 10-11" /></svg>
+            {deciding ? 'Guardando…' : 'Aprobar'}
+          </motion.button>
+        </div>
+      )}
     </Modal>
   )
 }

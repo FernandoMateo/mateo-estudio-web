@@ -262,3 +262,38 @@ Sin cambios de esquema — solo lee datos que ya existen en `client_invites`, `q
 | Top 5 clientes por ingresos | Suma de `transactions` agrupada por cliente (solo admin) |
 
 Los reportes de dinero (ingresos, top clientes) quedan ocultos para el rol `equipo`, igual que en Finanzas — mismo criterio de privacidad que ya usás en el resto del sistema.
+
+---
+
+## Gestión de equipo, aprobación de cotizaciones y tarjeta de cotizaciones en el Resumen
+
+### ⚠️ Paso manual obligatorio (una vez más, toca la colección `users`)
+
+Para que un admin pueda crear cuentas de equipo **desde la app** (sin entrar al panel de PocketBase), hay que ampliar los permisos de la colección `users`. Es manual por el mismo motivo de siempre: es la colección de autenticación, y ahí no conviene hacer merge-import.
+
+Panel de PocketBase → **Collections → users → ⚙️ → API rules** → pegá exactamente esto en cada campo:
+
+**Create rule:**
+```
+(@request.auth.id = "" && @request.body.role = "cliente") || @request.auth.role = "admin"
+```
+*(mantiene la alta pública de clientes como estaba, y además permite que un admin cree cualquier tipo de cuenta desde la app)*
+
+**Update rule:**
+```
+@request.auth.role = "admin" || id = @request.auth.id
+```
+
+**Delete rule:**
+```
+@request.auth.role = "admin"
+```
+
+Sin este paso, el botón "Agregar" del equipo en Usuarios va a fallar.
+
+### Qué se agregó
+
+- **Usuarios → Tu equipo**: ahora el admin puede crear cuentas de equipo/admin directamente (nombre, correo, contraseña, rol) y eliminarlas. No podés eliminar tu propia cuenta desde ahí (por seguridad).
+- **Aprobar/Rechazar cotizaciones desde el Portal**: cuando le mandás una cotización a un cliente (estado "enviado"), al abrirla desde su Portal le aparecen los botones **Aprobar** / **Rechazar**. Al decidir, te llega una notificación a vos (y a todo el equipo) con el resultado.
+- **Tarjeta "Tus cotizaciones" en el Resumen del Portal**: el cliente ve de un vistazo las últimas cotizaciones que le mandaste, con un punto ámbar parpadeante si tiene alguna pendiente de decisión.
+- **Confirmado (sin cambios de código)**: los clientes que se dan de alta por el link de invitación ya aparecían automáticamente en el módulo Clientes — no hacía falta tocar nada ahí, `Clientes.jsx` lista todos los registros sin filtrar por origen.

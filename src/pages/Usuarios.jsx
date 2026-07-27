@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, createRec, removeRec, PB_URL } from '../lib/api'
 import { useToast } from '../context/ToastContext'
-import { Modal, ModalHead, Field, Pill, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
+import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 
 export default function Usuarios() {
+  const { me } = useOutletContext()
+  const isAdmin = me.role === 'admin'
   const toast = useToast()
   const [invites, setInvites] = useState([])
   const [team, setTeam] = useState([])
@@ -17,6 +20,10 @@ export default function Usuarios() {
   const [sendOpen, setSendOpen] = useState(false)
   const [lastInvite, setLastInvite] = useState(null)
   const [copied, setCopied] = useState(false)
+
+  const [teamOpen, setTeamOpen] = useState(false)
+  const [teamForm, setTeamForm] = useState({ name: '', email: '', password: '', role: 'equipo' })
+  const [teamSaving, setTeamSaving] = useState(false)
 
   const load = () => {
     list('client_invites', '&sort=-created&expand=client').then(setInvites).catch(() => toast('No se pudieron cargar las invitaciones.', true))
@@ -67,6 +74,36 @@ export default function Usuarios() {
     navigator.clipboard?.writeText(link).then(() => setCopied(true)).catch(() => {})
   }
 
+  /* ── Gestión de equipo ── */
+  function openTeamNew() { setTeamForm({ name: '', email: '', password: '', role: 'equipo' }); setTeamOpen(true) }
+
+  async function createTeamMember() {
+    if (!teamForm.name.trim() || !teamForm.email.trim()) { toast('Completá nombre y correo.', true); return }
+    if (!teamForm.password || teamForm.password.length < 8) { toast('La contraseña debe tener al menos 8 caracteres.', true); return }
+    setTeamSaving(true)
+    try {
+      await createRec('users', {
+        name: teamForm.name.trim(), email: teamForm.email.trim(),
+        password: teamForm.password, passwordConfirm: teamForm.password,
+        role: teamForm.role,
+      })
+      setTeamOpen(false)
+      toast(`✦ ${teamForm.name.trim()} ya forma parte del equipo`)
+      load()
+    } catch (e) {
+      const d = e?.data?.data || {}
+      const msg = d.email?.message ? 'Ese correo ya tiene una cuenta.' : 'No se pudo crear la cuenta. Revisá los datos.'
+      toast(msg, true)
+    } finally { setTeamSaving(false) }
+  }
+
+  async function delTeamMember(u) {
+    if (u.id === me.id) { toast('No podés eliminar tu propia cuenta desde acá.', true); return }
+    if (!confirm(`¿Eliminar a "${u.name || u.email}" del equipo? Va a perder el acceso al sistema.`)) return
+    try { await removeRec('users', u.id); toast('Cuenta eliminada ✓'); load() }
+    catch { toast('No se pudo eliminar.', true) }
+  }
+
   return (
     <div>
       <ModuleHead title="Usuarios" count={`${invites.length} invitaciones`} search={search} onSearch={setSearch}
@@ -101,30 +138,43 @@ export default function Usuarios() {
         </div>
       )}
 
-      {!!team.length && (
-        <div>
-          <h3 className="text-[13px] font-bold text-white/50 uppercase tracking-wide mb-3">Tu equipo</h3>
-          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(220px,100%),1fr))' }}>
-            {team.map(u => (
-              <div key={u.id} className="card !p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#7C3AED,#A78BFA)' }}>{(u.name || u.email || '?')[0].toUpperCase()}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold truncate">{u.name || u.email}</div>
-                  <div className="text-[10.5px] text-violet-light/70 capitalize font-semibold">{u.role}</div>
-                </div>
+      <div className="flex items-center gap-3 mb-3">
+        <h3 className="text-[13px] font-bold text-white/50 uppercase tracking-wide">Tu equipo</h3>
+        <span className="text-[11px] font-semibold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2.5 py-0.5">{team.length}</span>
+        <div className="flex-1" />
+        {isAdmin && (
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass !py-2 !px-3 text-[12px]" onClick={openTeamNew}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            Agregar
+          </motion.button>
+        )}
+      </div>
+
+      {!team.length ? (
+        <p className="text-[12.5px] text-white/35 px-1 mb-6">Todavía sos el único en el equipo.</p>
+      ) : (
+        <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(230px,100%),1fr))' }}>
+          {team.map(u => (
+            <div key={u.id} className="card !p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg,#7C3AED,#A78BFA)' }}>{(u.name || u.email || '?')[0].toUpperCase()}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold truncate">{u.name || u.email}{u.id === me.id && <span className="text-white/30 font-normal"> (vos)</span>}</div>
+                <div className="text-[10.5px] text-violet-light/70 capitalize font-semibold">{u.role}</div>
               </div>
-            ))}
-          </div>
-          <p className="text-[11px] text-white/25 mt-3">Las cuentas de equipo se crean desde el panel de PocketBase por ahora.</p>
+              {isAdmin && u.id !== me.id && (
+                <IconBtn onClick={() => delTeamMember(u)} danger title="Eliminar del equipo"><TrashIcon /></IconBtn>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ── Modal: nueva invitación ── */}
+      {/* ── Modal: nueva invitación de cliente ── */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <ModalHead title="Enviar alta de cliente" onClose={() => setOpen(false)} />
         <p className="text-[12.5px] text-white/40 -mt-1.5 mb-4">Generá un enlace único para que tu nuevo cliente cargue sus propios datos y cree su acceso al portal.</p>
-        <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <Field label="Nombre (opcional)" full><input className="field" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Para personalizar el mensaje" /></Field>
           <Field label="Correo"><input type="email" className="field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Para mandarlo por correo" /></Field>
           <Field label="Teléfono"><input className="field" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Para mandarlo por WhatsApp" /></Field>
@@ -161,6 +211,27 @@ export default function Usuarios() {
             {copied ? '✓ Enlace copiado' : 'Copiar enlace'}
           </button>
           <button className="btn-ghost mt-4 !border-transparent !bg-transparent" onClick={() => setSendOpen(false)}>Cerrar</button>
+        </div>
+      </Modal>
+
+      {/* ── Modal: nuevo miembro del equipo ── */}
+      <Modal open={teamOpen} onClose={() => setTeamOpen(false)}>
+        <ModalHead title="Agregar al equipo" onClose={() => setTeamOpen(false)} />
+        <p className="text-[12.5px] text-white/40 -mt-1.5 mb-4">Creá el acceso directo — le compartís el correo y la contraseña vos mismo.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <Field label="Nombre *" full><input className="field" value={teamForm.name} onChange={e => setTeamForm(f => ({ ...f, name: e.target.value }))} placeholder="Nombre y apellido" /></Field>
+          <Field label="Correo *" full><input type="email" className="field" value={teamForm.email} onChange={e => setTeamForm(f => ({ ...f, email: e.target.value }))} placeholder="correo@mateoestudio.com" /></Field>
+          <Field label="Contraseña *" full><input type="password" className="field" value={teamForm.password} onChange={e => setTeamForm(f => ({ ...f, password: e.target.value }))} placeholder="Mínimo 8 caracteres" /></Field>
+          <Field label="Rol" full>
+            <Select value={teamForm.role} onChange={v => setTeamForm(f => ({ ...f, role: v }))}
+              options={[{ value: 'equipo', label: 'Equipo' }, { value: 'admin', label: 'Admin' }]} />
+          </Field>
+        </div>
+        <div className="flex justify-end gap-2.5 mt-6">
+          <button className="btn-ghost" onClick={() => setTeamOpen(false)}>Cancelar</button>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={teamSaving} onClick={createTeamMember}>
+            {teamSaving ? 'Creando…' : 'Crear cuenta ✦'}
+          </motion.button>
         </div>
       </Modal>
     </div>

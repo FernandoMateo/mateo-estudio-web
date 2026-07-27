@@ -136,6 +136,7 @@ export default function Portal() {
   const [editingQuote, setEditingQuote] = useState(null)
   const [viewingQuote, setViewingQuote] = useState(null)
   const [quoteAutoPrint, setQuoteAutoPrint] = useState(false)
+  const [decidingQuote, setDecidingQuote] = useState(false)
   const [catalogViewOpen, setCatalogViewOpen] = useState(false)
   const [catalogAutoPrint, setCatalogAutoPrint] = useState(false)
   const [itemOpen, setItemOpen] = useState(false)
@@ -269,6 +270,22 @@ export default function Portal() {
       await removeRec('quotes', q.id)
       toast('Cotización eliminada ✓'); loadAll()
     } catch { toast('No se pudo eliminar.', true) }
+  }
+
+  async function decideQuote(status) {
+    if (!viewingQuote) return
+    setDecidingQuote(true)
+    try {
+      await updateRec('quotes', viewingQuote.id, { status })
+      notifyTeam({
+        title: `${client?.name || 'Un cliente'} ${status === 'aprobado' ? 'aprobó' : 'rechazó'} una cotización`,
+        message: viewingQuote.title, type: 'pago', client: client?.id || '',
+      })
+      toast(status === 'aprobado' ? '✓ Cotización aprobada' : 'Cotización rechazada')
+      setViewingQuote(null)
+      loadAll()
+    } catch { toast('No se pudo registrar tu decisión. Intentá de nuevo.', true) }
+    finally { setDecidingQuote(false) }
   }
 
   /* ── Bóveda de credenciales ── */
@@ -412,6 +429,32 @@ export default function Portal() {
                           </motion.div>
                         )
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cotizaciones recibidas */}
+                {!!receivedQuotes.length && (
+                  <div className="card">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-[13.5px] font-bold">Tus cotizaciones</h3>
+                      {receivedQuotes.some(q => q.status === 'enviado') && (
+                        <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
+                          className="w-2 h-2 rounded-full bg-amber" style={{ boxShadow: '0 0 8px rgba(251,191,36,.9)' }} />
+                      )}
+                      <div className="flex-1" />
+                      <button onClick={() => setTab('presupuestos')} className="text-[11.5px] font-semibold text-violet-light hover:text-violet-light/80 transition-colors">Ver todas →</button>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {receivedQuotes.slice(0, 4).map((q, i) => (
+                        <motion.div key={q.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                          onClick={() => { setQuoteAutoPrint(false); setViewingQuote(q) }}
+                          className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors cursor-pointer">
+                          <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{q.title}</span>
+                          <span className="text-[12px] font-bold flex-shrink-0">{fmtByCurrency(q.total, q.currency)}</span>
+                          <Pill value={q.status || 'borrador'} />
+                        </motion.div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -794,7 +837,8 @@ export default function Portal() {
       <QuoteBuilder open={quoteOpen} onClose={() => setQuoteOpen(false)} mode="cliente"
         ownClientId={client?.id} catalog={catalogItems} editingQuote={editingQuote} onSaved={loadAll}
         brandColor={brandColor} brandName={client?.name} />
-      <QuoteViewer open={!!viewingQuote} onClose={() => setViewingQuote(null)} quote={viewingQuote} brandClient={client} autoPrint={quoteAutoPrint} />
+      <QuoteViewer open={!!viewingQuote} onClose={() => setViewingQuote(null)} quote={viewingQuote} brandClient={client} autoPrint={quoteAutoPrint}
+        canDecide={viewingQuote?.issuer_type === 'estudio' && viewingQuote?.status === 'enviado'} onDecide={decideQuote} deciding={decidingQuote} />
       <CatalogViewer open={catalogViewOpen} onClose={() => setCatalogViewOpen(false)} items={catalogItems} client={client} autoPrint={catalogAutoPrint} />
 
       {/* ── Modal: ítem de catálogo propio ── */}
