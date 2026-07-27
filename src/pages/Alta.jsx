@@ -108,6 +108,7 @@ export default function Alta() {
         }).catch(() => {})
       }
 
+<<<<<<< HEAD
       // 5) Avisar al equipo que se sumó un cliente nuevo
       try {
         const team = await fetch(`${PB_URL}/api/collections/users/records?filter=${encodeURIComponent('role="admin" || role="equipo"')}`, {
@@ -119,6 +120,8 @@ export default function Alta() {
         })))
       } catch { /* no bloquea el flujo de bienvenida */ }
 
+=======
+>>>>>>> a9ede5ebefbd2796431aabcaa98c10b04e86995d
       setStatus('success')
     } catch (e) {
       const d = e?.data?.data || {}

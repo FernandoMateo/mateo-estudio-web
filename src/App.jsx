@@ -11,7 +11,10 @@ import Finanzas from './pages/Finanzas'
 import Servicios from './pages/Servicios'
 import Cotizador from './pages/Cotizador'
 import Usuarios from './pages/Usuarios'
+<<<<<<< HEAD
 import Notificaciones from './pages/Notificaciones'
+=======
+>>>>>>> a9ede5ebefbd2796431aabcaa98c10b04e86995d
 import Portal from './pages/Portal'
 import Alta from './pages/Alta'
 
@@ -31,7 +34,10 @@ export default function App() {
               <Route path="servicios" element={<Servicios />} />
               <Route path="cotizador" element={<Cotizador />} />
               <Route path="usuarios" element={<Usuarios />} />
+<<<<<<< HEAD
               <Route path="notificaciones" element={<Notificaciones />} />
+=======
+>>>>>>> a9ede5ebefbd2796431aabcaa98c10b04e86995d
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />
