@@ -243,3 +243,22 @@ Importá **`pb-schema-notifications.json`** en PocketBase (Settings → Import c
 ### Limitación honesta
 
 No hay avisos automáticos por *tiempo* (por ejemplo "esta factura venció ayer") — eso requeriría un proceso que corra solo en el servidor (cron/hooks), que no está instalado. Todo lo que sí funciona se dispara **en el momento exacto de la acción** dentro de la app.
+
+---
+
+## Módulo de Reportes
+
+Sin cambios de esquema — solo lee datos que ya existen en `client_invites`, `quotes`, `clients` y `transactions`.
+
+### Qué muestra
+
+| Métrica | De dónde sale |
+|---|---|
+| Conversión de invitaciones | `client_invites`: completadas / total enviadas |
+| Tasa de aprobación | `quotes`: aprobadas / (aprobadas + rechazadas) |
+| Ingresos últimos 6 meses | `transactions` (solo admin, usando el monto congelado en ARS) |
+| Clientes nuevos por mes | `clients.created` |
+| Cotizaciones por estado | Dona: borrador / enviado / aprobado / rechazado |
+| Top 5 clientes por ingresos | Suma de `transactions` agrupada por cliente (solo admin) |
+
+Los reportes de dinero (ingresos, top clientes) quedan ocultos para el rol `equipo`, igual que en Finanzas — mismo criterio de privacidad que ya usás en el resto del sistema.

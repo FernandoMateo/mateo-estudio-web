@@ -12,6 +12,7 @@ const ICONS = {
   cotizador: <><path d="M9 7h6M9 11h6M9 15h3"/><rect x="4" y="3" width="16" height="18" rx="2"/></>,
   usuarios: <><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l1.5 7v6a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-6z"/></>,
   notificaciones: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2.2 2.2 0 0 0 4 0"/></>,
+  reportes: <><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="12" width="3" height="5"/><rect x="12" y="8" width="3" height="9"/><rect x="17" y="14" width="3" height="3"/></>,
 }
 
 const ITEMS = [
@@ -24,6 +25,7 @@ const ITEMS = [
   { to: '/app/cotizador', label: 'Cotizador', icon: 'cotizador' },
   { to: '/app/usuarios', label: 'Usuarios', icon: 'usuarios' },
   { to: '/app/notificaciones', label: 'Notificaciones', icon: 'notificaciones' },
+  { to: '/app/reportes', label: 'Reportes', icon: 'reportes' },
 ]
 
 export default function Sidebar({ me, open, setOpen }) {

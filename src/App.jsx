@@ -12,6 +12,7 @@ import Servicios from './pages/Servicios'
 import Cotizador from './pages/Cotizador'
 import Usuarios from './pages/Usuarios'
 import Notificaciones from './pages/Notificaciones'
+import Reportes from './pages/Reportes'
 import Portal from './pages/Portal'
 import Alta from './pages/Alta'
 
@@ -32,6 +33,7 @@ export default function App() {
               <Route path="cotizador" element={<Cotizador />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="notificaciones" element={<Notificaciones />} />
+              <Route path="reportes" element={<Reportes />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />
