@@ -37,7 +37,7 @@ export default function Cotizador() {
     return (q.title || '').toLowerCase().includes(s) || clientName(q).toLowerCase().includes(s)
   })
 
-  const catalogFromServices = services.map(s => ({ id: s.id, name: s.name, unit_cost: s.price, currency: s.price_currency || 'ARS', unit: s.billing_type === 'por_hora' ? 'hora' : 'unidad' }))
+  const catalogFromServices = services.map(s => ({ id: s.id, name: s.name, unit_cost: 0, currency: 'ARS', unit: 'unidad' }))
   const clientOptions = clients.map(c => ({ value: c.id, label: c.name, phone: c.phone, email: c.email, user: c.user }))
 
   async function del(q) {

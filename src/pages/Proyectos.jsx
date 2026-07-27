@@ -8,7 +8,11 @@ import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIc
 import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Básicos', 'Plan']
-const emptyForm = { name: '', client: '', status: 'propuesta', phase: 'descubrimiento', description: '', start_date: '', due_date: '', budget: '', budget_currency: 'ARS', progress: 0 }
+const BILLING_RECURRING = { mensual: true, trimestral: true, anual: true }
+const emptyForm = {
+  name: '', client: '', service: '', status: 'propuesta', phase: 'descubrimiento', description: '',
+  start_date: '', due_date: '', budget: '', budget_currency: 'ARS', progress: 0, next_renewal_date: '',
+}
 
 function ProjIcon() {
   return <div className="w-10 h-10 rounded-[11px] flex-shrink-0 bg-violet/[.14] border border-violet-light/30 flex items-center justify-center">
@@ -23,6 +27,7 @@ export default function Proyectos() {
   const { rates } = useFx()
   const [projects, setProjects] = useState([])
   const [clients, setClients] = useState([])
+  const [services, setServices] = useState([])
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
@@ -31,10 +36,17 @@ export default function Proyectos() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
-  const load = () => list('projects', '&sort=-created&expand=client').then(setProjects).catch(() => toast('No se pudieron cargar los proyectos.', true))
-  useEffect(() => { load(); list('clients', '&sort=name').then(setClients).catch(() => {}) }, [])
+  const load = () => list('projects', '&sort=-created&expand=client,service').then(setProjects).catch(() => toast('No se pudieron cargar los proyectos.', true))
+  useEffect(() => {
+    load()
+    list('clients', '&sort=name').then(setClients).catch(() => {})
+    list('services', '&sort=name&filter=' + encodeURIComponent('active=true')).then(setServices).catch(() => {})
+  }, [])
 
   const clientName = p => p.expand?.client?.name || ''
+  const selectedService = services.find(s => s.id === form.service)
+  const isRecurring = !!BILLING_RECURRING[selectedService?.billing_type]
+
   const filtered = projects.filter(p => {
     const q = search.toLowerCase().trim()
     if (!q) return true
@@ -44,7 +56,11 @@ export default function Proyectos() {
   function openNew() { setEditId(null); setForm(emptyForm); setStep(0); setOpen(true) }
   function openEdit(p) {
     setEditId(p.id)
-    setForm({ ...emptyForm, ...p, start_date: p.start_date?.slice(0, 10) || '', due_date: p.due_date?.slice(0, 10) || '', budget: p.budget || '', budget_currency: p.budget_currency || 'ARS', progress: p.progress || 0 })
+    setForm({
+      ...emptyForm, ...p, start_date: p.start_date?.slice(0, 10) || '', due_date: p.due_date?.slice(0, 10) || '',
+      budget: p.budget || '', budget_currency: p.budget_currency || 'ARS', progress: p.progress || 0,
+      service: p.service || '', next_renewal_date: p.next_renewal_date?.slice(0, 10) || '',
+    })
     setStep(0); setOpen(true)
   }
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
@@ -60,10 +76,16 @@ export default function Proyectos() {
   async function save() {
     setSaving(true)
     const body = {
-      name: form.name.trim(), client: form.client, status: form.status, phase: form.phase,
+      name: form.name.trim(), client: form.client, service: form.service, status: form.status, phase: form.phase,
       description: form.description.trim(), progress: parseInt(form.progress, 10) || 0,
       start_date: form.start_date ? form.start_date + ' 00:00:00' : '',
       due_date: form.due_date ? form.due_date + ' 00:00:00' : '',
+      next_renewal_date: isRecurring && form.next_renewal_date ? form.next_renewal_date + ' 00:00:00' : '',
+    }
+    // Si cambió la fecha de vencimiento respecto a la que ya estaba, reseteamos el aviso para que vuelva a alertar en el próximo ciclo.
+    const prevProject = editId ? projects.find(p => p.id === editId) : null
+    if (!prevProject || (prevProject.next_renewal_date || '').slice(0, 10) !== form.next_renewal_date) {
+      body.renewal_alerted = false
     }
     if (isAdmin) {
       const bAmount = form.budget ? Number(form.budget) : 0
@@ -96,7 +118,12 @@ export default function Proyectos() {
         <div className="flex flex-col gap-2.5">
           {filtered.map(p => {
             const prog = Math.max(0, Math.min(100, Number(p.progress) || 0))
-            const meta = [clientName(p), PHASES[p.phase], p.due_date && `Entrega: ${p.due_date.slice(0, 10)}`].filter(Boolean).join(' · ')
+            const svcRecurring = BILLING_RECURRING[p.expand?.service?.billing_type]
+            const meta = [
+              clientName(p), p.expand?.service?.name,
+              svcRecurring && p.next_renewal_date && `Vence: ${p.next_renewal_date.slice(0, 10)}`,
+              !svcRecurring && p.due_date && `Entrega: ${p.due_date.slice(0, 10)}`,
+            ].filter(Boolean).join(' · ')
             return (
               <Row key={p.id} icon={<ProjIcon />} title={p.name} meta={meta || 'Sin detalles'}>
                 <div className="w-[110px] flex-shrink-0">
@@ -131,6 +158,10 @@ export default function Proyectos() {
                     <Select value={form.client} onChange={v => set('client', v)} placeholder="Selecciona un cliente…"
                       options={clients.map(c => ({ value: c.id, label: c.name }))} />
                   </Field>
+                  <Field label="Servicio" full>
+                    <Select value={form.service} onChange={v => set('service', v)} placeholder="¿Qué servicio es? (opcional)"
+                      options={services.map(s => ({ value: s.id, label: s.name + (BILLING_RECURRING[s.billing_type] ? ' · recurrente' : '') }))} />
+                  </Field>
                   <Field label="Estado">
                     <Select value={form.status} onChange={v => set('status', v)}
                       options={[
@@ -152,6 +183,17 @@ export default function Proyectos() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Fecha de inicio"><input type="date" className="field" value={form.start_date} onChange={e => set('start_date', e.target.value)} /></Field>
                   <Field label="Fecha de entrega"><input type="date" className="field" value={form.due_date} onChange={e => set('due_date', e.target.value)} /></Field>
+
+                  {isRecurring && (
+                    <Field label="Próximo vencimiento" full>
+                      <input type="date" className="field" value={form.next_renewal_date} onChange={e => set('next_renewal_date', e.target.value)} />
+                      <p className="text-[11px] text-violet-light/70 mt-1.5 flex items-center gap-1.5">
+                        <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                        Como es un servicio recurrente, tu cliente va a ver esta fecha en su portal y recibe un aviso 2 días antes.
+                      </p>
+                    </Field>
+                  )}
+
                   {isAdmin && (
                     <Field label="Presupuesto" full>
                       <MoneyField amount={form.budget} currency={form.budget_currency} onAmount={v => set('budget', v)} onCurrency={v => set('budget_currency', v)} />

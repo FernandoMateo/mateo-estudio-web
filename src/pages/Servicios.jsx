@@ -3,27 +3,24 @@ import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec } from '../lib/api'
 import { useToast } from '../context/ToastContext'
-import { Modal, ModalHead, Field, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField, MoneyDisplay, FilterTabs } from '../components/ui'
-import { useFx, toArs } from '../context/FxContext'
+import { Modal, ModalHead, Field, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, FilterTabs } from '../components/ui'
 
 const BILLING = {
   unico: { label: 'Único', recurring: false },
-  por_hora: { label: 'Por hora', recurring: false },
   mensual: { label: 'Mensual', recurring: true },
   trimestral: { label: 'Trimestral', recurring: true },
   anual: { label: 'Anual', recurring: true },
 }
 const BILLING_OPTIONS = Object.entries(BILLING).map(([value, v]) => ({ value, label: v.label }))
 const ICONS_SUGGERIDOS = ['🎨', '💻', '📱', '📈', '✍️', '📸', '🎥', '🔧', '🛒', '⚙️', '🌐', '✨']
-const TABS = [['todos', 'Todos'], ['activo', 'Activos'], ['recurrente', 'Recurrentes'], ['unico', 'Únicos / por hora'], ['inactivo', 'Inactivos']]
+const TABS = [['todos', 'Todos'], ['activo', 'Activos'], ['recurrente', 'Recurrentes'], ['unico', 'Únicos'], ['inactivo', 'Inactivos']]
 
-const emptyForm = { name: '', category: '', icon: '🎨', price: '', price_currency: 'ARS', billing_type: 'unico', description: '', active: true }
+const emptyForm = { name: '', category: '', icon: '🎨', billing_type: 'unico', description: '', active: true }
 
 export default function Servicios() {
   const { me } = useOutletContext()
   const isAdmin = me.role === 'admin'
   const toast = useToast()
-  const { rates } = useFx()
   const [services, setServices] = useState([])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('todos')
@@ -48,7 +45,7 @@ export default function Servicios() {
   function openNew() { setEditId(null); setForm(emptyForm); setOpen(true) }
   function openEdit(s) {
     setEditId(s.id)
-    setForm({ ...emptyForm, ...s, price: s.price || '', price_currency: s.price_currency || 'ARS', icon: s.icon || '🎨', active: s.active !== false })
+    setForm({ ...emptyForm, ...s, icon: s.icon || '🎨', active: s.active !== false })
     setOpen(true)
   }
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
@@ -56,13 +53,8 @@ export default function Servicios() {
   async function save() {
     if (!form.name.trim()) { toast('El nombre del servicio es obligatorio.', true); return }
     setSaving(true)
-    const priceNum = form.price ? Number(form.price) : 0
-    const priceArs = Math.round(toArs(priceNum, form.price_currency, rates))
     const body = {
       name: form.name.trim(), category: form.category.trim(), icon: form.icon || '🎨',
-      price: priceNum, price_currency: form.price_currency || 'ARS',
-      price_fx_rate: (form.price_currency && form.price_currency !== 'ARS') ? (priceNum ? priceArs / priceNum : 0) : 1,
-      price_ars: priceArs,
       billing_type: form.billing_type, description: form.description.trim(), active: !!form.active,
     }
     try {
@@ -75,7 +67,7 @@ export default function Servicios() {
   async function del(s) {
     if (!confirm(`¿Eliminar el servicio "${s.name}"? Esta acción no se puede deshacer.`)) return
     try { await removeRec('services', s.id); toast('Servicio eliminado ✓'); load() }
-    catch { toast('No se pudo eliminar. Puede estar en uso por algún cliente.', true) }
+    catch { toast('No se pudo eliminar. Puede estar en uso por algún proyecto.', true) }
   }
 
   async function toggleActive(s) {
@@ -91,12 +83,12 @@ export default function Servicios() {
       <FilterTabs tabs={TABS} value={filter} onChange={setFilter} />
 
       {!services.length ? (
-        <EmptyState title="Tu catálogo está vacío" text='Cargá tu primer servicio con "Nuevo servicio" — después vas a poder elegirlo desde la ficha de cada cliente.' />
+        <EmptyState title="Tu catálogo está vacío" text='Cargá tu primer servicio con "Nuevo servicio" — después vas a poder elegirlo al crear un proyecto, y el precio lo definís ahí, según cada caso.' />
       ) : !filtered.length ? (
         <p className="text-[12.5px] text-white/35 px-1">Sin resultados para este filtro.</p>
       ) : (
-        <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(260px,100%),1fr))' }}>
-          {filtered.map((s, i) => {
+        <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(240px,100%),1fr))' }}>
+          {filtered.map((s) => {
             const billing = BILLING[s.billing_type] || BILLING.unico
             const inactive = s.active === false
             return (
@@ -119,15 +111,10 @@ export default function Servicios() {
 
                 {s.description && <p className="text-[11.5px] text-white/40 mt-3 leading-relaxed line-clamp-2">{s.description}</p>}
 
-                <div className="flex items-end justify-between mt-4 pt-3.5 border-t border-white/[.06]">
-                  <div>
-                    <MoneyDisplay amount={s.price} currency={s.price_currency} amountArs={s.price_currency && s.price_currency !== 'ARS' ? s.price_ars : null} className="text-[16px] font-extrabold" />
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className={`pill ${billing.recurring ? 'text-violet-light bg-violet/10 border border-violet/35' : 'text-white/45 bg-white/5 border border-white/10'}`}>
-                        {billing.recurring && <span className="mr-1">↻</span>}{billing.label}
-                      </span>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-white/[.06]">
+                  <span className={`pill ${billing.recurring ? 'text-violet-light bg-violet/10 border border-violet/35' : 'text-white/45 bg-white/5 border border-white/10'}`}>
+                    {billing.recurring && <span className="mr-1">↻</span>}{billing.label}
+                  </span>
                   <button onClick={() => toggleActive(s)}
                     className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border transition-colors flex-shrink-0
                       ${inactive ? 'text-white/35 border-white/10 hover:text-white/60' : 'text-mint border-mint/30 bg-mint/10'}`}>
@@ -142,7 +129,8 @@ export default function Servicios() {
 
       <Modal open={open} onClose={() => setOpen(false)}>
         <ModalHead title={editId ? 'Editar servicio' : 'Nuevo servicio'} onClose={() => setOpen(false)} />
-        <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+        <p className="text-[12px] text-white/35 -mt-2 mb-4">El precio no se define acá — cada proyecto tiene el suyo, según lo que acuerdes con cada cliente.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <Field label="Nombre del servicio *" full><input className="field" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Diseño de identidad de marca" /></Field>
 
           <Field label="Ícono" full>
@@ -158,21 +146,17 @@ export default function Servicios() {
           </Field>
 
           <Field label="Categoría"><input className="field" value={form.category} onChange={e => set('category', e.target.value)} placeholder="Ej. Diseño, Desarrollo, Marketing" /></Field>
-          <Field label="Cadencia de cobro">
+          <Field label="¿Único o recurrente?">
             <Select value={form.billing_type} onChange={v => set('billing_type', v)} options={BILLING_OPTIONS} />
           </Field>
 
-          <Field label="Precio" full>
-            <MoneyField amount={form.price} currency={form.price_currency} onAmount={v => set('price', v)} onCurrency={v => set('price_currency', v)} />
-          </Field>
-
-          <Field label="Descripción" full><textarea className="field min-h-[72px]" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Qué incluye, alcance, entregables…" /></Field>
+          <Field label="Información / descripción" full><textarea className="field min-h-[72px]" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Qué incluye, alcance, entregables…" /></Field>
 
           <Field label="Estado" full>
             <button type="button" onClick={() => set('active', !form.active)}
               className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-[13px] font-semibold transition-colors w-full
                 ${form.active ? 'text-mint border-mint/30 bg-mint/10' : 'text-white/45 border-white/10 bg-white/[.03]'}`}>
-              <span className={`rounded-full relative transition-colors flex-shrink-0 ${form.active ? 'bg-mint/40' : 'bg-white/10'}`} style={{ height: 18, width: 32 }}>
+              <span className="rounded-full relative transition-colors flex-shrink-0" style={{ height: 18, width: 32, background: form.active ? 'rgba(52,211,153,.4)' : 'rgba(255,255,255,.1)' }}>
                 <motion.span className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white" animate={{ left: form.active ? 16 : 2 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
               </span>
               {form.active ? 'Visible en el catálogo' : 'Oculto (archivado)'}

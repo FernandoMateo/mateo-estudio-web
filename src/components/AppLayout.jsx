@@ -1,19 +1,44 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Sidebar from './Sidebar'
 import AuroraBackground from './AuroraBackground'
 import NotificationBell from './NotificationBell'
-import { getAuth } from '../lib/api'
+import { getAuth, list, updateRec, notifyUser } from '../lib/api'
 
 const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+const RECURRING_TYPES = { mensual: true, trimestral: true, anual: true }
 
 export default function AppLayout() {
   const nav = useNavigate()
   const loc = useLocation()
   const [open, setOpen] = useState(false)
   const auth = getAuth()
+
+  // Reviso vencimientos recurrentes próximos (≤2 días) y aviso al cliente una sola vez por ciclo.
+  useEffect(() => {
+    if (!auth?.token || auth?.record?.role === 'cliente') return
+    list('projects', '&expand=client,service&filter=' + encodeURIComponent('next_renewal_date != "" && renewal_alerted = false'))
+      .then(projects => {
+        const today = new Date(); today.setHours(0, 0, 0, 0)
+        projects.forEach(p => {
+          if (!RECURRING_TYPES[p.expand?.service?.billing_type]) return
+          const due = new Date(p.next_renewal_date.slice(0, 10) + 'T00:00:00')
+          const daysLeft = Math.round((due - today) / 86400000)
+          if (daysLeft > 2) return
+          const clientUser = p.expand?.client?.user
+          if (clientUser) {
+            notifyUser(clientUser, {
+              title: daysLeft < 0 ? `${p.expand.service.name} está vencido` : `${p.expand.service.name} vence pronto`,
+              message: daysLeft < 0 ? 'Contactanos para renovarlo cuanto antes.' : `Vence el ${p.next_renewal_date.slice(0, 10)}.`,
+              type: 'alerta', project: p.id, client: p.client,
+            })
+          }
+          updateRec('projects', p.id, { renewal_alerted: true }).catch(() => {})
+        })
+      }).catch(() => {})
+  }, [])
 
   if (!auth?.token || !auth?.record) { nav('/'); return null }
   if (auth.record.role === 'cliente') { nav('/portal'); return null }

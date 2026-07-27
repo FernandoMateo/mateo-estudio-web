@@ -172,7 +172,7 @@ export default function Portal() {
         if (mine.logo) setLogoPreview(fileUrl('clients', mine.id, mine.logo, '200x200'))
       }
       const [ps, ts, txs, cds, myQ, recQ, items] = await Promise.all([
-        list('projects', '&sort=-created'),
+        list('projects', '&sort=-created&expand=service'),
         list('tasks', '&sort=-created&expand=project'),
         list('transactions', '&sort=-date&filter=' + encodeURIComponent('type="ingreso"')),
         list('client_access', '&sort=-created'),
@@ -189,6 +189,18 @@ export default function Portal() {
 
   const firstName = (client?.contact_name || auth?.record?.name || auth?.record?.email || '').split(' ')[0].split('@')[0]
   const activeProject = useMemo(() => projects.find(p => p.status === 'en_progreso') || projects[0] || null, [projects])
+  const RECURRING_TYPES = { mensual: true, trimestral: true, anual: true }
+  const upcomingRenewals = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    return projects
+      .filter(p => RECURRING_TYPES[p.expand?.service?.billing_type] && p.next_renewal_date)
+      .map(p => {
+        const due = new Date(p.next_renewal_date.slice(0, 10) + 'T00:00:00')
+        const daysLeft = Math.round((due - today) / 86400000)
+        return { ...p, daysLeft }
+      })
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+  }, [projects])
   const pendingInvoices = invoices.filter(i => i.status === 'pendiente' || i.status === 'vencido')
   const overdueInvoices = invoices.filter(i => i.status === 'vencido')
   const pendingTotalArs = pendingInvoices.reduce((a, i) => a + (Number(i.amount_ars ?? i.amount) || 0), 0)
@@ -426,6 +438,39 @@ export default function Portal() {
                             </div>
                             <span className="text-[11px] text-white/40 w-9 text-right flex-shrink-0">{prog}%</span>
                             <Pill value={p.status || 'propuesta'} />
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Vencimientos recurrentes */}
+                {!!upcomingRenewals.length && (
+                  <div className="card">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-[13.5px] font-bold">Vencimientos</h3>
+                      {upcomingRenewals.some(r => r.daysLeft <= 2) && (
+                        <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
+                          className="w-2 h-2 rounded-full bg-coral" style={{ boxShadow: '0 0 8px rgba(251,113,133,.9)' }} />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {upcomingRenewals.slice(0, 5).map((r, i) => {
+                        const overdue = r.daysLeft < 0, soon = r.daysLeft >= 0 && r.daysLeft <= 2
+                        const color = overdue || soon ? 'text-coral' : r.daysLeft <= 7 ? 'text-amber' : 'text-white/50'
+                        return (
+                          <motion.div key={r.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${overdue || soon ? 'bg-coral' : r.daysLeft <= 7 ? 'bg-amber' : 'bg-white/25'}`}
+                              style={(overdue || soon) ? { boxShadow: '0 0 8px rgba(251,113,133,.7)' } : undefined} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-medium truncate">{r.expand?.service?.name || r.name}</div>
+                              <div className="text-[10.5px] text-white/30">{r.next_renewal_date.slice(0, 10)}</div>
+                            </div>
+                            <span className={`text-[11.5px] font-bold flex-shrink-0 ${color}`}>
+                              {overdue ? `Venció hace ${Math.abs(r.daysLeft)}d` : r.daysLeft === 0 ? 'Vence hoy' : `en ${r.daysLeft}d`}
+                            </span>
                           </motion.div>
                         )
                       })}

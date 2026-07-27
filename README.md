@@ -297,3 +297,29 @@ Sin este paso, el botón "Agregar" del equipo en Usuarios va a fallar.
 - **Aprobar/Rechazar cotizaciones desde el Portal**: cuando le mandás una cotización a un cliente (estado "enviado"), al abrirla desde su Portal le aparecen los botones **Aprobar** / **Rechazar**. Al decidir, te llega una notificación a vos (y a todo el equipo) con el resultado.
 - **Tarjeta "Tus cotizaciones" en el Resumen del Portal**: el cliente ve de un vistazo las últimas cotizaciones que le mandaste, con un punto ámbar parpadeante si tiene alguna pendiente de decisión.
 - **Confirmado (sin cambios de código)**: los clientes que se dan de alta por el link de invitación ya aparecían automáticamente en el módulo Clientes — no hacía falta tocar nada ahí, `Clientes.jsx` lista todos los registros sin filtrar por origen.
+
+---
+
+## Reestructuración de Servicios + vencimientos recurrentes
+
+### Instalación
+
+Importá **`pb-schema-servicios-recurrentes.json`** (Settings → Import collections → **Merge**).
+
+⚠️ **A diferencia de otras veces, en este import SÍ vas a ver un aviso para borrar campos** (`price`, `price_currency`, `price_fx_rate`, `price_ars` de `services`) — es esperado, confirmalo. Es justamente lo que pediste: sacar el precio del catálogo de Servicios.
+
+### Qué cambió
+
+**Servicios** — ahora solo tiene nombre, categoría, descripción, ícono y si es **Único** o **Recurrente** (mensual/trimestral/anual). El precio ya no vive acá.
+
+**Proyectos** — cada proyecto ahora puede vincularse a un Servicio del catálogo. El precio real (con el sistema de moneda ARS/USD/MXN que ya conocés) sigue siendo el campo `Presupuesto` del proyecto — ahí es donde definís cuánto cobra cada cliente en particular, como pediste.
+
+**Cuando el servicio vinculado es recurrente**, aparece un campo extra: **"Próximo vencimiento"**. Eso dispara dos cosas:
+- En el **Portal del cliente**, una tarjeta nueva en el Resumen ("Vencimientos") le muestra todos sus servicios recurrentes con la fecha y los días que faltan — en rojo si es hoy/vencido, en ámbar si es en la próxima semana.
+- **2 días antes** (o si ya venció), el cliente recibe una notificación automática avisándole.
+
+### Cómo funciona el aviso automático (léelo, es importante)
+
+No hay ningún proceso corriendo solo en el servidor — la revisión se dispara **cuando vos o tu equipo abren la app** (vive en el layout del admin). Si nadie entra al sistema en un día puntual, el aviso se dispara la próxima vez que alguien entre, aunque sea con un día de atraso. Cada vencimiento se avisa **una sola vez por ciclo** — cuando actualizás la fecha a la próxima renovación, se resetea automáticamente para volver a avisar en el siguiente ciclo.
+
+Si en algún momento querés que esto sea 100% automático sin depender de que alguien abra la app, la única forma real es un proceso en el servidor (PocketBase hooks) — es más delicado de instalar y mantener, pero se puede evaluar más adelante si te hace falta.
