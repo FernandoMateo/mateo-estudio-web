@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-
 import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam } from '../lib/api'
-
- 
 import { PHASES } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon } from '../components/ui'
@@ -13,11 +10,8 @@ import QuoteBuilder from '../components/QuoteBuilder'
 import QuoteViewer from '../components/QuoteViewer'
 import QuoteRow from '../components/QuoteRow'
 import CatalogViewer from '../components/CatalogViewer'
-
 import NotificationsList from '../components/NotificationsList'
 import NotificationBell from '../components/NotificationBell'
-
- 
 
 const PHASE_ORDER = ['descubrimiento', 'diseno', 'desarrollo', 'revision', 'entrega']
 const TABS = [

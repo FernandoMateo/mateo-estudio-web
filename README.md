@@ -218,7 +218,6 @@ La página **Usuarios** también lista todas las invitaciones (pendientes/comple
 - **Tablas de los PDF imprimibles** (cotización y catálogo): ahora tienen scroll horizontal contenido si no entran, en vez de forzar el desborde de toda la página.
 - Blindaje global: `overflow-x: hidden` en toda la app como red de seguridad final.
 
-
 ---
 
 ## Módulo de Notificaciones
@@ -244,5 +243,3 @@ Importá **`pb-schema-notifications.json`** en PocketBase (Settings → Import c
 ### Limitación honesta
 
 No hay avisos automáticos por *tiempo* (por ejemplo "esta factura venció ayer") — eso requeriría un proceso que corra solo en el servidor (cron/hooks), que no está instalado. Todo lo que sí funciona se dispara **en el momento exacto de la acción** dentro de la app.
-
- 

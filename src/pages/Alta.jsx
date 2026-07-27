@@ -77,7 +77,7 @@ export default function Alta() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: form.email.trim(), password: form.password, passwordConfirm: form.passwordConfirm,
-          name: form.contact_name.trim() || form.name.trim(), role: 'cliente', verified: true,
+          name: form.contact_name.trim() || form.name.trim(), role: 'cliente',
         }),
       }).then(async r => { const d = await r.json(); if (!r.ok) throw { step: 'usuario', data: d }; return d })
 
@@ -108,7 +108,6 @@ export default function Alta() {
         }).catch(() => {})
       }
 
-
       // 5) Avisar al equipo que se sumó un cliente nuevo
       try {
         const team = await fetch(`${PB_URL}/api/collections/users/records?filter=${encodeURIComponent('role="admin" || role="equipo"')}`, {
@@ -120,8 +119,6 @@ export default function Alta() {
         })))
       } catch { /* no bloquea el flujo de bienvenida */ }
 
-
- 
       setStatus('success')
     } catch (e) {
       const d = e?.data?.data || {}
