@@ -88,7 +88,7 @@ export default function Login() {
           </svg>
         </div>
 
-        <h1 className="text-[19px] font-semibold text-center tracking-tight"></h1>
+        <h1 className="text-[19px] font-semibold text-center tracking-tight">Bienvenido de vuelta</h1>
         <p className="text-[13px] text-white/55 text-center mt-1.5 mb-6">Ingresa a tu espacio de trabajo</p>
 
         {error && (

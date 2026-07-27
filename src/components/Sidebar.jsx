@@ -8,6 +8,10 @@ const ICONS = {
   proyectos: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>,
   tareas: <><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M8.5 12.5l2.5 2.5 4.8-5.5"/></>,
   finanzas: <><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3.2-4 3 2.4L19 7.5"/></>,
+  servicios: <path d="M12 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L7.5 16.8l.9-5L4.8 8.3l5-.7z"/>,
+  cotizador: <><path d="M9 7h6M9 11h6M9 15h3"/><rect x="4" y="3" width="16" height="18" rx="2"/></>,
+  usuarios: <><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l1.5 7v6a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-6z"/></>,
+  notificaciones: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2.2 2.2 0 0 0 4 0"/></>,
 }
 
 const ITEMS = [
@@ -16,6 +20,10 @@ const ITEMS = [
   { to: '/app/proyectos', label: 'Proyectos', icon: 'proyectos' },
   { to: '/app/tareas', label: 'Tareas', icon: 'tareas' },
   { to: '/app/finanzas', label: 'Finanzas', icon: 'finanzas', adminOnly: true },
+  { to: '/app/servicios', label: 'Servicios', icon: 'servicios' },
+  { to: '/app/cotizador', label: 'Cotizador', icon: 'cotizador' },
+  { to: '/app/usuarios', label: 'Usuarios', icon: 'usuarios' },
+  { to: '/app/notificaciones', label: 'Notificaciones', icon: 'notificaciones' },
 ]
 
 export default function Sidebar({ me, open, setOpen }) {

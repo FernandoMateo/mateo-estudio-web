@@ -45,7 +45,7 @@ export default function Tareas() {
     const q = search.toLowerCase().trim()
     if (!q) return true
     const pn = t.expand?.project?.name || '', an = t.expand?.assigned_to?.name || t.expand?.assigned_to?.email || ''
-    return t.title.toLowerCase().includes(q) || pn.toLowerCase().includes(q) || an.toLowerCase().includes(q)
+    return (t.title || '').toLowerCase().includes(q) || pn.toLowerCase().includes(q) || an.toLowerCase().includes(q)
   })
 
   function openNew() { setEditId(null); setForm(emptyForm); setOpen(true) }
@@ -135,7 +135,7 @@ export default function Tareas() {
       <Modal open={open} onClose={() => setOpen(false)}>
         <ModalHead title={editId ? 'Editar tarea' : 'Nueva tarea'} onClose={() => setOpen(false)} />
         <p className="text-[11.5px] text-white/35 -mt-1.5 mb-4">Qué hay que hacer, quién lo hace y para cuándo.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Título de la tarea *" full><input className="field" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Ej. Diseñar propuesta de logo" /></Field>
           <Field label="Proyecto" full>
             <Select value={form.project} onChange={v => set('project', v)} placeholder="Sin proyecto"

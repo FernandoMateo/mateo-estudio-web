@@ -34,5 +34,23 @@ export const fileUrl = (col, id, name, thumb) =>
 export const fmtARS = n => '$' + (Number(n) || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
 // Dólares estadounidenses
 export const fmtUSD = n => 'US$' + (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })
+// Pesos mexicanos
+export const fmtMXN = n => 'MX$' + (Number(n) || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })
+// Formatea según la moneda indicada (ARS por defecto)
+export const fmtByCurrency = (n, currency) => currency === 'USD' ? fmtUSD(n) : currency === 'MXN' ? fmtMXN(n) : fmtARS(n)
 // Alias retrocompatible (algunos módulos ya usan fmtMoney para ARS)
 export const fmtMoney = fmtARS
+
+/* ── Notificaciones: helpers para avisar a un usuario o a todo el equipo ── */
+export async function notifyUser(userId, { title, message = '', type = 'info', task = '', project = '', client = '' }) {
+  if (!userId) return
+  try { await createRec('notifications', { user: userId, title, message, type, task, project, client, read: false }) }
+  catch { /* si falla, no bloqueamos la acción principal */ }
+}
+
+export async function notifyTeam({ title, message = '', type = 'info', task = '', project = '', client = '' }) {
+  try {
+    const team = await list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"'))
+    await Promise.all(team.map(u => notifyUser(u.id, { title, message, type, task, project, client })))
+  } catch { /* silencioso */ }
+}

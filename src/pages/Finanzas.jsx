@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, FilterTabs, PlusIcon, Select, MoneyField, MoneyDisplay } from '../components/ui'
 import CountUp from '../components/CountUp'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import { useFx, usdToArs } from '../context/FxContext'
+import { useFx, toArs } from '../context/FxContext'
 
 const emptyForm = { type: 'ingreso', concept: '', amount: '', currency: 'ARS', date: new Date().toISOString().slice(0, 10), status: 'pagado', method: '', client: '', project: '', due_date: '', notes: '' }
 const TABS = [['todas', 'Todas'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos'], ['pendientes', 'Pendientes / Vencidas']]
@@ -77,7 +77,7 @@ export default function Finanzas() {
     const q = search.toLowerCase().trim()
     if (!q) return true
     const cn = t.expand?.client?.name || ''
-    return t.concept.toLowerCase().includes(q) || cn.toLowerCase().includes(q)
+    return (t.concept || '').toLowerCase().includes(q) || cn.toLowerCase().includes(q)
   })
 
   function openNew() { setEditId(null); setForm(emptyForm); setOpen(true) }
@@ -93,11 +93,10 @@ export default function Finanzas() {
     if (!form.concept.trim()) { toast('El concepto es obligatorio.', true); return }
     if (!amount || amount <= 0) { toast('Escribe un monto válido mayor a 0.', true); return }
     setSaving(true)
-    const isUsd = form.currency === 'USD'
-    const rate = usdToArs(rates)
+    const isForeign = form.currency && form.currency !== 'ARS'
     // Congelamos la cotización del día al momento de guardar: si sube o baja después, este registro no se mueve.
-    const fxRate = isUsd ? rate : 1
-    const amountArs = isUsd ? (rate ? Math.round(amount * rate) : amount) : amount
+    const amountArs = Math.round(toArs(amount, form.currency, rates))
+    const fxRate = isForeign ? (amount ? amountArs / amount : 0) : 1
     const body = {
       type: form.type, concept: form.concept.trim(), amount, status: form.status,
       currency: form.currency, fx_rate: fxRate || 0, amount_ars: amountArs,
@@ -122,7 +121,7 @@ export default function Finanzas() {
     <div>
       <ModuleHead title="Finanzas" count={`${tx.length} registradas`} search={search} onSearch={setSearch} onNew={openNew} newLabel="Nueva transacción" />
 
-      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))' }}>
+      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))' }}>
         {[
           { label: 'Ingresos del mes', val: inCur, prev: inPrev, color: 'text-mint' },
           { label: 'Egresos del mes', val: outCur, prev: outPrev, color: 'text-coral' },
@@ -151,7 +150,7 @@ export default function Finanzas() {
         </motion.div>
       </div>
 
-      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: '1.6fr 1fr' }}>
+      <div className="grid gap-4 mb-4 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
         <div className="card relative overflow-hidden">
           <div className="absolute -inset-[30%] pointer-events-none opacity-70" style={{ background: 'radial-gradient(ellipse at 25% 15%, rgba(139,92,246,.18), transparent 60%)' }} />
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
@@ -239,7 +238,7 @@ export default function Finanzas() {
                   </div>
                 </div>
                 <span className={`font-extrabold whitespace-nowrap text-right ${isIn ? 'text-mint' : 'text-coral'}`}>
-                  {isIn ? '+' : '−'}<MoneyDisplay amount={t.amount} currency={t.currency} amountArs={t.currency === 'USD' ? t.amount_ars : null} />
+                  {isIn ? '+' : '−'}<MoneyDisplay amount={t.amount} currency={t.currency} amountArs={t.currency && t.currency !== 'ARS' ? t.amount_ars : null} />
                 </span>
                 <Pill value={t.status || 'pendiente'} />
                 <div className="flex gap-1.5 flex-shrink-0">
@@ -261,7 +260,7 @@ export default function Finanzas() {
           <button type="button" onClick={() => set('type', 'ingreso')} className={`relative z-[1] flex-1 py-2.5 rounded-md text-[13px] font-semibold transition-colors ${form.type === 'ingreso' ? 'text-white' : 'text-white/55'}`}>↑ Ingreso</button>
           <button type="button" onClick={() => set('type', 'egreso')} className={`relative z-[1] flex-1 py-2.5 rounded-md text-[13px] font-semibold transition-colors ${form.type === 'egreso' ? 'text-white' : 'text-white/55'}`}>↓ Egreso</button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Concepto *" full><input className="field" value={form.concept} onChange={e => set('concept', e.target.value)} placeholder="Ej. Anticipo diseño web" /></Field>
           <Field label="Monto *" full>
             <MoneyField amount={form.amount} currency={form.currency} onAmount={v => set('amount', v)} onCurrency={v => set('currency', v)} />
