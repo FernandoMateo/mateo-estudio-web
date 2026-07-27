@@ -33,7 +33,7 @@ export default function App() {
               <Route path="cotizador" element={<Cotizador />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="notificaciones" element={<Notificaciones />} />
-=======
+
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />
