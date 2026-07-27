@@ -32,7 +32,6 @@ jobs:
           source: "dist/*"
           target: "/tmp/mateo-deploy"
           strip_components: 1
-
       - name: Reemplazar archivos en PocketBase
         uses: appleboy/ssh-action@v1.0.3
         with:
