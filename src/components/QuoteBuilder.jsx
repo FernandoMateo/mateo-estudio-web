@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { createRec, updateRec, removeRec, list, fmtByCurrency, notifyUser } from '../lib/api'
 
 import { createRec, updateRec, removeRec, list, fmtByCurrency } from '../lib/api'
- a9ede5ebefbd2796431aabcaa98c10b04e86995d
+ 
 import { useToast } from '../context/ToastContext'
 import { useFx, convertAmount, toArs } from '../context/FxContext'
 import { Modal, ModalHead, Field, Select } from './ui'
@@ -132,7 +132,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
           if (opt?.user) notifyUser(opt.user, { title: 'Recibiste una nueva cotización', message: title.trim(), type: 'pago', client })
         }
 
- a9ede5ebefbd2796431aabcaa98c10b04e86995d
+ 
       }
       await Promise.all(validLines.map(l => createRec('quote_lines', {
         quote: quoteId, description: (l.description || '').trim(), unit: l.unit || '',

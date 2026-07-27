@@ -14,7 +14,7 @@ const ICONS = {
 
   notificaciones: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2.2 2.2 0 0 0 4 0"/></>,
 
- a9ede5ebefbd2796431aabcaa98c10b04e86995d
+ 
 }
 
 const ITEMS = [
@@ -29,7 +29,7 @@ const ITEMS = [
 
   { to: '/app/notificaciones', label: 'Notificaciones', icon: 'notificaciones' },
 
- a9ede5ebefbd2796431aabcaa98c10b04e86995d
+ 
 ]
 
 export default function Sidebar({ me, open, setOpen }) {

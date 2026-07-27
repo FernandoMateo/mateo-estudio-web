@@ -42,7 +42,7 @@ export default function Cotizador() {
   const clientOptions = clients.map(c => ({ value: c.id, label: c.name, phone: c.phone, email: c.email, user: c.user }))
 
   const clientOptions = clients.map(c => ({ value: c.id, label: c.name, phone: c.phone, email: c.email }))
- a9ede5ebefbd2796431aabcaa98c10b04e86995d
+ 
 
   async function del(q) {
     if (!confirm(`¿Eliminar la cotización "${q.title}"?`)) return

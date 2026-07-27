@@ -245,4 +245,4 @@ Importá **`pb-schema-notifications.json`** en PocketBase (Settings → Import c
 
 No hay avisos automáticos por *tiempo* (por ejemplo "esta factura venció ayer") — eso requeriría un proceso que corra solo en el servidor (cron/hooks), que no está instalado. Todo lo que sí funciona se dispara **en el momento exacto de la acción** dentro de la app.
 
- a9ede5ebefbd2796431aabcaa98c10b04e86995d
+ 
