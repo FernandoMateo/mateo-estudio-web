@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, removeRec, PB_URL, logActivity } from '../lib/api'
+import { list, createRec, updateRec, removeRec, PB_URL, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 
@@ -24,6 +24,10 @@ export default function Usuarios() {
   const [teamOpen, setTeamOpen] = useState(false)
   const [teamForm, setTeamForm] = useState({ name: '', email: '', password: '', role: 'equipo' })
   const [teamSaving, setTeamSaving] = useState(false)
+
+  const [passOpen, setPassOpen] = useState(false)
+  const [passForm, setPassForm] = useState({ oldPassword: '', password: '', passwordConfirm: '' })
+  const [passSaving, setPassSaving] = useState(false)
 
   const load = () => {
     list('client_invites', '&sort=-created&expand=client').then(setInvites).catch(() => toast('No se pudieron cargar las invitaciones.', true))
@@ -114,11 +118,47 @@ export default function Usuarios() {
     catch { toast('No se pudo eliminar.', true) }
   }
 
+  async function changePassword() {
+    if (!passForm.password || passForm.password.length < 8) {
+      toast('La nueva contraseña debe tener al menos 8 caracteres.', true)
+      return
+    }
+    if (passForm.password !== passForm.passwordConfirm) {
+      toast('Las nuevas contraseñas no coinciden.', true)
+      return
+    }
+    setPassSaving(true)
+    try {
+      await updateRec('users', me.id, {
+        oldPassword: passForm.oldPassword,
+        password: passForm.password,
+        passwordConfirm: passForm.passwordConfirm,
+      })
+      toast('✓ Contraseña actualizada con éxito')
+      setPassOpen(false)
+      setPassForm({ oldPassword: '', password: '', passwordConfirm: '' })
+    } catch (e) {
+      console.error(e)
+      toast('No se pudo cambiar la contraseña. ¿La actual es correcta?', true)
+    } finally {
+      setPassSaving(false)
+    }
+  }
+
   return (
     <div>
       <ModuleHead title="Usuarios" count={`${invites.length} invitaciones`} search={search} onSearch={setSearch}
         onNew={openNew} newLabel="Enviar alta de cliente" />
 
+      <motion.div layout className="card !p-4 mb-8">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg,#7C3AED,#A78BFA)' }}>{(me.name || me.email || '?')[0].toUpperCase()}</div>
+          <div className="min-w-0 flex-1"><div className="text-[14px] font-bold truncate">{me.name || me.email}</div><div className="text-[11.5px] text-white/40">{me.email}</div></div>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-ghost !py-2 !px-3 text-[12px]" onClick={() => setPassOpen(true)}>Cambiar contraseña</motion.button>
+        </div>
+      </motion.div>
+
+      <h3 className="text-[13px] font-bold text-white/50 uppercase tracking-wide mb-3">Invitaciones a clientes</h3>
       {!invites.length ? (
         <EmptyState title="Mandá tu primera invitación" text='Cuando cierres un trato, generá un enlace de alta — tu cliente carga sus propios datos y crea su acceso al portal solo.' />
       ) : !filtered.length ? (
@@ -148,7 +188,7 @@ export default function Usuarios() {
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-3 mt-10">
         <h3 className="text-[13px] font-bold text-white/50 uppercase tracking-wide">Tu equipo</h3>
         <span className="text-[11px] font-semibold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2.5 py-0.5">{team.length}</span>
         <div className="flex-1" />
@@ -242,6 +282,26 @@ export default function Usuarios() {
           <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={teamSaving} onClick={createTeamMember}>
             {teamSaving ? 'Creando…' : 'Crear cuenta ✦'}
           </motion.button>
+        </div>
+      </Modal>
+
+      {/* ── Modal: cambiar mi contraseña ── */}
+      <Modal open={passOpen} onClose={() => setPassOpen(false)}>
+        <ModalHead title="Cambiar mi contraseña" onClose={() => setPassOpen(false)} />
+        <div className="grid grid-cols-1 gap-3.5">
+          <Field label="Contraseña actual">
+            <input type="password" name="current-password" autoComplete="current-password" className="field" value={passForm.oldPassword} onChange={e => setPassForm(f => ({ ...f, oldPassword: e.target.value }))} />
+          </Field>
+          <Field label="Nueva contraseña">
+            <input type="password" name="new-password" autoComplete="new-password" className="field" value={passForm.password} onChange={e => setPassForm(f => ({ ...f, password: e.target.value }))} placeholder="Mínimo 8 caracteres" />
+          </Field>
+          <Field label="Repetir nueva contraseña">
+            <input type="password" name="new-password" autoComplete="new-password" className="field" value={passForm.passwordConfirm} onChange={e => setPassForm(f => ({ ...f, passwordConfirm: e.target.value }))} />
+          </Field>
+        </div>
+        <div className="flex justify-end gap-2.5 mt-6">
+          <button className="btn-ghost" onClick={() => setPassOpen(false)}>Cancelar</button>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={passSaving} onClick={changePassword}>{passSaving ? 'Guardando…' : 'Guardar contraseña ✦'}</motion.button>
         </div>
       </Modal>
     </div>
