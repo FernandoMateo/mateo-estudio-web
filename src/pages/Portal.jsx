@@ -433,6 +433,12 @@ export default function Portal() {
 
             {/* ═══════════ RESUMEN ═══════════ */}
             {tab === 'resumen' && (
+              <div className="grid gap-5">
+                {/* Proyecto activo */}
+                {activeProject ? (
+                  <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="card !p-6">
+                    <div className="flex items-start gap-6 flex-wrap md:flex-nowrap">
+                      <ProgressRing pct={Math.max(0, Math.min(100, Number(activeProject.progress) || 0))} />
               <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))' }}>
                 {!projects.length ? (
                   <div className="card text-center py-14 lg:col-span-2">
@@ -446,17 +452,62 @@ export default function Portal() {
                       <ProgressRing pct={Math.max(0, Math.min(100, Number(p.progress) || 0))} size={92} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-[18px] font-bold truncate">{activeProject.name}</h2>
+                          <Pill value={activeProject.status || 'propuesta'} />
                           <h2 className="text-base font-bold truncate">{p.name}</h2>
                           <Pill value={p.status || 'propuesta'} />
+                        </div>
+                        {activeProject.description && <p className="text-[13px] text-white/45 mt-2 leading-relaxed">{activeProject.description}</p>}
+                        <div className="flex gap-5 mt-3 text-[11.5px] text-white/40 flex-wrap">
+                          {activeProject.start_date && <span>Inicio: <b className="text-white/70">{activeProject.start_date.slice(0, 10)}</b></span>}
+                          {activeProject.due_date && <span>Entrega: <b className="text-white/70">{activeProject.due_date.slice(0, 10)}</b></span>}
                         </div>
                         {p.description && <p className="text-[12.5px] text-white/45 mt-2 leading-relaxed line-clamp-2">{p.description}</p>}
                       </div>
                     </div>
+                    <div className="mt-7 pt-5 border-t border-white/[.06]">
+                      <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
+                      <PhaseStepper current={activeProject.phase} />
                     <div className="mt-auto pt-5">
                       <div className="text-[10px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
                       <PhaseStepper current={p.phase} />
                     </div>
                   </motion.div>
+                ) : (
+                  <div className="card text-center py-14">
+                    <p className="text-[14px] font-semibold">Todavía no hay un proyecto en marcha</p>
+                    <p className="text-[12.5px] text-white/40 mt-1.5">En cuanto arranquemos, vas a verlo acá con su avance en tiempo real.</p>
+                  </div>
+                )}
+
+                {/* Otros proyectos */}
+                {projects.length > 1 && (
+                  <div className="card">
+                    <h3 className="text-[13.5px] font-bold mb-4">Todos tus proyectos</h3>
+                    <div className="flex flex-col gap-2.5">
+                      {projects.map((p, i) => {
+                        const prog = Math.max(0, Math.min(100, Number(p.progress) || 0))
+                        return (
+                          <motion.div key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                            onClick={() => setViewingProject(p)} whileHover={{ x: 3 }}
+                            className="flex items-center gap-3 flex-wrap sm:flex-nowrap cursor-pointer px-2 py-1.5 -mx-2 rounded-xl hover:bg-white/[.04] transition-colors">
+                            <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{p.name}</span>
+                            <div className="w-[120px] flex-shrink-0">
+                              <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
+                                <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_12px_rgba(139,92,246,.6)]"
+                                  initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.9, delay: 0.15 + i * 0.05 }} />
+                              </div>
+                            </div>
+                            <span className="text-[11px] text-white/40 w-9 text-right flex-shrink-0">{prog}%</span>
+                            <Pill value={p.status || 'propuesta'} />
+                            <svg className="w-3.5 h-3.5 text-white/20 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 ))}
               </div>
               <div className="grid gap-5 mt-5 grid-cols-1 md:grid-cols-2">
@@ -519,6 +570,36 @@ export default function Portal() {
                   </div>
                 )}
 
+                {/* Solicitudes + actividad */}
+                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))' }}>
+                  <div className="card flex flex-col">
+                    <h3 className="text-[13.5px] font-bold mb-2">¿Necesitás algo del equipo?</h3>
+                    <p className="text-[12.5px] text-white/40 mb-4 leading-relaxed">
+                      Mandanos un pedido, un link de referencia o un comentario. Lo vemos y lo sumamos a la lista de trabajo.
+                    </p>
+                    <motion.button whileTap={{ scale: 0.97 }} className="btn-glass w-full justify-center mt-auto" onClick={() => setReqOpen(true)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                      Enviar una solicitud
+                    </motion.button>
+                  </div>
+
+                  <div className="card">
+                    <h3 className="text-[13.5px] font-bold mb-4">Actividad reciente</h3>
+                    {!tasks.length ? (
+                      <p className="text-[12.5px] text-white/35">Todavía no hay movimientos para mostrar.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {tasks.slice(0, 7).map((t, i) => (
+                          <motion.div key={t.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint shadow-[0_0_8px_rgba(52,211,153,.6)]' : t.priority === 'urgente' ? 'bg-coral shadow-[0_0_8px_rgba(251,113,133,.6)]' : 'bg-violet-light shadow-[0_0_8px_rgba(139,92,246,.6)]'}`} />
+                            <span className={`flex-1 min-w-0 text-[12.5px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
+                            {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">tuya</span>}
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 <div className="card flex flex-col">
                   <h3 className="text-[13.5px] font-bold mb-2">¿Necesitás algo del equipo?</h3>
                   <p className="text-[12.5px] text-white/40 mb-4 leading-relaxed">
