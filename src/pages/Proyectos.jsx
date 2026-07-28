@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, logActivity } from '../lib/api'
 import { PHASES, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
-import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
+import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, MoneyDisplay, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
 import ProjectFiles from '../components/ProjectFiles'
 import { useFx, toArs } from '../context/FxContext'
 
@@ -144,48 +144,73 @@ export default function Proyectos() {
       ) : !filtered.length ? (
         <p className="text-[12.5px] text-white/35 px-1">Sin resultados para "{search}".</p>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(350px, 100%), 1fr))' }}>
           {filtered.map(p => {
             const prog = PHASE_PROGRESS[p.phase] ?? Math.max(0, Math.min(100, Number(p.progress) || 0))
             const svcRecurring = BILLING_RECURRING[p.expand?.service?.billing_type]
             const meta = [
-              clientName(p), p.expand?.service?.name,
+              p.expand?.service?.name,
               svcRecurring && p.next_renewal_date && `Vence: ${p.next_renewal_date.slice(0, 10)}`,
               !svcRecurring && p.due_date && `Entrega: ${p.due_date.slice(0, 10)}`,
             ].filter(Boolean).join(' · ')
             const changingHere = changingPhaseId === p.id
             return (
-              <Row key={p.id} icon={<ProjIcon />} title={p.name} meta={meta || 'Sin detalles'}>
-                <div className="w-[110px] flex-shrink-0">
-                  <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
-                    <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_14px_rgba(139,92,246,.65)]"
-                      initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }} />
+              <motion.div key={p.id} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                className="card !p-4 flex flex-col gap-3.5">
+                <div className="flex items-start gap-3">
+                  <ProjIcon />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold truncate text-[14.5px]">{p.name}</h3>
+                    <p className="text-xs text-white/40 truncate">{clientName(p) || 'Sin cliente'}</p>
                   </div>
-                  <div className="text-[10px] text-white/35 mt-1 text-right">{prog}%</div>
+                  <Pill value={p.status || 'propuesta'} />
                 </div>
 
-                {canManage && (
-                  <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    {changingHere ? (
-                      <div className="w-[150px]"><Select value={p.phase} onChange={v => quickChangePhase(p, v)} options={PHASE_OPTIONS} /></div>
-                    ) : (
-                      <button onClick={() => setChangingPhaseId(p.id)}
-                        className="text-[11px] font-semibold text-violet-light bg-violet/[.1] border border-violet/30 rounded-lg px-2.5 py-1.5 hover:bg-violet/[.18] transition-colors whitespace-nowrap">
-                        {PHASES[p.phase] || 'Fase'} <span className="text-white/30">✎</span>
-                      </button>
+                {(meta || (isAdmin && p.budget > 0)) && (
+                  <div className="-mt-1.5 flex flex-col gap-2">
+                    {meta && <p className="text-[11.5px] text-white/50">{meta}</p>}
+                    {isAdmin && p.budget > 0 && (
+                      <div className="flex items-center gap-1.5 text-xs text-mint font-bold">
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                        <MoneyDisplay amount={p.budget} currency={p.budget_currency} amountArs={p.budget_currency && p.budget_currency !== 'ARS' ? p.budget_ars : null} />
+                      </div>
                     )}
                   </div>
                 )}
 
-                <Pill value={p.status || 'propuesta'} />
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <IconBtn onClick={() => setFilesProject(p)} title="Archivos">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M17 15v6M14 18h6" /></svg>
-                  </IconBtn>
-                  <IconBtn onClick={() => openEdit(p)} title="Editar"><EditIcon /></IconBtn>
-                  {isAdmin && <IconBtn onClick={() => del(p)} danger title="Eliminar"><TrashIcon /></IconBtn>}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[11px] font-semibold text-violet-light/80 uppercase tracking-wider">{PHASES[p.phase] || 'Fase'}</span>
+                    <span className="text-[11px] font-bold">{prog}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
+                    <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_14px_rgba(139,92,246,.65)]"
+                      initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }} />
+                  </div>
                 </div>
-              </Row>
+
+                <div className="flex items-center gap-2 mt-1 pt-3 border-t border-white/[.06]">
+                  {canManage && (
+                    <div className="flex-1" onClick={e => e.stopPropagation()}>
+                      {changingHere ? (
+                        <div className="w-full"><Select value={p.phase} onChange={v => quickChangePhase(p, v)} options={PHASE_OPTIONS} /></div>
+                      ) : (
+                        <button onClick={() => setChangingPhaseId(p.id)}
+                          className="text-[11px] font-semibold text-violet-light bg-violet/[.1] border border-violet/30 rounded-lg px-2.5 py-1.5 hover:bg-violet/[.18] transition-colors whitespace-nowrap w-full text-center">
+                          Cambiar fase <span className="text-white/30">✎</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <IconBtn onClick={() => setFilesProject(p)} title="Archivos">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M17 15v6M14 18h6" /></svg>
+                    </IconBtn>
+                    <IconBtn onClick={() => openEdit(p)} title="Editar"><EditIcon /></IconBtn>
+                    {isAdmin && <IconBtn onClick={() => del(p)} danger title="Eliminar"><TrashIcon /></IconBtn>}
+                  </div>
+                </div>
+              </motion.div>
             )
           })}
         </div>

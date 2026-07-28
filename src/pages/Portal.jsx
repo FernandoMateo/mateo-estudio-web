@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam, logActivity } from '../lib/api'
-import { PHASES, PHASE_ORDER } from '../lib/constants'
+import { PHASES, PHASE_ORDER, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon } from '../components/ui'
 import CountUp from '../components/CountUp'
@@ -14,6 +14,7 @@ import NotificationsList from '../components/NotificationsList'
 import NotificationBell from '../components/NotificationBell'
 import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
+import { useFx, toArs } from '../context/FxContext'
 
 const TABS = [
   ['resumen', 'Resumen'],
@@ -107,6 +108,7 @@ export default function Portal() {
   const nav = useNavigate()
   const toast = useToast()
   const auth = getAuth()
+  const { rates } = useFx()
 
   const [tab, setTab] = useState('resumen')
   const [viewingProject, setViewingProject] = useState(null)
@@ -296,7 +298,43 @@ export default function Portal() {
         message: viewingQuote.title, type: 'pago', client: client?.id || '',
       })
       logActivity({ action: 'actualizar', entity: 'cotización', entity_name: viewingQuote.title, summary: `el cliente la ${status === 'aprobado' ? 'aprobó' : 'rechazó'}` })
-      toast(status === 'aprobado' ? '✓ Cotización aprobada' : 'Cotización rechazada')
+
+      if (status === 'aprobado') {
+        try {
+          const budget = viewingQuote.total || 0
+          const currency = viewingQuote.currency || 'ARS'
+          const budgetArs = Math.round(toArs(budget, currency, rates))
+          const budgetFxRate = (currency !== 'ARS' && budget > 0) ? budgetArs / budget : 1
+
+          await createRec('projects', {
+            name: viewingQuote.title,
+            client: client.id,
+            status: 'propuesta',
+            phase: 'descubrimiento',
+            progress: PHASE_PROGRESS.descubrimiento || 20,
+            description: viewingQuote.summary || '',
+            budget: budget,
+            budget_currency: currency,
+            budget_ars: budgetArs,
+            budget_fx_rate: budgetFxRate,
+            service: viewingQuote.service || null,
+          })
+          logActivity({ action: 'crear', entity: 'proyecto', entity_name: viewingQuote.title, summary: `Creado desde cotización aprobada #${viewingQuote.id.slice(0, 5)}` })
+          notifyTeam({
+            title: `Nuevo proyecto para ${client?.name || 'un cliente'}`,
+            message: `"${viewingQuote.title}" se creó como propuesta.`,
+            type: 'proyecto',
+            client: client?.id || '',
+          })
+          toast('✓ Cotización aprobada. ¡El proyecto ya está en marcha!')
+        } catch (e) {
+          console.error('Error creando proyecto desde cotización:', e)
+          toast('Se aprobó la cotización, pero falló la creación automática del proyecto.', true)
+        }
+      } else {
+        toast('Cotización rechazada')
+      }
+
       setViewingQuote(null)
       loadAll()
     } catch { toast('No se pudo registrar tu decisión. Intentá de nuevo.', true) }
