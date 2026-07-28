@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list } from '../lib/api'
+import { list, getAuth } from '../lib/api'
 
 export default function NotificationBell({ onClick, refreshKey }) {
   const [count, setCount] = useState(0)
 
   useEffect(() => {
     let alive = true
-    list('notifications', '&filter=' + encodeURIComponent('read=false'))
+    const me = getAuth()?.record
+    if (!me) return
+    list('notifications', '&filter=' + encodeURIComponent(`read=false && user="${me.id}"`))
       .then(items => { if (alive) setCount(items.length) })
       .catch(() => {})
     return () => { alive = false }

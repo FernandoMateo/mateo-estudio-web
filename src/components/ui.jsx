@@ -100,17 +100,14 @@ export function Stepper({ steps, current }) {
 
 export function StepPanel({ stepKey, direction, children }) {
   return (
-    <AnimatePresence mode="wait" custom={direction}>
-      <motion.div
-        key={stepKey}
-        initial={{ opacity: 0, x: direction >= 0 ? 50 : -50, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, x: direction >= 0 ? -30 : 30, filter: 'blur(4px)' }}
-        transition={{ duration: 0.32, ease: [0.2, 0.9, 0.25, 1] }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={stepKey}
+      initial={{ opacity: 0, x: direction >= 0 ? 50 : -50, filter: 'blur(4px)' }}
+      animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+      transition={{ duration: 0.32, ease: [0.2, 0.9, 0.25, 1] }}
+    >
+      {children}
+    </motion.div>
   )
 }
 

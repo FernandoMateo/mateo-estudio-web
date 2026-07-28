@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam } from '../lib/api'
 import { PHASES, PHASE_ORDER } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
@@ -382,9 +382,8 @@ export default function Portal() {
       </nav>
 
       <main className="max-w-[1080px] mx-auto px-4 md:px-8 pb-14">
-        <AnimatePresence mode="wait">
           <motion.div key={tab}
-            initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, ease: [0.2, 0.9, 0.25, 1] }}>
 
             {/* ═══════════ RESUMEN ═══════════ */}
@@ -831,7 +830,6 @@ export default function Portal() {
             {tab === 'notificaciones' && <NotificationsList />}
 
           </motion.div>
-        </AnimatePresence>
       </main>
 
       {/* ── Modal: solicitud al equipo ── */}

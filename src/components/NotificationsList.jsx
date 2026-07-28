@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { list, updateRec, removeRec } from '../lib/api'
+import { list, updateRec, removeRec, getAuth } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { FilterTabs, EmptyState } from './ui'
 
@@ -31,7 +31,9 @@ export default function NotificationsList({ onCountChange }) {
 
   const load = () => {
     setLoading(true)
-    list('notifications', '&sort=-created')
+    const me = getAuth()?.record
+    const userFilter = me ? '&filter=' + encodeURIComponent(`user="${me.id}"`) : ''
+    list('notifications', '&sort=-created' + userFilter)
       .then(data => { setItems(data); onCountChange?.(data.filter(n => !n.read).length) })
       .catch(() => toast('No se pudieron cargar las notificaciones.', true))
       .finally(() => setLoading(false))

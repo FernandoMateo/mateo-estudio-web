@@ -401,3 +401,17 @@ Los avisos que van **al cliente** (cotización nueva, recordatorio de vencimient
 ### Honestidad sobre esto
 
 No tengo forma de probar el envío real desde este entorno (no tengo acceso a internet acá). El código sigue exactamente el contrato documentado de la API de EmailJS, pero la primera prueba real la vas a hacer vos. Si al probarlo no llega nada, lo más probable es el paso 5 (dominio no autorizado) — revisá la consola del navegador (F12), ahí debería aparecer el error exacto si EmailJS lo rechaza.
+
+---
+
+## Corrección: notificaciones cruzadas y pestañas del Portal que se trababan
+
+**Sin cambios de esquema** — solo código.
+
+### Bug 1: el admin veía notificaciones que eran de otra persona
+
+La regla de PocketBase le permite al admin **listar** todas las notificaciones (por diseño, para supervisión), pero la campanita y la página de Notificaciones no filtraban por "las mías" — mostraban todo lo que el permiso les dejaba ver. Ahora ambos componentes siempre piden explícitamente solo las del usuario que tiene la sesión abierta, sin importar el rol.
+
+### Bug 2: el contenido de las pestañas del Portal se dejaba de ver
+
+`AnimatePresence mode="wait"` hacía que el contenido nuevo esperara a que la animación de salida del anterior terminara del todo antes de aparecer. Como adentro hay listas con sus propias animaciones (notificaciones, cotizaciones), esa espera a veces no llegaba a completarse nunca, dejando la pantalla vacía. Se sacó ese modo de espera tanto en el Portal como en los wizards (Clientes, Proyectos, Cotizador, Alta) por prevención — ahora el contenido nuevo aparece directo, sin depender de que termine ninguna animación de salida.
