@@ -440,3 +440,38 @@ La regla de PocketBase le permite al admin **listar** todas las notificaciones (
 
 - **Notificaciones push reales del sistema operativo** (las que aparecen aunque la app esté cerrada) requieren un paso técnico extra bastante más grande (un servidor de push + permisos del navegador) que no está incluido acá — lo que armamos hoy es la instalación de la app como ícono. Si más adelante querés push real, es un proyecto aparte que podemos evaluar.
 - En iOS, algunas funciones de PWA son más limitadas que en Android por decisión de Apple (por ejemplo, el ícono de instalación con un botón no existe, hay que usar el menú Compartir).
+
+---
+
+## Calendario, archivos por proyecto e historial de cambios
+
+### Instalación
+
+Importá **`pb-schema-archivos-historial.json`** (Settings → Import collections → **Merge**). Crea 2 colecciones nuevas: `project_files` y `activity_log`.
+
+### 1. Calendario (`/app/calendario`)
+
+Vista mensual con todos los vencimientos juntos: entregas de proyecto (violeta), vencimientos recurrentes (ámbar) y facturas pendientes/vencidas (rojo). Tocá cualquier día para ver el detalle en el panel de al lado. Botón "Hoy" para volver rápido a la fecha actual.
+
+### 2. Archivos por proyecto
+
+- **Admin/equipo** (en cada tarjeta de Proyectos, ícono de carpeta): subís archivos con nombre y categoría (Brief/Contrato/Entregable/Otro), los ves listados con su tipo, los descargás o eliminás.
+- **Cliente** (Portal → detalle de cualquier proyecto): ve los mismos archivos, solo lectura — puede descargarlos pero no subir ni borrar.
+- Tamaño máximo por archivo: 50 MB.
+
+### 3. Historial de cambios (`/app/historial`, solo admin)
+
+Registra automáticamente quién creó, actualizó o eliminó qué, y cuándo. Por ahora cubre las acciones más importantes:
+
+| Módulo | Qué queda registrado |
+|---|---|
+| Clientes | Crear, editar, eliminar |
+| Proyectos | Crear, editar, eliminar, cambio de fase |
+| Finanzas | Crear, editar, eliminar transacción |
+| Cotizador | Crear, editar, eliminar cotización |
+| Portal (cliente) | Aprobar / rechazar una cotización |
+| Usuarios | Alta y baja de equipo, invitaciones de clientes |
+
+**No cubre todavía**: Tareas ni Servicios (los dejé afuera por ahora para no inflar el alcance — decime si los querés sumar también, es rápido de agregar siguiendo el mismo patrón).
+
+El historial es visible solo para el rol admin, tanto por diseño (es una herramienta de supervisión) como por el permiso de la base.

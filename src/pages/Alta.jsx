@@ -8,7 +8,7 @@ import { Stepper, StepPanel, Field, Select } from '../components/ui'
 
 const STEPS = ['Tu negocio', 'Contacto', 'Tu acceso']
 const emptyForm = {
-  name: '', company: '', country: '', brand_color: '#8B5CF6',
+  name: '', company: '', country: '',
   contact_name: '', phone: '', email: '', website: '', instagram: '', facebook: '',
   interested_service: '', password: '', passwordConfirm: '',
 }
@@ -93,9 +93,10 @@ export default function Alta() {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
         body: JSON.stringify({
           name: form.name.trim(), company: form.company.trim(), country: form.country,
-          contact_name: form.contact_name.trim(), phone: form.phone.trim(), email: form.email.trim(), brand_color: form.brand_color,
+          contact_name: form.contact_name.trim(), phone: form.phone.trim(), email: form.email.trim(),
           website: form.website.trim(), instagram: form.instagram.trim(), facebook: form.facebook.trim(),
-          interested_service: form.interested_service, status: 'activo', source: 'referido', user: auth.record.id,
+          interested_service: form.interested_service, status: 'activo', source: 'referido',
+          user: auth.record.id, brand_color: '#8B5CF6',
         }),
       }).then(async r => { const d = await r.json(); if (!r.ok) throw { step: 'negocio', data: d }; return d })
 
@@ -199,18 +200,11 @@ export default function Alta() {
           <div className="min-h-[230px] relative">
             <StepPanel stepKey={step} direction={dir}>
               {step === 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
                   <Field label="Nombre de tu negocio *" full><input className="field" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Panadería La Espiga" /></Field>
                   <Field label="Razón comercial"><input className="field" value={form.company} onChange={e => set('company', e.target.value)} placeholder="Nombre legal (opcional)" /></Field>
                   <Field label="País">
                     <Select value={form.country} onChange={v => set('country', v)} placeholder="—" options={COUNTRIES.map(([c, n]) => ({ value: c, label: `${flagOf(c)} ${n}` }))} />
-                  </Field>
-                  <Field label="Color de marca">
-                    <div className="flex items-center gap-2.5">
-                      <input type="color" value={form.brand_color}
-                        onChange={e => set('brand_color', e.target.value)} className="w-11 h-10 p-1 rounded-lg bg-white/[.04] border border-white/[.09] cursor-pointer" />
-                      <input className="field flex-1" value={form.brand_color} onChange={e => set('brand_color', e.target.value)} placeholder="#8B5CF6" />
-                    </div>
                   </Field>
                   {!!services.length && (
                     <Field label="¿Qué te interesa?" full>
@@ -220,7 +214,7 @@ export default function Alta() {
                 </div>
               )}
               {step === 1 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
                   <Field label="Tu nombre"><input className="field" value={form.contact_name} onChange={e => set('contact_name', e.target.value)} placeholder="Nombre y apellido" /></Field>
                   <Field label="Teléfono"><input className="field" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+54 9 11…" /></Field>
                   <Field label="Correo * (también será tu usuario)" full><input type="email" className="field" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@tuempresa.com" /></Field>
@@ -230,8 +224,8 @@ export default function Alta() {
                 </div>
               )}
               {step === 2 && (
-                <div className="grid grid-cols-1 gap-3.5">
-                  <Field label="Contraseña *">
+                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                  <Field label="Contraseña *" full>
                     <div className="relative">
                       <input type={showPass ? 'text' : 'password'} className="field pr-10" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Mínimo 8 caracteres" />
                       <button type="button" onClick={() => setShowPass(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/70">
@@ -241,8 +235,8 @@ export default function Alta() {
                       </button>
                     </div>
                   </Field>
-                  <Field label="Repetir contraseña *"><input type={showPass ? 'text' : 'password'} className="field" value={form.passwordConfirm} onChange={e => set('passwordConfirm', e.target.value)} placeholder="Repetí tu contraseña" /></Field>
-                  <p className="text-[11.5px] text-white/35 -mt-1">Con esto vas a poder entrar a tu portal las veces que quieras, cuando quieras.</p>
+                  <Field label="Repetir contraseña *" full><input type={showPass ? 'text' : 'password'} className="field" value={form.passwordConfirm} onChange={e => set('passwordConfirm', e.target.value)} placeholder="Repetí tu contraseña" /></Field>
+                  <p className="text-[11.5px] text-white/35 col-span-2 -mt-1">Con esto vas a poder entrar a tu portal las veces que quieras, cuando quieras.</p>
                 </div>
               )}
             </StepPanel>

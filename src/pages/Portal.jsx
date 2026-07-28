@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam } from '../lib/api'
+import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam, logActivity } from '../lib/api'
 import { PHASES, PHASE_ORDER } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon } from '../components/ui'
@@ -13,6 +13,7 @@ import CatalogViewer from '../components/CatalogViewer'
 import NotificationsList from '../components/NotificationsList'
 import NotificationBell from '../components/NotificationBell'
 import InstallPrompt from '../components/InstallPrompt'
+import ProjectFiles from '../components/ProjectFiles'
 
 const TABS = [
   ['resumen', 'Resumen'],
@@ -294,6 +295,7 @@ export default function Portal() {
         title: `${client?.name || 'Un cliente'} ${status === 'aprobado' ? 'aprobó' : 'rechazó'} una cotización`,
         message: viewingQuote.title, type: 'pago', client: client?.id || '',
       })
+      logActivity({ action: 'actualizar', entity: 'cotización', entity_name: viewingQuote.title, summary: `el cliente la ${status === 'aprobado' ? 'aprobó' : 'rechazó'}` })
       toast(status === 'aprobado' ? '✓ Cotización aprobada' : 'Cotización rechazada')
       setViewingQuote(null)
       loadAll()
@@ -906,6 +908,10 @@ export default function Portal() {
             <div className="mt-7 pt-5 border-t border-white/[.06]">
               <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
               <PhaseStepper current={viewingProject.phase} />
+            </div>
+            <div className="mt-7 pt-5 border-t border-white/[.06]">
+              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Archivos</div>
+              <ProjectFiles projectId={viewingProject.id} canManage={false} />
             </div>
           </>
         )}

@@ -13,9 +13,10 @@ import Cotizador from './pages/Cotizador'
 import Usuarios from './pages/Usuarios'
 import Notificaciones from './pages/Notificaciones'
 import Reportes from './pages/Reportes'
+import Calendario from './pages/Calendario'
+import Historial from './pages/Historial'
 import Portal from './pages/Portal'
 import Alta from './pages/Alta'
-import WelcomeScreen from './pages/WelcomeScreen'
 
 export default function App() {
   return (
@@ -35,10 +36,11 @@ export default function App() {
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="notificaciones" element={<Notificaciones />} />
               <Route path="reportes" element={<Reportes />} />
+              <Route path="calendario" element={<Calendario />} />
+              <Route path="historial" element={<Historial />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />
-            <Route path="/welcome" element={<WelcomeScreen />} />
           </Routes>
         </BrowserRouter>
       </FxProvider>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { list, createRec, updateRec, removeRec, fileUrl } from '../lib/api'
+import { list, createRec, updateRec, removeRec, fileUrl, logActivity } from '../lib/api'
 import { COUNTRIES, flagOf } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
@@ -83,6 +83,7 @@ export default function Clientes() {
     try {
       if (editId) await updateRec('clients', editId, fd, true)
       else await createRec('clients', fd, true)
+      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'cliente', entity_name: form.name?.trim() })
       setOpen(false); toast(editId ? 'Cliente actualizado ✓' : '✦ Cliente creado con éxito'); load()
     } catch (err) {
       const d = err?.data?.data
@@ -96,7 +97,11 @@ export default function Clientes() {
 
   async function del(c) {
     if (!confirm(`¿Eliminar al cliente "${c.name}"? Esta acción no se puede deshacer.`)) return
-    try { await removeRec('clients', c.id); toast('Cliente eliminado ✓'); load() }
+    try {
+      await removeRec('clients', c.id)
+      logActivity({ action: 'eliminar', entity: 'cliente', entity_name: c.name })
+      toast('Cliente eliminado ✓'); load()
+    }
     catch { toast('No se pudo eliminar. Puede tener registros ligados.', true) }
   }
 

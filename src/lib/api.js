@@ -41,7 +41,14 @@ export const fmtByCurrency = (n, currency) => currency === 'USD' ? fmtUSD(n) : c
 // Alias retrocompatible (algunos módulos ya usan fmtMoney para ARS)
 export const fmtMoney = fmtARS
 
-/* ── Notificaciones: helpers para avisar a un usuario o a todo el equipo ── */
+/* ── Historial de cambios: registra quién hizo qué y cuándo ── */
+export async function logActivity({ action, entity, entity_name, summary = '' }) {
+  try {
+    const me = getAuth()?.record
+    if (!me) return
+    await createRec('activity_log', { user: me.id, action, entity, entity_name, summary })
+  } catch { /* nunca bloquea la acción principal */ }
+}
 export async function notifyUser(userId, { title, message = '', type = 'info', task = '', project = '', client = '' }) {
   if (!userId) return
   try { await createRec('notifications', { user: userId, title, message, type, task, project, client, read: false }) }

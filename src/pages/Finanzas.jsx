@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, removeRec, fmtMoney } from '../lib/api'
+import { list, createRec, updateRec, removeRec, fmtMoney, logActivity } from '../lib/api'
 import { MONTHS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, FilterTabs, PlusIcon, Select, MoneyField, MoneyDisplay } from '../components/ui'
@@ -108,12 +108,17 @@ export default function Finanzas() {
     try {
       if (editId) await updateRec('transactions', editId, body)
       else await createRec('transactions', body)
+      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'transacción', entity_name: form.concept?.trim(), summary: fmtMoney(body.amount_ars ?? body.amount) })
       setOpen(false); toast(editId ? 'Transacción actualizada ✓' : '✦ Transacción registrada'); load()
     } catch { toast('No se pudo guardar la transacción.', true) } finally { setSaving(false) }
   }
   async function del(t) {
     if (!confirm(`¿Eliminar "${t.concept}" por ${fmtMoney(t.amount_ars ?? t.amount)}?`)) return
-    try { await removeRec('transactions', t.id); toast('Transacción eliminada ✓'); load() }
+    try {
+      await removeRec('transactions', t.id)
+      logActivity({ action: 'eliminar', entity: 'transacción', entity_name: t.concept, summary: fmtMoney(t.amount_ars ?? t.amount) })
+      toast('Transacción eliminada ✓'); load()
+    }
     catch { toast('No se pudo eliminar.', true) }
   }
 

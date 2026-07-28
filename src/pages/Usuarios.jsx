@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, removeRec, PB_URL } from '../lib/api'
+import { list, createRec, removeRec, PB_URL, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 
@@ -43,6 +43,7 @@ export default function Usuarios() {
     setSaving(true)
     try {
       const inv = await createRec('client_invites', { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), status: 'pendiente' })
+      logActivity({ action: 'crear', entity: 'invitación', entity_name: form.name.trim() || form.email.trim() || 'sin nombre' })
       setOpen(false)
       setLastInvite(inv)
       setCopied(false)
@@ -53,7 +54,11 @@ export default function Usuarios() {
 
   async function del(inv) {
     if (!confirm(`¿Eliminar la invitación de "${inv.name || inv.email || 'sin nombre'}"?`)) return
-    try { await removeRec('client_invites', inv.id); toast('Invitación eliminada ✓'); load() }
+    try {
+      await removeRec('client_invites', inv.id)
+      logActivity({ action: 'eliminar', entity: 'invitación', entity_name: inv.name || inv.email || 'sin nombre' })
+      toast('Invitación eliminada ✓'); load()
+    }
     catch { toast('No se pudo eliminar.', true) }
   }
 
@@ -87,6 +92,7 @@ export default function Usuarios() {
         password: teamForm.password, passwordConfirm: teamForm.password,
         role: teamForm.role,
       })
+      logActivity({ action: 'crear', entity: 'usuario', entity_name: teamForm.name.trim(), summary: `rol: ${teamForm.role}` })
       setTeamOpen(false)
       toast(`✦ ${teamForm.name.trim()} ya forma parte del equipo`)
       load()
@@ -100,7 +106,11 @@ export default function Usuarios() {
   async function delTeamMember(u) {
     if (u.id === me.id) { toast('No podés eliminar tu propia cuenta desde acá.', true); return }
     if (!confirm(`¿Eliminar a "${u.name || u.email}" del equipo? Va a perder el acceso al sistema.`)) return
-    try { await removeRec('users', u.id); toast('Cuenta eliminada ✓'); load() }
+    try {
+      await removeRec('users', u.id)
+      logActivity({ action: 'eliminar', entity: 'usuario', entity_name: u.name || u.email })
+      toast('Cuenta eliminada ✓'); load()
+    }
     catch { toast('No se pudo eliminar.', true) }
   }
 

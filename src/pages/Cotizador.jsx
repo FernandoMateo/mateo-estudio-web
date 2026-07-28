@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { list, removeRec } from '../lib/api'
+import { list, removeRec, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { ModuleHead, EmptyState, FilterTabs } from '../components/ui'
 import QuoteBuilder from '../components/QuoteBuilder'
@@ -46,6 +46,7 @@ export default function Cotizador() {
       const lines = await list('quote_lines', '&filter=' + encodeURIComponent('quote="' + q.id + '"'))
       await Promise.all(lines.map(l => removeRec('quote_lines', l.id)))
       await removeRec('quotes', q.id)
+      logActivity({ action: 'eliminar', entity: 'cotización', entity_name: q.title })
       toast('Cotización eliminada ✓'); load()
     } catch { toast('No se pudo eliminar.', true) }
   }
