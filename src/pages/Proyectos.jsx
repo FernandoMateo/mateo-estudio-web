@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, removeRec } from '../lib/api'
+import { list, createRec, updateRec, removeRec, logActivity } from '../lib/api'
 import { PHASES, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
+import ProjectFiles from '../components/ProjectFiles'
 import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Básicos', 'Plan']
@@ -38,6 +39,7 @@ export default function Proyectos() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [changingPhaseId, setChangingPhaseId] = useState(null)
+  const [filesProject, setFilesProject] = useState(null)
 
   const load = () => list('projects', '&sort=-created&expand=client,service').then(setProjects).catch(() => toast('No se pudieron cargar los proyectos.', true))
   useEffect(() => {
@@ -108,6 +110,7 @@ export default function Proyectos() {
     try {
       if (editId) await updateRec('projects', editId, body)
       else await createRec('projects', body)
+      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'proyecto', entity_name: form.name.trim() })
       setOpen(false); toast(editId ? 'Proyecto actualizado ✓' : '✦ Proyecto creado con éxito'); load()
     } catch { toast('No se pudo guardar el proyecto.', true) } finally { setSaving(false) }
   }
@@ -116,13 +119,20 @@ export default function Proyectos() {
     if (phase === p.phase) { setChangingPhaseId(null); return }
     setProjects(list => list.map(x => x.id === p.id ? { ...x, phase, progress: PHASE_PROGRESS[phase] ?? 0 } : x))
     setChangingPhaseId(null)
-    try { await updateRec('projects', p.id, buildBody(phase)) }
+    try {
+      await updateRec('projects', p.id, buildBody(phase))
+      logActivity({ action: 'actualizar', entity: 'proyecto', entity_name: p.name, summary: `cambió la fase a ${PHASES[phase]}` })
+    }
     catch { toast('No se pudo actualizar la fase.', true); load() }
   }
 
   async function del(p) {
     if (!confirm(`¿Eliminar el proyecto "${p.name}"?`)) return
-    try { await removeRec('projects', p.id); toast('Proyecto eliminado ✓'); load() }
+    try {
+      await removeRec('projects', p.id)
+      logActivity({ action: 'eliminar', entity: 'proyecto', entity_name: p.name })
+      toast('Proyecto eliminado ✓'); load()
+    }
     catch { toast('No se pudo eliminar. Puede tener tareas ligadas.', true) }
   }
 
@@ -169,6 +179,9 @@ export default function Proyectos() {
 
                 <Pill value={p.status || 'propuesta'} />
                 <div className="flex gap-1.5 flex-shrink-0">
+                  <IconBtn onClick={() => setFilesProject(p)} title="Archivos">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M17 15v6M14 18h6" /></svg>
+                  </IconBtn>
                   <IconBtn onClick={() => openEdit(p)} title="Editar"><EditIcon /></IconBtn>
                   {isAdmin && <IconBtn onClick={() => del(p)} danger title="Eliminar"><TrashIcon /></IconBtn>}
                 </div>
@@ -258,6 +271,16 @@ export default function Proyectos() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={!!filesProject} onClose={() => setFilesProject(null)}>
+        {filesProject && (
+          <>
+            <ModalHead title={`Archivos — ${filesProject.name}`} onClose={() => setFilesProject(null)} />
+            <p className="text-[12px] text-white/35 -mt-2 mb-4">Estos archivos son visibles para el cliente en su Portal.</p>
+            <ProjectFiles projectId={filesProject.id} canManage={canManage} projectName={filesProject.name} />
+          </>
+        )}
       </Modal>
     </div>
   )

@@ -440,3 +440,92 @@ La regla de PocketBase le permite al admin **listar** todas las notificaciones (
 
 - **Notificaciones push reales del sistema operativo** (las que aparecen aunque la app esté cerrada) requieren un paso técnico extra bastante más grande (un servidor de push + permisos del navegador) que no está incluido acá — lo que armamos hoy es la instalación de la app como ícono. Si más adelante querés push real, es un proyecto aparte que podemos evaluar.
 - En iOS, algunas funciones de PWA son más limitadas que en Android por decisión de Apple (por ejemplo, el ícono de instalación con un botón no existe, hay que usar el menú Compartir).
+
+---
+
+## Calendario, archivos por proyecto e historial de cambios
+
+### Instalación
+
+Importá **`pb-schema-archivos-historial.json`** (Settings → Import collections → **Merge**). Crea 2 colecciones nuevas: `project_files` y `activity_log`.
+
+### 1. Calendario (`/app/calendario`)
+
+Vista mensual con todos los vencimientos juntos: entregas de proyecto (violeta), vencimientos recurrentes (ámbar) y facturas pendientes/vencidas (rojo). Tocá cualquier día para ver el detalle en el panel de al lado. Botón "Hoy" para volver rápido a la fecha actual.
+
+### 2. Archivos por proyecto
+
+- **Admin/equipo** (en cada tarjeta de Proyectos, ícono de carpeta): subís archivos con nombre y categoría (Brief/Contrato/Entregable/Otro), los ves listados con su tipo, los descargás o eliminás.
+- **Cliente** (Portal → detalle de cualquier proyecto): ve los mismos archivos, solo lectura — puede descargarlos pero no subir ni borrar.
+- Tamaño máximo por archivo: 50 MB.
+
+### 3. Historial de cambios (`/app/historial`, solo admin)
+
+Registra automáticamente quién creó, actualizó o eliminó qué, y cuándo. Por ahora cubre las acciones más importantes:
+
+| Módulo | Qué queda registrado |
+|---|---|
+| Clientes | Crear, editar, eliminar |
+| Proyectos | Crear, editar, eliminar, cambio de fase |
+| Finanzas | Crear, editar, eliminar transacción |
+| Cotizador | Crear, editar, eliminar cotización |
+| Portal (cliente) | Aprobar / rechazar una cotización |
+| Usuarios | Alta y baja de equipo, invitaciones de clientes |
+
+**No cubre todavía**: Tareas ni Servicios (los dejé afuera por ahora para no inflar el alcance — decime si los querés sumar también, es rápido de agregar siguiendo el mismo patrón).
+
+El historial es visible solo para el rol admin, tanto por diseño (es una herramienta de supervisión) como por el permiso de la base.
+
+---
+
+## Proyecto automático al aprobar, comentarios en tareas, proyectos horizontales y documentos del cliente
+
+### Instalación
+
+Importá **`pb-schema-comentarios-documentos.json`** (Merge). Crea 2 colecciones nuevas (`task_comments`, `client_documents`) y **actualiza el permiso de `projects`** para que el cliente pueda crear su propio proyecto al aprobar una cotización.
+
+### 1. Proyecto automático al aprobar una cotización
+
+Cuando el cliente aprueba una cotización tuya (issuer_type="estudio"), se crea automáticamente un proyecto:
+- Nombre = título de la cotización
+- Presupuesto = el total de la cotización (con su moneda y conversión ya congelada, tal como estaba en la cotización)
+- Fase inicial: Descubrimiento (20%)
+- Aparece de inmediato en su Portal, tanto en el Resumen como en "Todos tus proyectos"
+
+Si el cliente **rechaza**, no se crea nada.
+
+### 2. Comentarios en tareas
+
+- **Admin/equipo**: dentro del modal de editar tarea, sección de comentarios abajo.
+- **Cliente**: tocando cualquier tarea de "Actividad reciente" en su Resumen, se abre el detalle con los comentarios.
+- Cualquiera puede borrar su propio comentario; el admin puede borrar cualquiera.
+
+### 3. Proyectos en tarjetas horizontales (Portal)
+
+"Todos tus proyectos" en el Resumen del cliente ahora es una fila de tarjetas que se desliza hacia el costado (con snap, como en cualquier app de celular) en vez de una lista vertical larga — ahorra espacio en pantallas chicas.
+
+### 4. Documentos de la empresa (Portal → Mis datos)
+
+Nueva tarjeta donde el cliente sube sus propios documentos (contratos, papeles impositivos, lo que sea) — separado de los archivos por proyecto, que son los que sube el estudio. Vos podés verlos y gestionarlos desde **Clientes** → ícono de carpeta en cada fila.
+
+---
+
+## Gastos recurrentes, MRR estimado y meta mensual en Finanzas
+
+### Instalación
+
+Importá **`pb-schema-gastos-recurrentes.json`** (Merge). Crea 1 colección nueva: `recurring_expenses`.
+
+### 1. Gastos mensuales recurrentes
+
+Sección nueva en Finanzas, arriba del listado de transacciones: cargás el concepto, el monto (en ARS/USD/MXN), el método de pago y **el día del mes** en que corresponde. Podés pausar uno sin borrarlo (el switch Activo/Pausado).
+
+**Cómo se generan — importante que lo sepas**: no hay ningún proceso corriendo solo en tu servidor (seguimos el mismo criterio que con los vencimientos recurrentes). Cuando abrís Finanzas, el sistema revisa: para cada gasto recurrente activo, ¿ya se generó este mes? Si no, y si ya llegó su día del mes, se crea automáticamente como un egreso nuevo, fechado ese mismo día. Si no abrís la app justo ese día, se genera apenas la abras después — nunca se duplica ni se salta un mes.
+
+### 2. Meta del mes — $4.000.000 ARS
+
+Tarjeta con barra de progreso: cuánto llevás facturado este mes contra el objetivo. El número está fijo en el código por ahora (`MONTHLY_GOAL_ARS` en `Finanzas.jsx`) — si querés cambiarlo más adelante sin pedírmelo, buscá esa constante.
+
+### 3. Ingresos recurrentes estimados (MRR)
+
+Suma, mes a mes, lo que "debería" entrar según tus **proyectos ligados a un servicio recurrente** (mensual/trimestral/anual, normalizado a valor mensual). Tal como pediste, si el presupuesto de un proyecto está en dólares, se convierte con **la cotización de hoy** (no la que estaba congelada cuando se creó el proyecto) — es una proyección a valor actual, no un monto ya cobrado.

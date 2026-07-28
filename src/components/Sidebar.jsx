@@ -13,6 +13,8 @@ const ICONS = {
   usuarios: <><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l1.5 7v6a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-6z"/></>,
   notificaciones: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2.2 2.2 0 0 0 4 0"/></>,
   reportes: <><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="12" width="3" height="5"/><rect x="12" y="8" width="3" height="9"/><rect x="17" y="14" width="3" height="3"/></>,
+  calendario: <><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>,
+  historial: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></>,
 }
 
 const ITEMS = [
@@ -20,12 +22,14 @@ const ITEMS = [
   { to: '/app/clientes', label: 'Clientes', icon: 'clientes' },
   { to: '/app/proyectos', label: 'Proyectos', icon: 'proyectos' },
   { to: '/app/tareas', label: 'Tareas', icon: 'tareas' },
+  { to: '/app/calendario', label: 'Calendario', icon: 'calendario' },
   { to: '/app/finanzas', label: 'Finanzas', icon: 'finanzas', adminOnly: true },
   { to: '/app/servicios', label: 'Servicios', icon: 'servicios' },
   { to: '/app/cotizador', label: 'Cotizador', icon: 'cotizador' },
   { to: '/app/usuarios', label: 'Usuarios', icon: 'usuarios' },
   { to: '/app/notificaciones', label: 'Notificaciones', icon: 'notificaciones' },
   { to: '/app/reportes', label: 'Reportes', icon: 'reportes' },
+  { to: '/app/historial', label: 'Historial', icon: 'historial', adminOnly: true },
 ]
 
 export default function Sidebar({ me, open, setOpen }) {

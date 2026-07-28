@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, removeRec, fmtMoney } from '../lib/api'
+import { list, createRec, updateRec, removeRec, fmtMoney, logActivity } from '../lib/api'
 import { MONTHS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, FilterTabs, PlusIcon, Select, MoneyField, MoneyDisplay } from '../components/ui'
@@ -9,8 +9,11 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, 
 import { useFx, toArs } from '../context/FxContext'
 
 const emptyForm = { type: 'ingreso', concept: '', amount: '', currency: 'ARS', date: new Date().toISOString().slice(0, 10), status: 'pagado', method: '', client: '', project: '', due_date: '', notes: '' }
+const emptyRecForm = { concept: '', amount: '', currency: 'ARS', day_of_month: 1, method: '', active: true }
 const TABS = [['todas', 'Todas'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos'], ['pendientes', 'Pendientes / Vencidas']]
 const PIE_COLORS = ['#8B5CF6', '#F472F0', '#5EEAD4', '#A78BFA', '#7C3AED']
+const RECUR_DIVISOR = { mensual: 1, trimestral: 3, anual: 12 }
+const MONTHLY_GOAL_ARS = 4000000
 
 function monthSum(items, y, m, type) {
   return items.filter(t => t.type === type && (() => { const d = new Date(t.date || t.created); return d.getFullYear() === y && d.getMonth() === m })())
@@ -31,19 +34,57 @@ export default function Finanzas() {
   const [tx, setTx] = useState([])
   const [clients, setClients] = useState([])
   const [projects, setProjects] = useState([])
+  const [recurringExpenses, setRecurringExpenses] = useState([])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('todas')
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [recOpen, setRecOpen] = useState(false)
+  const [recEditId, setRecEditId] = useState(null)
+  const [recForm, setRecForm] = useState(emptyRecForm)
+  const [recSaving, setRecSaving] = useState(false)
 
   const load = () => list('transactions', '&sort=-date&expand=client,project').then(setTx).catch(() => toast('No se pudieron cargar las transacciones.', true))
+  const loadRecurring = () => list('recurring_expenses', '&sort=day_of_month').then(setRecurringExpenses).catch(() => {})
+
   useEffect(() => {
     load()
     list('clients', '&sort=name').then(setClients).catch(() => {})
-    list('projects', '&sort=name').then(setProjects).catch(() => {})
+    list('projects', '&sort=name&expand=service').then(setProjects).catch(() => {})
+    loadRecurring().then(() => generateDueRecurringExpenses())
   }, [])
+
+  async function generateDueRecurringExpenses() {
+    try {
+      const templates = await list('recurring_expenses', '&filter=' + encodeURIComponent('active=true'))
+      const now = new Date()
+      const todayDay = now.getDate()
+      const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+      let generatedAny = false
+      for (const exp of templates) {
+        const lastGenKey = exp.last_generated ? exp.last_generated.slice(0, 7) : null
+        if (lastGenKey === curKey) continue // ya se generó este mes
+        const targetDay = Math.min(exp.day_of_month || 1, daysInMonth)
+        if (todayDay < targetDay) continue // todavía no llega el día del mes
+        const amountArs = Math.round(toArs(exp.amount, exp.currency, rates))
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')} 00:00:00`
+        try {
+          await createRec('transactions', {
+            type: 'egreso', concept: exp.concept, amount: exp.amount, currency: exp.currency || 'ARS',
+            fx_rate: (exp.currency && exp.currency !== 'ARS') ? (exp.amount ? amountArs / exp.amount : 0) : 1,
+            amount_ars: amountArs, status: 'pagado', date: dateStr, method: exp.method || '',
+            notes: 'Generado automáticamente — gasto recurrente',
+          })
+          await updateRec('recurring_expenses', exp.id, { last_generated: dateStr })
+          generatedAny = true
+        } catch { /* si uno falla, seguimos con los demás */ }
+      }
+      if (generatedAny) { load(); loadRecurring() }
+    } catch { /* silencioso: no bloquea el resto de Finanzas */ }
+  }
 
   const now = new Date(), y = now.getFullYear(), m = now.getMonth()
   const py = m === 0 ? y - 1 : y, pm = m === 0 ? 11 : m - 1
@@ -52,6 +93,23 @@ export default function Finanzas() {
   const balance = inCur - outCur
   const due = tx.filter(t => t.type === 'ingreso' && (t.status === 'pendiente' || t.status === 'vencido')).reduce((a, t) => a + (Number(t.amount_ars ?? t.amount) || 0), 0)
   const overdueCount = tx.filter(t => t.type === 'ingreso' && t.status === 'vencido').length
+
+  // Ingresos recurrentes estimados por mes, a partir de proyectos ligados a un servicio recurrente.
+  // Usa la cotización de HOY (no la congelada del proyecto), tal como se pidió.
+  const mrrEstimate = useMemo(() => {
+    return projects.reduce((total, p) => {
+      const div = RECUR_DIVISOR[p.expand?.service?.billing_type]
+      if (!div || !p.budget) return total
+      return total + toArs(p.budget, p.budget_currency, rates) / div
+    }, 0)
+  }, [projects, rates])
+
+  // Gastos recurrentes activos, convertidos a la cotización de hoy.
+  const recurringExpensesArs = useMemo(() => {
+    return recurringExpenses.filter(e => e.active !== false).reduce((a, e) => a + toArs(e.amount, e.currency, rates), 0)
+  }, [recurringExpenses, rates])
+
+  const goalPct = Math.min(100, Math.round((inCur / MONTHLY_GOAL_ARS) * 100))
 
   const chartData = useMemo(() => {
     const arr = []
@@ -108,13 +166,56 @@ export default function Finanzas() {
     try {
       if (editId) await updateRec('transactions', editId, body)
       else await createRec('transactions', body)
+      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'transacción', entity_name: form.concept?.trim(), summary: fmtMoney(body.amount_ars ?? body.amount) })
       setOpen(false); toast(editId ? 'Transacción actualizada ✓' : '✦ Transacción registrada'); load()
     } catch { toast('No se pudo guardar la transacción.', true) } finally { setSaving(false) }
   }
   async function del(t) {
     if (!confirm(`¿Eliminar "${t.concept}" por ${fmtMoney(t.amount_ars ?? t.amount)}?`)) return
-    try { await removeRec('transactions', t.id); toast('Transacción eliminada ✓'); load() }
+    try {
+      await removeRec('transactions', t.id)
+      logActivity({ action: 'eliminar', entity: 'transacción', entity_name: t.concept, summary: fmtMoney(t.amount_ars ?? t.amount) })
+      toast('Transacción eliminada ✓'); load()
+    }
     catch { toast('No se pudo eliminar.', true) }
+  }
+
+  function openRecNew() { setRecEditId(null); setRecForm(emptyRecForm); setRecOpen(true) }
+  function openRecEdit(e) {
+    setRecEditId(e.id)
+    setRecForm({ ...emptyRecForm, ...e, amount: e.amount || '', currency: e.currency || 'ARS', day_of_month: e.day_of_month || 1, active: e.active !== false })
+    setRecOpen(true)
+  }
+  async function saveRec() {
+    const amount = parseFloat(recForm.amount)
+    if (!recForm.concept.trim()) { toast('El concepto es obligatorio.', true); return }
+    if (!amount || amount <= 0) { toast('Escribí un monto válido mayor a 0.', true); return }
+    setRecSaving(true)
+    const body = {
+      concept: recForm.concept.trim(), amount, currency: recForm.currency || 'ARS',
+      day_of_month: Math.max(1, Math.min(31, parseInt(recForm.day_of_month, 10) || 1)),
+      method: recForm.method, active: !!recForm.active,
+    }
+    try {
+      if (recEditId) await updateRec('recurring_expenses', recEditId, body)
+      else await createRec('recurring_expenses', body)
+      logActivity({ action: recEditId ? 'actualizar' : 'crear', entity: 'gasto recurrente', entity_name: body.concept })
+      setRecOpen(false); toast(recEditId ? 'Gasto recurrente actualizado ✓' : '✦ Gasto recurrente creado'); loadRecurring()
+    } catch { toast('No se pudo guardar.', true) } finally { setRecSaving(false) }
+  }
+  async function delRec(e) {
+    if (!confirm(`¿Eliminar el gasto recurrente "${e.concept}"? Los movimientos ya generados no se borran.`)) return
+    try {
+      await removeRec('recurring_expenses', e.id)
+      logActivity({ action: 'eliminar', entity: 'gasto recurrente', entity_name: e.concept })
+      toast('Gasto recurrente eliminado ✓'); loadRecurring()
+    } catch { toast('No se pudo eliminar.', true) }
+  }
+  async function toggleRecActive(e) {
+    try {
+      await updateRec('recurring_expenses', e.id, { active: !(e.active !== false) })
+      setRecurringExpenses(list => list.map(x => x.id === e.id ? { ...x, active: !(x.active !== false) } : x))
+    } catch { toast('No se pudo actualizar.', true) }
   }
 
   return (
@@ -147,6 +248,28 @@ export default function Finanzas() {
             {overdueCount > 0 && <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.1, repeat: Infinity }} className="w-2 h-2 rounded-full bg-coral shadow-[0_0_8px_rgba(248,113,113,.8)]" />}
             {overdueCount > 0 ? `${overdueCount} factura(s) VENCIDA(S)` : 'facturas pendientes de cobro'}
           </div>
+        </motion.div>
+      </div>
+
+      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(220px,100%),1fr))' }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card relative overflow-hidden">
+          <div className="text-[11.5px] uppercase font-semibold tracking-wide text-white/55">Meta del mes <span className="text-white/25 normal-case font-normal">· {fmtMoney(MONTHLY_GOAL_ARS)}</span></div>
+          <div className="text-[26px] font-extrabold tracking-tight mt-2.5 text-gradient">{goalPct}%</div>
+          <div className="h-2 rounded-full bg-white/[.07] overflow-hidden mt-2.5">
+            <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink" style={{ boxShadow: '0 0 12px rgba(139,92,246,.6)' }}
+              initial={{ width: 0 }} animate={{ width: `${goalPct}%` }} transition={{ duration: 1.2, ease: [0.2, 0.9, 0.25, 1] }} />
+          </div>
+          <div className="text-[11.5px] text-white/35 mt-2">{fmtMoney(inCur)} facturados este mes</div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }} className="card">
+          <div className="text-[11.5px] uppercase font-semibold tracking-wide text-white/55">Ingresos recurrentes estimados</div>
+          <div className="text-[26px] font-extrabold tracking-tight mt-2.5 text-mint"><CountUp value={mrrEstimate} format={fmtMoney} /></div>
+          <div className="text-[11.5px] text-white/35 mt-2">por mes, según tus proyectos recurrentes activos</div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }} className="card">
+          <div className="text-[11.5px] uppercase font-semibold tracking-wide text-white/55">Gastos recurrentes</div>
+          <div className="text-[26px] font-extrabold tracking-tight mt-2.5 text-coral"><CountUp value={recurringExpensesArs} format={fmtMoney} /></div>
+          <div className="text-[11.5px] text-white/35 mt-2">{recurringExpenses.filter(e => e.active !== false).length} activo(s) · por mes</div>
         </motion.div>
       </div>
 
@@ -209,6 +332,47 @@ export default function Finanzas() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="card mb-4">
+        <div className="flex items-center gap-3 mb-3.5 flex-wrap">
+          <h3 className="text-sm font-bold">Gastos mensuales recurrentes</h3>
+          <span className="text-[10px] font-semibold text-violet-light bg-violet/10 border border-violet/30 rounded px-1.5 py-0.5">{recurringExpenses.length}</span>
+          <div className="flex-1" />
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass !py-1.5 !px-3 text-[12px]" onClick={openRecNew}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            Nuevo gasto recurrente
+          </motion.button>
+        </div>
+        <p className="text-[11.5px] text-white/35 mb-3.5">Se agregan solos a la lista de egresos, en su día del mes, la próxima vez que abras Finanzas.</p>
+        {!recurringExpenses.length ? (
+          <p className="text-[12.5px] text-white/35">Todavía no cargaste ningún gasto recurrente (alquiler, suscripciones, sueldos fijos…).</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recurringExpenses.map(e => {
+              const inactive = e.active === false
+              return (
+                <div key={e.id} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl flex-wrap sm:flex-nowrap ${inactive ? 'opacity-50' : ''}`}
+                  style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+                  <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-coral bg-coral/[.1] border border-coral/25">{e.day_of_month}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium truncate">{e.concept}</div>
+                    <div className="text-[10.5px] text-white/35">Día {e.day_of_month} de cada mes{e.method ? ` · ${e.method}` : ''}</div>
+                  </div>
+                  <span className="text-[13px] font-bold text-coral flex-shrink-0">{e.currency === 'USD' ? 'US$' : e.currency === 'MXN' ? 'MX$' : '$'}{Number(e.amount).toLocaleString('es-AR')}</span>
+                  <button onClick={() => toggleRecActive(e)}
+                    className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border flex-shrink-0 transition-colors ${inactive ? 'text-white/35 border-white/10' : 'text-mint border-mint/30 bg-mint/10'}`}>
+                    {inactive ? 'Pausado' : 'Activo'}
+                  </button>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <IconBtn onClick={() => openRecEdit(e)} title="Editar"><EditIcon /></IconBtn>
+                    <IconBtn onClick={() => delRec(e)} danger title="Eliminar"><TrashIcon /></IconBtn>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <FilterTabs tabs={TABS} value={filter} onChange={setFilter} />
@@ -288,6 +452,38 @@ export default function Finanzas() {
         <div className="flex justify-end gap-2.5 mt-5">
           <button className="btn-ghost" onClick={() => setOpen(false)}>Cancelar</button>
           <button className="btn-glass" disabled={saving} onClick={save}>Guardar ✦</button>
+        </div>
+      </Modal>
+
+      <Modal open={recOpen} onClose={() => setRecOpen(false)}>
+        <ModalHead title={recEditId ? 'Editar gasto recurrente' : 'Nuevo gasto recurrente'} onClose={() => setRecOpen(false)} />
+        <p className="text-[12px] text-white/35 -mt-2 mb-4">Se va a agregar solo como egreso cada mes, en el día que elijas acá.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Concepto *" full><input className="field" value={recForm.concept} onChange={e => setRecForm(f => ({ ...f, concept: e.target.value }))} placeholder="Ej. Alquiler de oficina, hosting, sueldo fijo…" /></Field>
+          <Field label="Monto *" full>
+            <MoneyField amount={recForm.amount} currency={recForm.currency} onAmount={v => setRecForm(f => ({ ...f, amount: v }))} onCurrency={v => setRecForm(f => ({ ...f, currency: v }))} />
+          </Field>
+          <Field label="Día del mes *"><input type="number" min="1" max="31" className="field" value={recForm.day_of_month} onChange={e => setRecForm(f => ({ ...f, day_of_month: e.target.value }))} /></Field>
+          <Field label="Método">
+            <Select value={recForm.method} onChange={v => setRecForm(f => ({ ...f, method: v }))} placeholder="—"
+              options={[{ value: 'transferencia', label: 'Transferencia' }, { value: 'efectivo', label: 'Efectivo' }, { value: 'tarjeta', label: 'Tarjeta' }, { value: 'otro', label: 'Otro' }]} />
+          </Field>
+          <Field label="Estado" full>
+            <button type="button" onClick={() => setRecForm(f => ({ ...f, active: !f.active }))}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-[13px] font-semibold transition-colors w-full
+                ${recForm.active ? 'text-mint border-mint/30 bg-mint/10' : 'text-white/45 border-white/10 bg-white/[.03]'}`}>
+              <span className="rounded-full relative transition-colors flex-shrink-0" style={{ height: 18, width: 32, background: recForm.active ? 'rgba(52,211,153,.4)' : 'rgba(255,255,255,.1)' }}>
+                <motion.span className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white" animate={{ left: recForm.active ? 16 : 2 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
+              </span>
+              {recForm.active ? 'Activo — se genera cada mes' : 'Pausado — no se genera'}
+            </button>
+          </Field>
+        </div>
+        <div className="flex justify-end gap-2.5 mt-5">
+          <button className="btn-ghost" onClick={() => setRecOpen(false)}>Cancelar</button>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={recSaving} onClick={saveRec}>
+            {recSaving ? 'Guardando…' : (recEditId ? 'Guardar cambios' : 'Crear gasto recurrente ✦')}
+          </motion.button>
         </div>
       </Modal>
     </div>

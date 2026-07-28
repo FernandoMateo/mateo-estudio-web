@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { list, createRec, updateRec, removeRec, fileUrl } from '../lib/api'
+import { list, createRec, updateRec, removeRec, fileUrl, logActivity } from '../lib/api'
 import { COUNTRIES, flagOf } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
+import ClientDocuments from '../components/ClientDocuments'
 import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Identidad', 'Contacto', 'Fiscal', 'Comercial']
@@ -24,6 +25,7 @@ export default function Clientes() {
   const [services, setServices] = useState([])
   const [portalUsers, setPortalUsers] = useState([])
   const [open, setOpen] = useState(false)
+  const [docsClient, setDocsClient] = useState(null)
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)
   const [editId, setEditId] = useState(null)
@@ -83,6 +85,7 @@ export default function Clientes() {
     try {
       if (editId) await updateRec('clients', editId, fd, true)
       else await createRec('clients', fd, true)
+      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'cliente', entity_name: form.name?.trim() })
       setOpen(false); toast(editId ? 'Cliente actualizado ✓' : '✦ Cliente creado con éxito'); load()
     } catch (err) {
       const d = err?.data?.data
@@ -96,7 +99,11 @@ export default function Clientes() {
 
   async function del(c) {
     if (!confirm(`¿Eliminar al cliente "${c.name}"? Esta acción no se puede deshacer.`)) return
-    try { await removeRec('clients', c.id); toast('Cliente eliminado ✓'); load() }
+    try {
+      await removeRec('clients', c.id)
+      logActivity({ action: 'eliminar', entity: 'cliente', entity_name: c.name })
+      toast('Cliente eliminado ✓'); load()
+    }
     catch { toast('No se pudo eliminar. Puede tener registros ligados.', true) }
   }
 
@@ -119,6 +126,9 @@ export default function Clientes() {
               right={<Pill value={c.status || 'prospecto'} />}
             >
               <div className="flex gap-1.5 flex-shrink-0">
+                <IconBtn onClick={() => setDocsClient(c)} title="Documentos">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M17 15v6M14 18h6" /></svg>
+                </IconBtn>
                 <IconBtn onClick={() => openEdit(c)} title="Editar"><EditIcon /></IconBtn>
                 {isAdmin && <IconBtn onClick={() => del(c)} danger title="Eliminar"><TrashIcon /></IconBtn>}
               </div>
@@ -232,6 +242,16 @@ export default function Clientes() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={!!docsClient} onClose={() => setDocsClient(null)}>
+        {docsClient && (
+          <>
+            <ModalHead title={`Documentos — ${docsClient.name}`} onClose={() => setDocsClient(null)} />
+            <p className="text-[12px] text-white/35 -mt-2 mb-4">Estos son los documentos que el propio cliente cargó desde su Portal (o los que le subas vos acá).</p>
+            <ClientDocuments clientId={docsClient.id} />
+          </>
+        )}
       </Modal>
     </div>
   )

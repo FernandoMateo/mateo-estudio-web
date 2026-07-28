@@ -1,0 +1,26 @@
+[
+  {
+    "id": "pbc_recurexp0001",
+    "name": "recurring_expenses",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\"",
+    "viewRule": "@request.auth.role = \"admin\"",
+    "createRule": "@request.auth.role = \"admin\"",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_re_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "hidden": false, "id": "text_re_concept", "max": 0, "min": 0, "name": "concept", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "num_re_amount", "max": null, "min": null, "name": "amount", "onlyInt": false, "presentable": false, "required": true, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_re_currency", "maxSelect": 1, "name": "currency", "presentable": false, "required": false, "system": false, "type": "select", "values": ["ARS", "USD", "MXN"] },
+      { "hidden": false, "id": "num_re_day", "max": 31, "min": 1, "name": "day_of_month", "onlyInt": true, "presentable": false, "required": true, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_re_method", "maxSelect": 1, "name": "method", "presentable": false, "required": false, "system": false, "type": "select", "values": ["transferencia", "efectivo", "tarjeta", "otro"] },
+      { "hidden": false, "id": "bool_re_active", "name": "active", "presentable": false, "required": false, "system": false, "type": "bool" },
+      { "hidden": false, "id": "date_re_lastgen", "max": "", "min": "", "name": "last_generated", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "auto_re_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_re_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]

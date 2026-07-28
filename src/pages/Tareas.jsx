@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, FilterTabs, Select } from '../components/ui'
+import TaskComments from '../components/TaskComments'
 
 const emptyForm = { title: '', project: '', assigned_to: '', due_date: '', status: 'pendiente', priority: 'media', link: '', description: '' }
 const TABS = [['todas', 'Todas'], ['pendiente', 'Pendientes'], ['en_progreso', 'En progreso'], ['completada', 'Completadas']]
@@ -157,6 +158,14 @@ export default function Tareas() {
           <Field label="Enlace de referencia" full><input className="field" value={form.link} onChange={e => set('link', e.target.value)} placeholder="https://…" /></Field>
           <Field label="Descripción" full><textarea className="field min-h-[64px]" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Detalles, criterios de entrega…" /></Field>
         </div>
+
+        {editId && (
+          <div className="mt-5 pt-4 border-t border-white/[.06]">
+            <div className="field-label !mb-2.5">Comentarios</div>
+            <TaskComments taskId={editId} />
+          </div>
+        )}
+
         <div className="flex justify-end gap-2.5 mt-5">
           <button className="btn-ghost" onClick={() => setOpen(false)}>Cancelar</button>
           <button className="btn-glass" disabled={saving} onClick={save}>Guardar tarea ✦</button>
