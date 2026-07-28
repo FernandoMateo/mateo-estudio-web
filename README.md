@@ -323,3 +323,81 @@ Importá **`pb-schema-servicios-recurrentes.json`** (Settings → Import collect
 No hay ningún proceso corriendo solo en el servidor — la revisión se dispara **cuando vos o tu equipo abren la app** (vive en el layout del admin). Si nadie entra al sistema en un día puntual, el aviso se dispara la próxima vez que alguien entre, aunque sea con un día de atraso. Cada vencimiento se avisa **una sola vez por ciclo** — cuando actualizás la fecha a la próxima renovación, se resetea automáticamente para volver a avisar en el siguiente ciclo.
 
 Si en algún momento querés que esto sea 100% automático sin depender de que alguien abra la app, la única forma real es un proceso en el servidor (PocketBase hooks) — es más delicado de instalar y mantener, pero se puede evaluar más adelante si te hace falta.
+
+---
+
+## Progreso automático por fase + vista individual de proyecto en el Portal
+
+**Sin cambios de esquema** — usa los campos `phase` y `progress` que ya existían.
+
+### Qué cambió
+
+**Progreso automático**: ya no hay slider manual. El % se calcula solo según la fase:
+
+| Fase | Progreso |
+|---|---|
+| Descubrimiento | 20% |
+| Diseño | 40% |
+| Desarrollo | 60% |
+| Revisión | 80% |
+| Entrega | 100% |
+
+**Cambio rápido de fase**: en cada tarjeta de Proyectos (admin/equipo) hay un botón con el nombre de la fase actual — tocalo y aparece un selector para cambiarla ahí mismo, sin abrir el formulario completo. El progreso se actualiza solo.
+
+**Vista individual en el Portal**: cuando un cliente tiene más de un proyecto, la lista "Todos tus proyectos" ahora es clickeable — al tocar cualquiera se abre un modal con el detalle completo (anillo de progreso, stepper de fases, fechas, descripción), igual que el que ya se veía para el proyecto activo, pero para cualquiera de sus proyectos.
+
+---
+
+## Notificaciones por Gmail (EmailJS)
+
+No requiere tocar PocketBase ni el servidor — es 100% configuración externa + 4 variables en `.env`.
+
+### Por qué EmailJS
+
+La app no tiene backend propio (es React + PocketBase, sin código de servidor que controlemos). EmailJS permite mandar correos reales **directo desde el navegador**, conectado a tu propia cuenta de Gmail, sin instalar nada en el VPS. Plan gratis: 200 correos por mes.
+
+### Paso a paso
+
+1. **Creá una cuenta** en [emailjs.com](https://www.emailjs.com) (gratis, con tu Gmail sirve).
+
+2. **Conectá tu Gmail**: en el panel → **Email Services** → **Add New Service** → elegí **Gmail** → autorizá con tu cuenta. Anotá el **Service ID** que te genera (algo como `service_xxxxxxx`).
+
+3. **Creá una plantilla**: panel → **Email Templates** → **Create New Template**. En el cuerpo del mensaje, usá estas variables (respetá los nombres exactos):
+   ```
+   Para: {{to_email}}
+   Asunto: {{subject}}
+
+   {{title}}
+
+   {{message}}
+
+   — Mateo Estudio OS
+   ```
+   Guardala y anotá el **Template ID** (`template_xxxxxxx`).
+
+4. **Conseguí tu clave pública**: panel → **Account → General** → copiá la **Public Key**.
+
+5. **Autorizá tu dominio**: panel → **Account → Security** → en "Allowed origins" agregá tu dominio (ej. `https://pocketbase-d4iq.srv1851703.hstgr.cloud`). Sin este paso, EmailJS rechaza los envíos por seguridad.
+
+6. **Completá el `.env`** de este proyecto con los 4 datos:
+   ```
+   VITE_EMAILJS_SERVICE_ID=service_xxxxxxx
+   VITE_EMAILJS_TEMPLATE_ID=template_xxxxxxx
+   VITE_EMAILJS_PUBLIC_KEY=tu_clave_publica
+   VITE_ALERT_EMAIL=tu_correo@gmail.com
+   ```
+
+7. `npm run build` y desplegar como siempre.
+
+### Qué te llega por correo
+
+Todo lo que hoy le avisa a "todo el equipo" en la campanita — automáticamente también te llega a `VITE_ALERT_EMAIL`:
+- Cliente aprueba o rechaza una cotización
+- Cliente manda una solicitud desde el Portal
+- Un cliente completa su alta por invitación
+
+Los avisos que van **al cliente** (cotización nueva, recordatorio de vencimiento) siguen siendo solo in-app — no se reenvían a tu correo, porque son avisos *para ellos*, no para vos.
+
+### Honestidad sobre esto
+
+No tengo forma de probar el envío real desde este entorno (no tengo acceso a internet acá). El código sigue exactamente el contrato documentado de la API de EmailJS, pero la primera prueba real la vas a hacer vos. Si al probarlo no llega nada, lo más probable es el paso 5 (dominio no autorizado) — revisá la consola del navegador (F12), ahí debería aparecer el error exacto si EmailJS lo rechaza.
