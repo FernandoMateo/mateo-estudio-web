@@ -24,7 +24,11 @@ export default function Login() {
       const data = await res.json()
       if (!res.ok) { setError('Correo o contraseña incorrectos. Revisa tus datos e inténtalo de nuevo.'); setLoading(false); return }
       setAuth({ token: data.token, record: data.record })
-      nav(data.record?.role === 'cliente' ? '/portal' : '/app')
+      // Navegar a la pantalla de bienvenida, pasando el nombre y rol del usuario
+      nav('/welcome', {
+        state: { userName: data.record.name || data.record.email.split('@')[0], userRole: data.record.role },
+        replace: true, // Usar replace para que no se pueda volver a la pantalla de login con el botón de atrás
+      });
     } catch {
       setError('No se pudo conectar con el servidor. Verifica tu conexión.')
       setLoading(false)
