@@ -475,3 +475,35 @@ Registra automáticamente quién creó, actualizó o eliminó qué, y cuándo. P
 **No cubre todavía**: Tareas ni Servicios (los dejé afuera por ahora para no inflar el alcance — decime si los querés sumar también, es rápido de agregar siguiendo el mismo patrón).
 
 El historial es visible solo para el rol admin, tanto por diseño (es una herramienta de supervisión) como por el permiso de la base.
+
+---
+
+## Proyecto automático al aprobar, comentarios en tareas, proyectos horizontales y documentos del cliente
+
+### Instalación
+
+Importá **`pb-schema-comentarios-documentos.json`** (Merge). Crea 2 colecciones nuevas (`task_comments`, `client_documents`) y **actualiza el permiso de `projects`** para que el cliente pueda crear su propio proyecto al aprobar una cotización.
+
+### 1. Proyecto automático al aprobar una cotización
+
+Cuando el cliente aprueba una cotización tuya (issuer_type="estudio"), se crea automáticamente un proyecto:
+- Nombre = título de la cotización
+- Presupuesto = el total de la cotización (con su moneda y conversión ya congelada, tal como estaba en la cotización)
+- Fase inicial: Descubrimiento (20%)
+- Aparece de inmediato en su Portal, tanto en el Resumen como en "Todos tus proyectos"
+
+Si el cliente **rechaza**, no se crea nada.
+
+### 2. Comentarios en tareas
+
+- **Admin/equipo**: dentro del modal de editar tarea, sección de comentarios abajo.
+- **Cliente**: tocando cualquier tarea de "Actividad reciente" en su Resumen, se abre el detalle con los comentarios.
+- Cualquiera puede borrar su propio comentario; el admin puede borrar cualquiera.
+
+### 3. Proyectos en tarjetas horizontales (Portal)
+
+"Todos tus proyectos" en el Resumen del cliente ahora es una fila de tarjetas que se desliza hacia el costado (con snap, como en cualquier app de celular) en vez de una lista vertical larga — ahorra espacio en pantallas chicas.
+
+### 4. Documentos de la empresa (Portal → Mis datos)
+
+Nueva tarjeta donde el cliente sube sus propios documentos (contratos, papeles impositivos, lo que sea) — separado de los archivos por proyecto, que son los que sube el estudio. Vos podés verlos y gestionarlos desde **Clientes** → ícono de carpeta en cada fila.

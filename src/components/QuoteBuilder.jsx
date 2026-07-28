@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-import { createRec, updateRec, removeRec, list, fmtByCurrency, notifyUser } from '../lib/api'
-
- 
+import { createRec, updateRec, removeRec, list, fmtByCurrency, notifyUser, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { useFx, convertAmount, toArs } from '../context/FxContext'
 import { Modal, ModalHead, Field, Select } from './ui'
@@ -125,19 +122,17 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
       } else {
         const created = await createRec('quotes', body)
         quoteId = created.id
-
         if (mode === 'estudio') {
           const opt = clientOptions.find(o => o.value === client)
           if (opt?.user) notifyUser(opt.user, { title: 'Recibiste una nueva cotización', message: title.trim(), type: 'pago', client })
         }
-
- 
       }
       await Promise.all(validLines.map(l => createRec('quote_lines', {
         quote: quoteId, description: (l.description || '').trim(), unit: l.unit || '',
         quantity: Number(l.quantity), unit_cost: Number(l.unit_cost) || 0,
         line_total: Math.round((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0) * 100) / 100,
       })))
+      logActivity({ action: activeEditId ? 'actualizar' : 'crear', entity: 'cotización', entity_name: title.trim(), summary: fmtByCurrency(total, currency) })
       onSaved?.()
       setLastQuote({ ...body, id: quoteId })
       setStage('success')

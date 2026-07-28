@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam, logActivity } from '../lib/api'
 import { PHASES, PHASE_ORDER, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
-import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon, FilterTabs, EmptyState } from '../components/ui'
+import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon } from '../components/ui'
 import CountUp from '../components/CountUp'
 import QuoteBuilder from '../components/QuoteBuilder'
 import QuoteViewer from '../components/QuoteViewer'
@@ -14,7 +14,8 @@ import NotificationsList from '../components/NotificationsList'
 import NotificationBell from '../components/NotificationBell'
 import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
-import { useFx, toArs } from '../context/FxContext'
+import TaskComments from '../components/TaskComments'
+import ClientDocuments from '../components/ClientDocuments'
 
 const TABS = [
   ['resumen', 'Resumen'],
@@ -108,10 +109,10 @@ export default function Portal() {
   const nav = useNavigate()
   const toast = useToast()
   const auth = getAuth()
-  const { rates } = useFx()
 
   const [tab, setTab] = useState('resumen')
   const [viewingProject, setViewingProject] = useState(null)
+  const [viewingTask, setViewingTask] = useState(null)
   const [client, setClient] = useState(null)
   const [projects, setProjects] = useState([])
   const [tasks, setTasks] = useState([])
@@ -192,6 +193,7 @@ export default function Portal() {
   }
 
   const firstName = (client?.contact_name || auth?.record?.name || auth?.record?.email || '').split(' ')[0].split('@')[0]
+  const activeProject = useMemo(() => projects.find(p => p.status === 'en_progreso') || projects[0] || null, [projects])
   const RECURRING_TYPES = { mensual: true, trimestral: true, anual: true }
   const upcomingRenewals = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -298,42 +300,22 @@ export default function Portal() {
       })
       logActivity({ action: 'actualizar', entity: 'cotización', entity_name: viewingQuote.title, summary: `el cliente la ${status === 'aprobado' ? 'aprobó' : 'rechazó'}` })
 
-      if (status === 'aprobado') {
+      // Al aprobar, se crea el proyecto solo y ya le queda asignado — arranca visible en su Portal.
+      if (status === 'aprobado' && viewingQuote.issuer_type === 'estudio') {
         try {
-          const budget = viewingQuote.total || 0
-          const currency = viewingQuote.currency || 'ARS'
-          const budgetArs = Math.round(toArs(budget, currency, rates))
-          const budgetFxRate = (currency !== 'ARS' && budget > 0) ? budgetArs / budget : 1
-
-          await createRec('projects', {
-            name: viewingQuote.title,
-            client: client.id,
-            status: 'propuesta',
-            phase: 'descubrimiento',
-            progress: PHASE_PROGRESS.descubrimiento || 20,
-            description: viewingQuote.summary || '',
-            budget: budget,
-            budget_currency: currency,
-            budget_ars: budgetArs,
-            budget_fx_rate: budgetFxRate,
-            service: viewingQuote.service || null,
+          const newProject = await createRec('projects', {
+            name: viewingQuote.title, client: client?.id || '',
+            status: 'en_progreso', phase: 'descubrimiento', progress: PHASE_PROGRESS.descubrimiento,
+            description: 'Generado automáticamente a partir de una cotización aprobada.',
+            budget: viewingQuote.total, budget_currency: viewingQuote.currency,
+            budget_fx_rate: viewingQuote.fx_rate || 1, budget_ars: viewingQuote.total_ars,
           })
-          logActivity({ action: 'crear', entity: 'proyecto', entity_name: viewingQuote.title, summary: `Creado desde cotización aprobada #${viewingQuote.id.slice(0, 5)}` })
-          notifyTeam({
-            title: `Nuevo proyecto para ${client?.name || 'un cliente'}`,
-            message: `"${viewingQuote.title}" se creó como propuesta.`,
-            type: 'proyecto',
-            client: client?.id || '',
-          })
-          toast('✓ Cotización aprobada. ¡El proyecto ya está en marcha!')
-        } catch (e) {
-          console.error('Error creando proyecto desde cotización:', e)
-          toast('Se aprobó la cotización, pero falló la creación automática del proyecto.', true)
-        }
-      } else {
-        toast('Cotización rechazada')
+          logActivity({ action: 'crear', entity: 'proyecto', entity_name: viewingQuote.title, summary: 'creado automáticamente al aprobar una cotización' })
+          void newProject
+        } catch { /* si falla la creación del proyecto, la aprobación de la cotización ya quedó guardada igual */ }
       }
 
+      toast(status === 'aprobado' ? '✓ Cotización aprobada — ya podés ver el proyecto en "Mis proyectos"' : 'Cotización rechazada')
       setViewingQuote(null)
       loadAll()
     } catch { toast('No se pudo registrar tu decisión. Intentá de nuevo.', true) }
@@ -402,7 +384,7 @@ export default function Portal() {
       {/* ── Pestañas ── */}
       <nav className="max-w-[1080px] mx-auto px-4 md:px-8 sticky top-0 z-30 py-3"
         style={{ background: 'linear-gradient(180deg, rgba(5,5,8,.92), rgba(5,5,8,.55) 70%, transparent)', backdropFilter: 'blur(8px)' }}>
-        <div className="flex gap-1.5 flex-nowrap overflow-x-auto no-scrollbar -mx-4 px-4">
+        <div className="flex gap-1.5 flex-wrap">
           {TABS.map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`relative text-[12.5px] font-bold px-4 py-2 rounded-full transition-colors z-0 flex items-center gap-2
@@ -460,25 +442,27 @@ export default function Portal() {
 
                 {/* Otros proyectos */}
                 {projects.length > 1 && (
-                  <div className="card">
-                    <h3 className="text-[13.5px] font-bold mb-4">Todos tus proyectos</h3>
-                    <div className="flex flex-col gap-2.5">
+                  <div className="card !px-0">
+                    <h3 className="text-[13.5px] font-bold mb-4 px-5">Todos tus proyectos</h3>
+                    <div className="flex gap-3 overflow-x-auto px-5 pb-1" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
                       {projects.map((p, i) => {
                         const prog = Math.max(0, Math.min(100, Number(p.progress) || 0))
                         return (
-                          <motion.div key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                            onClick={() => setViewingProject(p)} whileHover={{ x: 3 }}
-                            className="flex items-center gap-3 flex-wrap sm:flex-nowrap cursor-pointer px-2 py-1.5 -mx-2 rounded-xl hover:bg-white/[.04] transition-colors">
-                            <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{p.name}</span>
-                            <div className="w-[120px] flex-shrink-0">
-                              <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
-                                <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_12px_rgba(139,92,246,.6)]"
-                                  initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.9, delay: 0.15 + i * 0.05 }} />
+                          <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                            onClick={() => setViewingProject(p)} whileTap={{ scale: 0.97 }}
+                            style={{ scrollSnapAlign: 'start' }}
+                            className="flex-shrink-0 w-[168px] cursor-pointer">
+                            <div className="rounded-2xl p-3.5 h-full" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.08)' }}>
+                              <div className="text-[12.5px] font-semibold leading-snug line-clamp-2 min-h-[32px]">{p.name}</div>
+                              <div className="mt-3">
+                                <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
+                                  <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_10px_rgba(139,92,246,.6)]"
+                                    initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.9, delay: 0.15 + i * 0.05 }} />
+                                </div>
+                                <div className="text-[10px] text-white/40 mt-1">{prog}%</div>
                               </div>
+                              <div className="mt-2.5"><Pill value={p.status || 'propuesta'} /></div>
                             </div>
-                            <span className="text-[11px] text-white/40 w-9 text-right flex-shrink-0">{prog}%</span>
-                            <Pill value={p.status || 'propuesta'} />
-                            <svg className="w-3.5 h-3.5 text-white/20 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
                           </motion.div>
                         )
                       })}
@@ -566,7 +550,8 @@ export default function Portal() {
                       <div className="flex flex-col gap-1">
                         {tasks.slice(0, 7).map((t, i) => (
                           <motion.div key={t.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors">
+                            onClick={() => setViewingTask(t)}
+                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors cursor-pointer">
                             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint shadow-[0_0_8px_rgba(52,211,153,.6)]' : t.priority === 'urgente' ? 'bg-coral shadow-[0_0_8px_rgba(251,113,133,.6)]' : 'bg-violet-light shadow-[0_0_8px_rgba(139,92,246,.6)]'}`} />
                             <span className={`flex-1 min-w-0 text-[12.5px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
                             {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">tuya</span>}
@@ -621,6 +606,12 @@ export default function Portal() {
                       {dataSaving ? 'Guardando…' : 'Guardar cambios'}
                     </motion.button>
                   </div>
+                </div>
+
+                <div className="card !p-6">
+                  <h3 className="text-[15px] font-bold">Documentos de tu empresa</h3>
+                  <p className="text-[12.5px] text-white/40 mt-1.5 mb-5 leading-relaxed">Guardá acá contratos, papeles impositivos o cualquier archivo importante — solo vos y el equipo de Mateo Estudio pueden verlos.</p>
+                  {client && <ClientDocuments clientId={client.id} />}
                 </div>
               </div>
             )}
@@ -949,6 +940,25 @@ export default function Portal() {
             <div className="mt-7 pt-5 border-t border-white/[.06]">
               <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Archivos</div>
               <ProjectFiles projectId={viewingProject.id} canManage={false} />
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* ── Detalle de una tarea, con comentarios ── */}
+      <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>
+        {viewingTask && (
+          <>
+            <ModalHead title={viewingTask.title} onClose={() => setViewingTask(null)} />
+            <div className="flex items-center gap-2 mb-1">
+              <Pill value={viewingTask.status || 'pendiente'} />
+              {viewingTask.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30">tuya</span>}
+            </div>
+            {viewingTask.description && <p className="text-[13px] text-white/45 mt-3 leading-relaxed">{viewingTask.description}</p>}
+            {viewingTask.link && <a href={viewingTask.link} target="_blank" rel="noopener" className="text-[12px] text-violet-light hover:text-violet-light/80 transition-colors block mt-2 truncate">{viewingTask.link}</a>}
+            <div className="mt-6 pt-4 border-t border-white/[.06]">
+              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Comentarios</div>
+              <TaskComments taskId={viewingTask.id} />
             </div>
           </>
         )}
