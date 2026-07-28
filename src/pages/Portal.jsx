@@ -18,7 +18,6 @@ import { useFx, toArs } from '../context/FxContext'
 
 const TABS = [
   ['resumen', 'Resumen'],
-  ['tareas', 'Tareas'],
   ['datos', 'Mis datos'],
   ['presupuestos', 'Presupuestos'],
   ['facturas', 'Facturas'],
@@ -119,10 +118,6 @@ export default function Portal() {
   const [invoices, setInvoices] = useState([])
   const [creds, setCreds] = useState([])
   const [loading, setLoading] = useState(true)
-
-  // filtro de tareas
-  const [taskFilter, setTaskFilter] = useState('todas')
-  const TASK_TABS = [['todas', 'Todas'], ['pendiente', 'Pendientes'], ['en_progreso', 'En progreso'], ['completada', 'Completadas']]
 
   // formulario de solicitud al equipo
   const [reqOpen, setReqOpen] = useState(false)
@@ -439,38 +434,21 @@ export default function Portal() {
                   <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="card !p-6">
                     <div className="flex items-start gap-6 flex-wrap md:flex-nowrap">
                       <ProgressRing pct={Math.max(0, Math.min(100, Number(activeProject.progress) || 0))} />
-              <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))' }}>
-                {!projects.length ? (
-                  <div className="card text-center py-14 lg:col-span-2">
-                    <p className="text-[14px] font-semibold">Todavía no hay un proyecto en marcha</p>
-                    <p className="text-[12.5px] text-white/40 mt-1.5">En cuanto arranquemos, vas a verlo acá con su avance en tiempo real.</p>
-                  </div>
-                ) : projects.map((p, i) => (
-                  <motion.div key={p.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                    className="card !p-6 flex flex-col cursor-pointer hover:-translate-y-1 transition-transform" onClick={() => setViewingProject(p)}>
-                    <div className="flex items-start gap-5">
-                      <ProgressRing pct={Math.max(0, Math.min(100, Number(p.progress) || 0))} size={92} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h2 className="text-[18px] font-bold truncate">{activeProject.name}</h2>
                           <Pill value={activeProject.status || 'propuesta'} />
-                          <h2 className="text-base font-bold truncate">{p.name}</h2>
-                          <Pill value={p.status || 'propuesta'} />
                         </div>
                         {activeProject.description && <p className="text-[13px] text-white/45 mt-2 leading-relaxed">{activeProject.description}</p>}
                         <div className="flex gap-5 mt-3 text-[11.5px] text-white/40 flex-wrap">
                           {activeProject.start_date && <span>Inicio: <b className="text-white/70">{activeProject.start_date.slice(0, 10)}</b></span>}
                           {activeProject.due_date && <span>Entrega: <b className="text-white/70">{activeProject.due_date.slice(0, 10)}</b></span>}
                         </div>
-                        {p.description && <p className="text-[12.5px] text-white/45 mt-2 leading-relaxed line-clamp-2">{p.description}</p>}
                       </div>
                     </div>
                     <div className="mt-7 pt-5 border-t border-white/[.06]">
                       <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
                       <PhaseStepper current={activeProject.phase} />
-                    <div className="mt-auto pt-5">
-                      <div className="text-[10px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
-                      <PhaseStepper current={p.phase} />
                     </div>
                   </motion.div>
                 ) : (
@@ -508,9 +486,6 @@ export default function Portal() {
                   </div>
                 )}
 
-                ))}
-              </div>
-              <div className="grid gap-5 mt-5 grid-cols-1 md:grid-cols-2">
                 {/* Vencimientos recurrentes */}
                 {!!upcomingRenewals.length && (
                   <div className="card">
@@ -600,65 +575,9 @@ export default function Portal() {
                       </div>
                     )}
                   </div>
-                <div className="card flex flex-col">
-                  <h3 className="text-[13.5px] font-bold mb-2">¿Necesitás algo del equipo?</h3>
-                  <p className="text-[12.5px] text-white/40 mb-4 leading-relaxed">
-                    Mandanos un pedido, un link de referencia o un comentario. Lo vemos y lo sumamos a la lista de trabajo.
-                  </p>
-                  <motion.button whileTap={{ scale: 0.97 }} className="btn-glass w-full justify-center mt-auto" onClick={() => setReqOpen(true)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                    Enviar una solicitud
-                  </motion.button>
                 </div>
               </div>
             )}
-
-            {/* ═══════════ TAREAS ═══════════ */}
-            {tab === 'tareas' && (() => {
-              const filteredTasks = tasks.filter(t => taskFilter === 'todas' || t.status === taskFilter)
-              return (
-                <div>
-                  <div className="flex items-center gap-4 mb-5">
-                    <h2 className="text-[19px] font-extrabold tracking-tight">Tus Tareas</h2>
-                    <span className="text-[11px] font-semibold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2.5 py-0.5">{tasks.length} en total</span>
-                  </div>
-                  <FilterTabs tabs={TASK_TABS} value={taskFilter} onChange={setTaskFilter} />
-                  {!tasks.length ? (
-                    <EmptyState title="Sin tareas todavía" text="Cuando haya tareas asociadas a tus proyectos, las verás aquí." />
-                  ) : !filteredTasks.length ? (
-                    <p className="text-[12.5px] text-white/35 px-1 mt-4">Nada por aquí con este filtro.</p>
-                  ) : (
-                    <div className="flex flex-col gap-2.5 mt-4">
-                      {filteredTasks.map(t => {
-                        const done = t.status === 'completada'
-                        const pn = t.expand?.project?.name
-                        let dueEl = null
-                        if (t.due_date) {
-                          const d = new Date(t.due_date.slice(0, 10) + 'T00:00:00')
-                          const today = new Date(); today.setHours(0, 0, 0, 0)
-                          const late = !done && d < today
-                          dueEl = late ? <span className="text-coral font-semibold">Venció {t.due_date.slice(0, 10)}</span> : `Vence ${t.due_date.slice(0, 10)}`
-                        }
-                        return (
-                          <motion.div key={t.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: done ? 0.6 : 1, y: 0 }}
-                            className="flex items-center gap-3.5 bg-white/[.035] border border-white/[.07] rounded-xl px-4 py-3.5 flex-wrap sm:flex-nowrap">
-                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: done ? '#34D399' : t.priority === 'urgente' ? '#FB7185' : '#A78BFA' }} />
-                            <div className="flex-1 min-w-0">
-                              <div className={`font-semibold truncate ${done ? 'line-through text-white/60' : ''}`}>{t.title}</div>
-                              <div className="text-[11.5px] text-white/40 truncate mt-0.5 flex gap-1.5 flex-wrap">
-                                {[pn, dueEl].filter(Boolean).join(' · ')}
-                              </div>
-                            </div>
-                            {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30">tuya</span>}
-                            <Pill value={t.status || 'pendiente'} />
-                          </motion.div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
 
             {/* ═══════════ MIS DATOS ═══════════ */}
             {tab === 'datos' && (
