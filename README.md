@@ -415,3 +415,28 @@ La regla de PocketBase le permite al admin **listar** todas las notificaciones (
 ### Bug 2: el contenido de las pestañas del Portal se dejaba de ver
 
 `AnimatePresence mode="wait"` hacía que el contenido nuevo esperara a que la animación de salida del anterior terminara del todo antes de aparecer. Como adentro hay listas con sus propias animaciones (notificaciones, cotizaciones), esa espera a veces no llegaba a completarse nunca, dejando la pantalla vacía. Se sacó ese modo de espera tanto en el Portal como en los wizards (Clientes, Proyectos, Cotizador, Alta) por prevención — ahora el contenido nuevo aparece directo, sin depender de que termine ninguna animación de salida.
+
+---
+
+## PWA instalable
+
+**Sin cambios de esquema** — solo código y archivos estáticos nuevos en `public/`.
+
+### Qué se agregó
+
+- **Ícono propio** (el monograma M violeta, generado en varios tamaños) — en Android/desktop la app queda instalada como cualquier otra, con su ícono en la pantalla de inicio o el dock.
+- **Manifest** (`manifest.webmanifest`) — define el nombre, colores, y que se abra en modo "standalone" (sin la barra de direcciones del navegador, como una app real).
+- **Service worker** (`sw.js`) — guarda en caché el "cascarón" de la app (HTML/CSS/JS) para que cargue más rápido en visitas siguientes. **Ojo, esto es importante**: las llamadas a la API de PocketBase (tus datos: clientes, proyectos, cotizaciones, todo) están explícitamente excluidas del caché — siempre se piden frescas a la red. Así evitamos el problema clásico de una PWA mal hecha que muestra datos viejos.
+- **Banner de instalación**: aparece abajo a la derecha (se puede cerrar) ofreciendo instalar la app. En Android/Chrome/Desktop es un botón que dispara el instalador nativo del navegador. En iPhone (Safari no lo permite por botón), muestra el mensaje "Tocá Compartir → Agregar a pantalla de inicio", que es el único camino que Apple habilita.
+
+### Cómo probarlo
+
+1. Desplegá como siempre.
+2. Entrá desde el celular (o Chrome de escritorio) a tu dominio.
+3. Debería aparecer el banner de instalación abajo. En Android, tocá "Instalar" y se agrega el ícono a tu pantalla de inicio. En iPhone, seguí las instrucciones del mensaje.
+4. Abrí la app desde ese ícono — debería abrir sin la barra de Chrome/Safari, como una app nativa.
+
+### Honestidad sobre las limitaciones
+
+- **Notificaciones push reales del sistema operativo** (las que aparecen aunque la app esté cerrada) requieren un paso técnico extra bastante más grande (un servidor de push + permisos del navegador) que no está incluido acá — lo que armamos hoy es la instalación de la app como ícono. Si más adelante querés push real, es un proyecto aparte que podemos evaluar.
+- En iOS, algunas funciones de PWA son más limitadas que en Android por decisión de Apple (por ejemplo, el ícono de instalación con un botón no existe, hay que usar el menú Compartir).

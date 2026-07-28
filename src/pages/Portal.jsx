@@ -12,6 +12,7 @@ import QuoteRow from '../components/QuoteRow'
 import CatalogViewer from '../components/CatalogViewer'
 import NotificationsList from '../components/NotificationsList'
 import NotificationBell from '../components/NotificationBell'
+import InstallPrompt from '../components/InstallPrompt'
 
 const TABS = [
   ['resumen', 'Resumen'],
@@ -936,6 +937,7 @@ export default function Portal() {
           </motion.button>
         </div>
       </Modal>
+      <InstallPrompt />
     </div>
   )
 }

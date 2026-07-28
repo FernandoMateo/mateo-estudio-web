@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import Sidebar from './Sidebar'
 import AuroraBackground from './AuroraBackground'
 import NotificationBell from './NotificationBell'
+import InstallPrompt from './InstallPrompt'
 import { getAuth, list, updateRec, notifyUser } from '../lib/api'
 
 const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
@@ -64,6 +65,7 @@ export default function AppLayout() {
         </div>
         <Outlet context={{ me }} />
       </main>
+      <InstallPrompt />
     </div>
   )
 }
