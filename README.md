@@ -704,3 +704,21 @@ Qué incluye:
 - Total en una píldora con el degradé de marca, bien visible al final.
 
 Se ve igual tanto en pantalla como al imprimir/descargar en PDF.
+
+---
+
+## El bug de verdad: el Service Worker estaba sirviendo versiones viejas
+
+**Sin cambios de esquema** — solo código.
+
+### La causa real de "el arreglo no se nota"
+
+El Service Worker de la PWA (instalado en la v18) usaba una estrategia "caché primero": si ya tenías algo guardado en el celular, te lo mostraba **al instante tal como estaba**, y recién en segundo plano pedía la versión nueva para la *próxima* vez. Resultado: cada corrección que subía después de eso podía tardar una o más visitas en notarse — o directamente no notarse nunca si la pestaña se queda abierta mucho tiempo (como pasa seguido en el celular).
+
+Lo di vuelta a **"red primero"**: ahora la app siempre pide la versión más nueva primero, y el caché queda solo como respaldo para cuando no hay conexión. También subí la versión del caché para forzar que se borre cualquier cosa vieja que haya quedado guardada.
+
+**Un paso único después de este despliegue**: como el Service Worker viejo puede seguir controlando la pestaña que ya tenías abierta, hacé **un refresco manual completo** (o cerrá del todo la app/PWA y volvela a abrir) una sola vez después de este deploy. De ahí en adelante, cada actualización futura se va a ver sola, sin este problema.
+
+### Además, blindé el paso de contraseña
+
+Más allá de la causa raíz, dejé el paso de contraseña de la Alta de cliente **sin ningún breakpoint responsivo** — ahora es una sola columna siempre, sin excepciones, para que sea imposible que un problema de caché (o cualquier otra cosa) lo vuelva a mostrar mal.

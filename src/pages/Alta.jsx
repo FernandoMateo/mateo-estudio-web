@@ -224,7 +224,7 @@ export default function Alta() {
                 </div>
               )}
               {step === 2 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="flex flex-col gap-3.5">
                   <Field label="Contraseña *" full>
                     <div className="relative">
                       <input type={showPass ? 'text' : 'password'} className="field pr-10" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Mínimo 8 caracteres" />
@@ -236,7 +236,7 @@ export default function Alta() {
                     </div>
                   </Field>
                   <Field label="Repetir contraseña *" full><input type={showPass ? 'text' : 'password'} className="field" value={form.passwordConfirm} onChange={e => set('passwordConfirm', e.target.value)} placeholder="Repetí tu contraseña" /></Field>
-                  <p className="text-[11.5px] text-white/35 col-span-2 -mt-1">Con esto vas a poder entrar a tu portal las veces que quieras, cuando quieras.</p>
+                  <p className="text-[11.5px] text-white/35 -mt-1">Con esto vas a poder entrar a tu portal las veces que quieras, cuando quieras.</p>
                 </div>
               )}
             </StepPanel>
