@@ -558,7 +558,7 @@ export default function Portal() {
                 <div className="card !p-6">
                   <h3 className="text-[15px] font-bold">Tus datos de contacto</h3>
                   <p className="text-[12.5px] text-white/40 mt-1.5 mb-6">Mantenelos al día para que podamos comunicarnos sin vueltas.</p>
-                  <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <Field label="Persona de contacto"><input className="field" value={dataForm.contact_name} onChange={e => setDataForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Nombre y apellido" /></Field>
                     <Field label="Teléfono"><input className="field" value={dataForm.phone} onChange={e => setDataForm(f => ({ ...f, phone: e.target.value }))} placeholder="11 0000 0000" /></Field>
                     <Field label="Correo" full><input type="email" className="field" value={dataForm.email} onChange={e => setDataForm(f => ({ ...f, email: e.target.value }))} placeholder="correo@empresa.com" /></Field>
@@ -932,7 +932,7 @@ export default function Portal() {
       {/* ── Modal: ítem de catálogo propio ── */}
       <Modal open={itemOpen} onClose={() => setItemOpen(false)}>
         <ModalHead title={editingItem ? 'Editar ítem' : 'Agregar ítem al catálogo'} onClose={() => setItemOpen(false)} />
-        <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <Field label="Nombre *" full><input className="field" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Cemento (bolsa 50kg), Hora de instalación…" /></Field>
           <Field label="Tipo">
             <Select value={itemForm.type} onChange={v => setItemForm(f => ({ ...f, type: v }))}

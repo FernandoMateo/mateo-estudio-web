@@ -192,7 +192,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
         <>
           <ModalHead title={activeEditId ? 'Editar cotización' : 'Nueva cotización'} onClose={onClose} />
 
-          <div className="grid grid-cols-2 gap-3.5 max-[560px]:grid-cols-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <Field label="Título *" full><input className="field" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej. Remodelación de cocina" /></Field>
 
             {mode === 'estudio' ? (

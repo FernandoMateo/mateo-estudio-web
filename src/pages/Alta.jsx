@@ -200,7 +200,7 @@ export default function Alta() {
           <div className="min-h-[230px] relative">
             <StepPanel stepKey={step} direction={dir}>
               {step === 0 && (
-                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Nombre de tu negocio *" full><input className="field" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Panadería La Espiga" /></Field>
                   <Field label="Razón comercial"><input className="field" value={form.company} onChange={e => set('company', e.target.value)} placeholder="Nombre legal (opcional)" /></Field>
                   <Field label="País">
@@ -214,7 +214,7 @@ export default function Alta() {
                 </div>
               )}
               {step === 1 && (
-                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Tu nombre"><input className="field" value={form.contact_name} onChange={e => set('contact_name', e.target.value)} placeholder="Nombre y apellido" /></Field>
                   <Field label="Teléfono"><input className="field" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+54 9 11…" /></Field>
                   <Field label="Correo * (también será tu usuario)" full><input type="email" className="field" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@tuempresa.com" /></Field>
@@ -224,7 +224,7 @@ export default function Alta() {
                 </div>
               )}
               {step === 2 && (
-                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Contraseña *" full>
                     <div className="relative">
                       <input type={showPass ? 'text' : 'password'} className="field pr-10" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Mínimo 8 caracteres" />

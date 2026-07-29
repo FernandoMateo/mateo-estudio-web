@@ -682,3 +682,25 @@ Eran 3 pestañas mezcladas dentro de "Presupuestos". Ahora son dos cosas separad
 ### 6. Botón flotante para sumar cotización
 
 Dentro de "Mi Cotizador", un botón circular con el signo "+" queda flotando abajo a la derecha todo el tiempo — un toque y arranca una cotización nueva, sin tener que buscar el botón en el medio de la pantalla.
+
+---
+
+## Contraseña de invitación en mobile + plantilla de cotización rediseñada
+
+**Sin cambios de esquema** — solo código.
+
+### 1. El paso de contraseña en la Alta de cliente
+
+Encontré la causa: ese paso usaba un límite de pantalla distinto (`480px`) al que ya había estandarizado en el resto de la app (`640px`, el estándar `sm:` de Tailwind). En teléfonos de pantalla un poco más ancha (390-480px, bastante comunes), seguía mostrando los dos campos de contraseña lado a lado, aplastados. Unifiqué los 3 pasos de la Alta — y de paso encontré el mismo desajuste en 3 lugares más (Cotizador y dos formularios del Portal) y los corregí todos con el mismo criterio.
+
+### 2. Plantilla de cotización rediseñada
+
+Tomé la idea de la referencia (bloque de contacto destacado, tabla de ítems como barras oscuras, total en píldora) pero la rehice con los colores de tu marca — violeta a rosa, como el resto de la app — en vez de copiar la ilustración de la imagen (es arte de stock, con derechos de autor; no la reproduje, hice un diseño propio con la misma idea de estructura).
+
+Qué incluye:
+- Encabezado partido: tu logo + título grande "Presupuesto" a la izquierda, una tarjeta con degradé violeta-rosa con términos, método de pago y contacto a la derecha.
+- **Código QR real** — pero solo aparece cuando hay un sitio web de verdad al que apuntar (el del cliente, en las cotizaciones de marca blanca). Preferí no mostrar un QR decorativo que no lleve a ningún lado.
+- Cada ítem como su propia barra oscura (en vez de una tabla clásica), más parecido a la referencia.
+- Total en una píldora con el degradé de marca, bien visible al final.
+
+Se ve igual tanto en pantalla como al imprimir/descargar en PDF.
