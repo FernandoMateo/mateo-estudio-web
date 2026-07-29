@@ -32,7 +32,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden relative bg-[#04030A]">
+    <div className="h-[100dvh] flex items-center justify-center overflow-hidden relative bg-[#04030A]">
       {/* Estelas de luz */}
       <svg className="fixed inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden>
         <defs>

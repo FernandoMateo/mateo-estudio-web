@@ -110,22 +110,26 @@ export default function Tareas() {
             }
             return (
               <motion.div key={t.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: done ? 0.55 : 1, y: 0 }}
-                className="flex items-center gap-3.5 bg-white/[.035] border border-white/[.07] rounded-xl px-4 py-3.5 hover:border-violet-light/25 transition-colors flex-wrap sm:flex-nowrap">
-                <Check done={done} onClick={() => toggle(t)} />
-                <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-semibold truncate ${done ? 'line-through' : ''}`}>{t.title}</div>
-                  <div className="text-[11.5px] text-white/35 truncate mt-0.5 flex gap-1.5 flex-wrap">
-                    {[pn, an && `👤 ${an}`].filter(Boolean).join(' · ')}{dueEl && <> · {dueEl}</>}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5 bg-white/[.035] border border-white/[.07] rounded-xl px-4 py-3.5 hover:border-violet-light/25 transition-colors">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <Check done={done} onClick={() => toggle(t)} />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-semibold truncate ${done ? 'line-through' : ''}`}>{t.title}</div>
+                    <div className="text-[11.5px] text-white/35 truncate mt-0.5 flex gap-1.5 flex-wrap">
+                      {[pn, an && `👤 ${an}`].filter(Boolean).join(' · ')}{dueEl && <> · {dueEl}</>}
+                    </div>
                   </div>
                 </div>
-                {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30">del cliente</span>}
-                <Pill value={t.priority || 'media'} />
-                <div className="flex gap-1.5 flex-shrink-0">
-                  {t.link && <a href={t.link} target="_blank" rel="noopener" className="w-8 h-8 rounded-lg flex items-center justify-center text-white/35 hover:text-violet-light hover:bg-violet/10 transition">
-                    <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/></svg>
-                  </a>}
-                  <IconBtn onClick={() => openEdit(t)} title="Editar"><EditIcon /></IconBtn>
-                  {canManage && <IconBtn onClick={() => del(t)} danger title="Eliminar"><TrashIcon /></IconBtn>}
+                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap sm:ml-auto">
+                  {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30">del cliente</span>}
+                  <Pill value={t.priority || 'media'} />
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    {t.link && <a href={t.link} target="_blank" rel="noopener" className="w-8 h-8 rounded-lg flex items-center justify-center text-white/35 hover:text-violet-light hover:bg-violet/10 transition">
+                      <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/></svg>
+                    </a>}
+                    <IconBtn onClick={() => openEdit(t)} title="Editar"><EditIcon /></IconBtn>
+                    {canManage && <IconBtn onClick={() => del(t)} danger title="Eliminar"><TrashIcon /></IconBtn>}
+                  </div>
                 </div>
               </motion.div>
             )

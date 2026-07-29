@@ -4,8 +4,8 @@ import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, logActivity } from '../lib/api'
 import { PHASES, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
-import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, Row, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
-import ProjectFiles from '../components/ProjectFiles'
+import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
+import ProjectWorkspace from '../components/ProjectWorkspace'
 import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Básicos', 'Plan']
@@ -39,7 +39,7 @@ export default function Proyectos() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [changingPhaseId, setChangingPhaseId] = useState(null)
-  const [filesProject, setFilesProject] = useState(null)
+  const [workspaceProject, setWorkspaceProject] = useState(null)
 
   const load = () => list('projects', '&sort=-created&expand=client,service').then(setProjects).catch(() => toast('No se pudieron cargar los proyectos.', true))
   useEffect(() => {
@@ -144,52 +144,65 @@ export default function Proyectos() {
       ) : !filtered.length ? (
         <p className="text-[12.5px] text-white/35 px-1">Sin resultados para "{search}".</p>
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {filtered.map(p => {
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(300px,100%),1fr))' }}>
+          {filtered.map((p, i) => {
             const prog = PHASE_PROGRESS[p.phase] ?? Math.max(0, Math.min(100, Number(p.progress) || 0))
             const svcRecurring = BILLING_RECURRING[p.expand?.service?.billing_type]
-            const meta = [
-              clientName(p), p.expand?.service?.name,
-              svcRecurring && p.next_renewal_date && `Vence: ${p.next_renewal_date.slice(0, 10)}`,
-              !svcRecurring && p.due_date && `Entrega: ${p.due_date.slice(0, 10)}`,
-            ].filter(Boolean).join(' · ')
             const changingHere = changingPhaseId === p.id
             return (
-              <Row key={p.id} icon={<ProjIcon />} title={p.name} meta={meta || 'Sin detalles'}>
-                <div className="w-[110px] flex-shrink-0">
-                  <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
-                    <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_14px_rgba(139,92,246,.65)]"
-                      initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }} />
-                  </div>
-                  <div className="text-[10px] text-white/35 mt-1 text-right">{prog}%</div>
+              <motion.div key={p.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                whileHover={{ y: -3 }} className="card !p-4 cursor-pointer flex flex-col" onClick={() => setWorkspaceProject(p)}>
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <ProjIcon />
+                  <Pill value={p.status || 'propuesta'} />
                 </div>
 
-                {canManage && (
-                  <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    {changingHere ? (
+                <div className="text-[14.5px] font-bold leading-snug mb-1">{p.name}</div>
+                <div className="text-[11.5px] text-white/40 mb-3">
+                  {[clientName(p), p.expand?.service?.name].filter(Boolean).join(' · ') || 'Sin cliente asignado'}
+                </div>
+
+                <div className="mb-3">
+                  <div className="flex items-center justify-between text-[10.5px] text-white/40 mb-1.5">
+                    <span>Progreso</span><span className="font-bold text-violet-light">{prog}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
+                    <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_10px_rgba(139,92,246,.6)]"
+                      initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.7, delay: 0.1 }} />
+                  </div>
+                </div>
+
+                {(svcRecurring ? p.next_renewal_date : p.due_date) && (
+                  <div className="text-[10.5px] text-white/35 mb-3">
+                    {svcRecurring ? `Vence: ${p.next_renewal_date.slice(0, 10)}` : `Entrega: ${p.due_date.slice(0, 10)}`}
+                  </div>
+                )}
+
+                <div className="mt-auto pt-3 border-t border-white/[.06] flex items-center gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
+                  {canManage && (
+                    changingHere ? (
                       <div className="w-[150px]"><Select value={p.phase} onChange={v => quickChangePhase(p, v)} options={PHASE_OPTIONS} /></div>
                     ) : (
                       <button onClick={() => setChangingPhaseId(p.id)}
                         className="text-[11px] font-semibold text-violet-light bg-violet/[.1] border border-violet/30 rounded-lg px-2.5 py-1.5 hover:bg-violet/[.18] transition-colors whitespace-nowrap">
                         {PHASES[p.phase] || 'Fase'} <span className="text-white/30">✎</span>
                       </button>
-                    )}
+                    )
+                  )}
+                  <div className="flex gap-1.5 flex-shrink-0 ml-auto">
+                    <IconBtn onClick={() => openEdit(p)} title="Editar"><EditIcon /></IconBtn>
+                    {isAdmin && <IconBtn onClick={() => del(p)} danger title="Eliminar"><TrashIcon /></IconBtn>}
                   </div>
-                )}
-
-                <Pill value={p.status || 'propuesta'} />
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <IconBtn onClick={() => setFilesProject(p)} title="Archivos">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M17 15v6M14 18h6" /></svg>
-                  </IconBtn>
-                  <IconBtn onClick={() => openEdit(p)} title="Editar"><EditIcon /></IconBtn>
-                  {isAdmin && <IconBtn onClick={() => del(p)} danger title="Eliminar"><TrashIcon /></IconBtn>}
                 </div>
-              </Row>
+              </motion.div>
             )
           })}
         </div>
       )}
+
+      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} canManage={canManage}
+        clientName={workspaceProject ? clientName(workspaceProject) : ''}
+        onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }} />
 
       <Modal open={open} onClose={() => setOpen(false)}>
         <ModalHead title={editId ? 'Editar proyecto' : 'Nuevo proyecto'} onClose={() => setOpen(false)} />
@@ -271,16 +284,6 @@ export default function Proyectos() {
             </button>
           </div>
         </div>
-      </Modal>
-
-      <Modal open={!!filesProject} onClose={() => setFilesProject(null)}>
-        {filesProject && (
-          <>
-            <ModalHead title={`Archivos — ${filesProject.name}`} onClose={() => setFilesProject(null)} />
-            <p className="text-[12px] text-white/35 -mt-2 mb-4">Estos archivos son visibles para el cliente en su Portal.</p>
-            <ProjectFiles projectId={filesProject.id} canManage={canManage} projectName={filesProject.name} />
-          </>
-        )}
       </Modal>
     </div>
   )

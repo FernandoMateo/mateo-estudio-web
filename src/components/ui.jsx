@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PILL } from '../lib/constants'
 import { fmtARS, fmtUSD, fmtMXN, fmtByCurrency } from '../lib/api'
@@ -126,17 +127,21 @@ export function Row({ icon, title, meta, right, children }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2, borderColor: 'rgba(167,139,250,.4)' }}
-      className="group relative flex items-center gap-3.5 rounded-2xl px-4 py-3.5 flex-wrap sm:flex-nowrap overflow-hidden transition-shadow"
+      className="group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5 rounded-2xl px-4 py-3.5 overflow-hidden transition-shadow"
       style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.07)' }}
     >
       <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-violet-light to-neon-pink opacity-0 group-hover:opacity-100 transition-opacity" />
-      {icon}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold truncate">{title}</div>
-        {meta && <div className="text-[11.5px] text-white/35 truncate mt-0.5">{meta}</div>}
+      <div className="flex items-center gap-3.5 min-w-0">
+        {icon}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold truncate">{title}</div>
+          {meta && <div className="text-[11.5px] text-white/35 truncate mt-0.5">{meta}</div>}
+        </div>
       </div>
-      {right}
-      {children}
+      <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap sm:ml-auto sm:flex-shrink-0">
+        {right}
+        {children}
+      </div>
     </motion.div>
   )
 }
@@ -206,13 +211,28 @@ export function FilterTabs({ tabs, value, onChange }) {
 /* ── Select personalizado: mismo vidrio que los campos, dropdown animado ── */
 export function Select({ value, onChange, options, placeholder = 'Selecciona…' }) {
   const [open, setOpen] = useState(false)
+  const [rect, setRect] = useState(null)
   const ref = useRef(null)
+  const menuRef = useRef(null)
 
   useEffect(() => {
-    function onDoc(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    function onDoc(e) {
+      if (ref.current && !ref.current.contains(e.target) && menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    function updateRect() {
+      if (ref.current) setRect(ref.current.getBoundingClientRect())
+    }
+    updateRect()
+    window.addEventListener('scroll', updateRect, true)
+    window.addEventListener('resize', updateRect)
+    return () => { window.removeEventListener('scroll', updateRect, true); window.removeEventListener('resize', updateRect) }
+  }, [open])
 
   const current = options.find(o => String(o.value) === String(value))
 
@@ -227,15 +247,17 @@ export function Select({ value, onChange, options, placeholder = 'Selecciona…'
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </motion.svg>
       </button>
-      <AnimatePresence>
-        {open && (
+      {open && rect && createPortal(
+        <AnimatePresence>
           <motion.div
+            ref={menuRef}
             initial={{ opacity: 0, y: -6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.2, 0.9, 0.25, 1] }}
-            className="absolute z-30 mt-2 w-full max-h-56 overflow-y-auto rounded-xl p-1.5"
+            className="fixed z-[200] max-h-56 overflow-y-auto rounded-xl p-1.5"
             style={{
+              top: rect.bottom + 8, left: rect.left, width: rect.width,
               background: 'rgba(12,12,18,.98)',
               border: '1px solid rgba(139,92,246,.3)',
               boxShadow: '0 16px 40px rgba(0,0,0,.6), 0 0 24px rgba(139,92,246,.18)',
@@ -255,8 +277,9 @@ export function Select({ value, onChange, options, placeholder = 'Selecciona…'
               )
             })}
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }

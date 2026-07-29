@@ -129,19 +129,23 @@ export default function Usuarios() {
             const done = i.status === 'completado'
             return (
               <motion.div key={i.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3.5 rounded-2xl px-4 py-3.5 flex-wrap sm:flex-nowrap"
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5 rounded-2xl px-4 py-3.5"
                 style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.07)' }}>
-                <div className="w-10 h-10 rounded-[11px] flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
-                  <svg className="w-[17px] h-[17px] text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.5 5h13l1.5 7v6a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-6z" /></svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13.5px] font-semibold truncate">{i.name || i.email || 'Invitación sin nombre'}</div>
-                  <div className="text-[11px] text-white/35 truncate mt-0.5">
-                    {done ? `Se unió como ${i.expand?.client?.name || 'cliente'}` : (i.email || i.phone || 'Pendiente de completar')}
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-[11px] flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
+                    <svg className="w-[17px] h-[17px] text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.5 5h13l1.5 7v6a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-6z" /></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13.5px] font-semibold truncate">{i.name || i.email || 'Invitación sin nombre'}</div>
+                    <div className="text-[11px] text-white/35 truncate mt-0.5">
+                      {done ? `Se unió como ${i.expand?.client?.name || 'cliente'}` : (i.email || i.phone || 'Pendiente de completar')}
+                    </div>
                   </div>
                 </div>
-                <Pill value={done ? 'activo' : 'prospecto'} />
-                {!done && <IconBtn onClick={() => del(i)} danger title="Eliminar"><TrashIcon /></IconBtn>}
+                <div className="flex items-center gap-2.5 sm:ml-auto flex-shrink-0">
+                  <Pill value={done ? 'activo' : 'prospecto'} />
+                  {!done && <IconBtn onClick={() => del(i)} danger title="Eliminar"><TrashIcon /></IconBtn>}
+                </div>
               </motion.div>
             )
           })}

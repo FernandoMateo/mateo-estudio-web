@@ -64,11 +64,18 @@ export default function Cotizador() {
       ) : (
         <div className="flex flex-col gap-2.5">
           {filtered.map(q => (
-            <QuoteRow key={q.id} quote={q} subtitle={clientName(q) || q.recipient_name || 'Sin destinatario'}
-              onView={() => { setAutoPrint(false); setViewing(q) }}
-              onDownload={() => { setAutoPrint(true); setViewing(q) }}
-              onEdit={() => { setEditing(q); setOpen(true) }}
-              onDelete={() => del(q)} />
+            <div key={q.id}>
+              <QuoteRow quote={q} subtitle={clientName(q) || q.recipient_name || 'Sin destinatario'}
+                onView={() => { setAutoPrint(false); setViewing(q) }}
+                onDownload={() => { setAutoPrint(true); setViewing(q) }}
+                onEdit={() => { setEditing(q); setOpen(true) }}
+                onDelete={() => del(q)} />
+              {q.status === 'rechazado' && q.rejection_reason && (
+                <div className="mt-1.5 ml-4 pl-3 py-2 rounded-lg text-[12px] text-[#FCA5A5]" style={{ background: 'rgba(251,113,133,.06)', borderLeft: '2px solid rgba(251,113,133,.4)' }}>
+                  <span className="font-semibold">Motivo del rechazo:</span> {q.rejection_reason}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

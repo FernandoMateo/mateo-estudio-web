@@ -25,6 +25,7 @@ export default function TaskComments({ taskId }) {
 
   async function send() {
     if (!text.trim()) return
+    if (!me?.id) { toast('Tu sesión expiró — recargá la página e iniciá sesión de nuevo.', true); return }
     setSending(true)
     try {
       await createRec('task_comments', { task: taskId, user: me.id, message: text.trim() })

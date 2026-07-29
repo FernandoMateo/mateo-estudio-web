@@ -507,3 +507,178 @@ Si el cliente **rechaza**, no se crea nada.
 ### 4. Documentos de la empresa (Portal → Mis datos)
 
 Nueva tarjeta donde el cliente sube sus propios documentos (contratos, papeles impositivos, lo que sea) — separado de los archivos por proyecto, que son los que sube el estudio. Vos podés verlos y gestionarlos desde **Clientes** → ícono de carpeta en cada fila.
+
+---
+
+## Gastos recurrentes, MRR estimado y meta mensual en Finanzas
+
+### Instalación
+
+Importá **`pb-schema-gastos-recurrentes.json`** (Merge). Crea 1 colección nueva: `recurring_expenses`.
+
+### 1. Gastos mensuales recurrentes
+
+Sección nueva en Finanzas, arriba del listado de transacciones: cargás el concepto, el monto (en ARS/USD/MXN), el método de pago y **el día del mes** en que corresponde. Podés pausar uno sin borrarlo (el switch Activo/Pausado).
+
+**Cómo se generan — importante que lo sepas**: no hay ningún proceso corriendo solo en tu servidor (seguimos el mismo criterio que con los vencimientos recurrentes). Cuando abrís Finanzas, el sistema revisa: para cada gasto recurrente activo, ¿ya se generó este mes? Si no, y si ya llegó su día del mes, se crea automáticamente como un egreso nuevo, fechado ese mismo día. Si no abrís la app justo ese día, se genera apenas la abras después — nunca se duplica ni se salta un mes.
+
+### 2. Meta del mes — $4.000.000 ARS
+
+Tarjeta con barra de progreso: cuánto llevás facturado este mes contra el objetivo. El número está fijo en el código por ahora (`MONTHLY_GOAL_ARS` en `Finanzas.jsx`) — si querés cambiarlo más adelante sin pedírmelo, buscá esa constante.
+
+### 3. Ingresos recurrentes estimados (MRR)
+
+Suma, mes a mes, lo que "debería" entrar según tus **proyectos ligados a un servicio recurrente** (mensual/trimestral/anual, normalizado a valor mensual). Tal como pediste, si el presupuesto de un proyecto está en dólares, se convierte con **la cotización de hoy** (no la que estaba congelada cuando se creó el proyecto) — es una proyección a valor actual, no un monto ya cobrado.
+
+---
+
+## Rediseño visual: Portal con carrusel 3D + Dashboard en mosaico
+
+**Sin cambios de esquema** — solo código.
+
+### Portal del cliente — Resumen reorganizado
+
+Orden nuevo, tal como lo pediste:
+1. **Solicitud al equipo** — arriba de todo, siempre visible.
+2. **Carrusel 3D de proyectos** — efecto coverflow real con perspectiva CSS: el proyecto del centro queda de frente, los de al lado se inclinan y se atenúan. Tocás una tarjeta lateral para traerla al centro, tocás la del centro para abrirla.
+3. **Facturas** — dos tarjetas grandes, pendientes y pagadas, cada una con su total y cantidad.
+4. **Más herramientas** — grilla de accesos rápidos al final (Actividad, Cotizaciones, Vencimientos, Credenciales, Notificaciones), cada una con su contador si tiene algo pendiente.
+
+### Pantalla completa al abrir un proyecto
+
+Al tocar un proyecto del carrusel, ya no se abre un modal chico — se abre una **pantalla completa** con su propio fondo, header y 3 pestañas: **Resumen** (progreso, fase, descripción), **Archivos**, y **Tareas** (con comentarios, se puede expandir cada una ahí mismo).
+
+### Dashboard del admin — mosaico real con Grid
+
+Antes eran dos columnas fijas apiladas con flexbox. Ahora es una grilla real de 4 columnas que se reorganiza sola según el ancho:
+- **Celular**: todo en una columna, en orden de lectura.
+- **Tablet**: 2 columnas parejas.
+- **Pantalla ancha**: la gráfica de ingresos ocupa 3/4 del ancho, el dólar cripto el resto arriba; proyectos y tareas se reparten abajo — aprovecha el espacio en vez de dejarlo vacío a los costados.
+
+### Elevado en toda la app (por el efecto cascada)
+
+Actualicé la tarjeta (`.card`) y los botones (`.btn-glass`, `.btn-ghost`) que se usan en **absolutamente todas** las pantallas — más profundidad, un filo de luz sutil arriba, transición más suave al pasar el mouse, y feedback táctil al tocar/hacer clic. Esto eleva la sensación general de todo el admin sin tener que reescribir cada página una por una.
+
+### Honestidad sobre el alcance
+
+Le puse profundidad real a lo que pediste explícitamente (Portal y Dashboard) y elevé los componentes compartidos para que se sienta en todos lados. **No reescribí individualmente cada página del admin** (Clientes, Proyectos, Finanzas, etc.) — ya heredan la mejora de las tarjetas y botones, pero si querés que le dé una pasada de diseño dedicada a alguna en particular, decime cuál te importa más y seguimos por ahí.
+
+---
+
+## Corrección de bugs reales: filas cortadas, ítems del cotizador rotos, arrastre del carrusel, error mejorado
+
+**Sin cambios de esquema** — solo código.
+
+### El bug de los nombres cortados a una letra (Proyectos, Cotizador)
+
+Encontré la causa real: los componentes de fila (`Row`, `QuoteRow`) usaban `flex-wrap` esperando que el título pasara a otra línea si no entraba — pero el navegador prefiere achicar el texto casi a cero antes que envolver, cuando hay varios elementos de ancho fijo al lado (como el nuevo botón de fase). Reestructuré ambos componentes, y las filas de Finanzas, Tareas y Usuarios que tenían el mismo patrón: ahora el título/nombre siempre ocupa **su propia línea completa**, y los controles (precio, estado, botones) van en una segunda línea que sí puede envolver libremente sin robarle espacio al texto.
+
+### Ítems del Cotizador rotos (imagen 1)
+
+Encontré el bug exacto: el grid de 2 columnas no tenía definido cuántas columnas ocupaba cada campo, así que el navegador los repartía solo, de forma impredecible (por eso las cajitas vacías y el total flotando). Lo rehice con una estructura simple y previsible: descripción arriba, unidad/cantidad/costo en una fila de 3, subtotal abajo — siempre en el mismo orden, sin sorpresas.
+
+### El carrusel ahora se mueve con el dedo
+
+Agregué arrastre táctil real (`drag`) al carrusel 3D del Portal — antes solo se podía tocar los costados o las flechitas. Ahora deslizás con el dedo para pasar de un proyecto a otro, con inercia según la velocidad del gesto.
+
+### El error "Cannot read properties of null" — corregido lo que encontré, y mejorado para la próxima
+
+Encontré y corregí un bug real: al mandar un comentario en una tarea, si por algún motivo la sesión no estaba disponible en ese instante, el código intentaba leer `.id` de algo que podía ser `null`. Ya está blindado.
+
+**Sé honesto**: sin el detalle técnico completo del error (solo tenía el mensaje, no la pila de componentes) no puedo garantizar al 100% que esa haya sido la única causa. Por eso mejoré el `ErrorBoundary`: si vuelve a pasar algo, ahora te va a mostrar **qué componente exacto** lo disparó, no solo el mensaje genérico. Si alguna vez lo ves de nuevo, mandame una captura de esa pantalla completa (con el recuadro violeta de abajo) y lo resuelvo al instante, sin adivinar.
+
+---
+
+## Login sin scroll, Proyectos en tarjetas con detalle completo, notificaciones que navegan
+
+**Sin cambios de esquema** — solo código.
+
+### 1. Login sin scroll fantasma
+
+Usaba `min-h-screen` (100vh fijo), que en mobile queda más alto que el espacio real visible cuando el navegador tiene la barra de direcciones desplegada — eso generaba un scroll mínimo pero molesto. Cambiado a la altura dinámica real del viewport.
+
+### 2. Proyectos ahora son tarjetas, no filas
+
+Cada proyecto tiene su propia tarjeta con espacio de sobra: nombre completo (sin cortar), cliente, servicio, barra de progreso, fecha de entrega o vencimiento, y abajo el botón de fase + editar + eliminar. Nada compite por el mismo renglón.
+
+### 3. Detalle completo al tocar la tarjeta
+
+Tocar cualquier tarjeta (fuera de los botones de acción) abre la misma pantalla completa con pestañas que ya tenía el Portal del cliente, pero ahora también para vos: **Resumen** (progreso, fase, presupuesto), **Archivos** (podés subir/borrar), y **Tareas** — desde ahí podés **crear tareas nuevas ligadas al proyecto** directamente, sin salir de la pantalla, y comentarlas.
+
+### 4. Notificaciones que te llevan al lugar correspondiente
+
+Tocar una notificación ahora navega a donde corresponde según de qué se trate:
+- Si es sobre una tarea → te lleva a Tareas (admin) o abre esa tarea con sus comentarios (Portal)
+- Si es sobre un proyecto → te lleva a Proyectos (admin) o abre ese proyecto (Portal)
+- Si es sobre una cotización → te lleva al Cotizador / pestaña Presupuestos
+- Si es sobre un cliente → te lleva a Clientes (admin)
+
+En el Portal, como ya tenías tareas y proyectos cargados en memoria, no hace ningún pedido extra al servidor — abre directo.
+
+---
+
+## Select escapando de las tarjetas, cierre de proyecto sin bloqueo, cotizador sin unidades, un proyecto por servicio
+
+### Instalación
+
+Importá **`pb-schema-quote-service-link.json`** (Merge). Agrega un solo campo (`service`) a `quote_lines`.
+
+### 1. El menú desplegable ya no se corta detrás de la siguiente tarjeta
+
+Causa técnica real: las tarjetas usan `backdrop-filter` (el efecto vidrio), y eso crea un "contexto de apilamiento" propio en CSS — el menú quedaba atrapado adentro de su tarjeta sin importar el z-index, y la tarjeta siguiente (que viene después en el HTML) siempre lo tapaba. Lo solucioné con un patrón estándar: el menú ahora se renderiza en un **portal** directo al final del documento, calculando su posición en pantalla — así escapa de cualquier tarjeta y siempre queda por encima de todo.
+
+### 2. Abrir y cerrar un proyecto ya no bloquea los clics
+
+La pantalla completa del proyecto tenía una animación de salida que la dejaba, por un instante, invisible pero todavía **capturando clics** mientras se desvanecía. Le saqué esa animación de cierre — ahora desaparece al instante, sin dejar nada bloqueando la pantalla.
+
+### 3. Cotizador sin unidades
+
+Saqué el campo "Unidad" de los ítems del Cotizador — ahora es solo descripción, cantidad y costo. (El campo sigue existiendo en la base por compatibilidad con cotizaciones viejas, pero ya no se pide ni se muestra en las nuevas.)
+
+### 4. Un proyecto individual por cada servicio activo aprobado
+
+Este es el cambio más importante: cuando armás una cotización agregando ítems **desde tu catálogo de Servicios**, cada ítem queda vinculado a ese servicio. Cuando el cliente la aprueba:
+
+- Por **cada ítem que corresponda a un servicio que sigue activo** en tu catálogo, se crea **su propio proyecto individual** — con su propio presupuesto (el de esa línea, no el total de toda la cotización), y vinculado a ese servicio (así sigue funcionando todo lo de vencimientos recurrentes e ingresos estimados que ya tenías).
+- Los **ítems sueltos** (los que escribiste a mano, sin venir del catálogo, o que corresponden a un servicio que ya desactivaste) **no generan ningún proyecto** — quedan solamente registrados en la cotización.
+- Si una cotización tiene, por ejemplo, 3 servicios distintos y los 3 siguen activos, al aprobarla se crean **3 proyectos separados**, cada uno con su propia metodología, fase y seguimiento — tal como pediste, porque cada servicio tiene su propio precio y forma de pago.
+
+Esto aplica solo a las cotizaciones que vos armás para tus clientes (no a las de marca blanca que arma un cliente para sus propios clientes, que no tienen ninguna relación con tu catálogo de servicios).
+
+---
+
+## Adjuntar propuesta, botones arriba, motivo de rechazo, contribución del cliente y cotizador separado
+
+### Instalación
+
+Importá **`pb-schema-propuesta-rechazo.json`** (Merge). Agrega 2 campos a `quotes`: `proposal_file` y `rejection_reason`.
+
+### Diagnóstico rápido: por qué no llegan los emails
+
+Revisé el `.env` del proyecto: las 4 variables de EmailJS (`VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, `VITE_EMAILJS_PUBLIC_KEY`, `VITE_ALERT_EMAIL`) están **vacías**. No es un bug — falta completar la configuración externa (cuenta en EmailJS, conectar tu Gmail, plantilla, y pegar esas 4 claves). Los pasos completos están en la sección "Notificaciones por Gmail" más arriba en este mismo README. Si ya las completaste y sigue sin llegar nada, revisá especialmente el paso de "Allowed origins" (dominio autorizado) — es la causa más común de fallos silenciosos.
+
+### 1. Adjuntar una propuesta a la cotización
+
+En el Cotizador (tuyo), nuevo campo para subir un PDF/Word/imagen con la propuesta completa. El cliente la ve con un botón "Ver propuesta" tanto arriba de la cotización como al lado del título.
+
+### 2. Aprobar/Rechazar arriba de la cotización
+
+Los movimos de abajo del todo a justo debajo del encabezado — se ven apenas se abre, sin tener que bajar.
+
+### 3. Motivo de rechazo
+
+Al tocar "Rechazar", se abre un cuadro pidiendo el motivo antes de confirmar — no se puede rechazar sin escribir algo. Ese motivo queda guardado y se muestra **debajo de la cotización correspondiente** en tu Cotizador, con un aviso en rojo bien visible.
+
+### 4. El cliente puede sumar tareas y archivos dentro de sus proyectos
+
+Antes, dentro del detalle de un proyecto en el Portal, el cliente solo podía ver tareas y descargar archivos. Ahora también puede **crear tareas nuevas** (quedan marcadas como "del cliente", igual que las solicitudes) y **subir sus propios archivos** al proyecto — vos las seguís viendo todas desde tu propio detalle del proyecto en el admin.
+
+### 5. Cotizador propio separado de las cotizaciones de Mateo Estudio
+
+Eran 3 pestañas mezcladas dentro de "Presupuestos". Ahora son dos cosas separadas y claras:
+- **"Cotizaciones"**: lo que vos le mandás — pestaña propia, sin mezclar con nada más.
+- **"Mi Cotizador"**: su propia herramienta de cotizar a sus clientes (antes "Presupuestos") — ahí solo están sus cotizaciones y su catálogo, nada tuyo de por medio.
+
+### 6. Botón flotante para sumar cotización
+
+Dentro de "Mi Cotizador", un botón circular con el signo "+" queda flotando abajo a la derecha todo el tiempo — un toque y arranca una cotización nueva, sin tener que buscar el botón en el medio de la pantalla.
