@@ -529,3 +529,36 @@ Tarjeta con barra de progreso: cuánto llevás facturado este mes contra el obje
 ### 3. Ingresos recurrentes estimados (MRR)
 
 Suma, mes a mes, lo que "debería" entrar según tus **proyectos ligados a un servicio recurrente** (mensual/trimestral/anual, normalizado a valor mensual). Tal como pediste, si el presupuesto de un proyecto está en dólares, se convierte con **la cotización de hoy** (no la que estaba congelada cuando se creó el proyecto) — es una proyección a valor actual, no un monto ya cobrado.
+
+---
+
+## Rediseño visual: Portal con carrusel 3D + Dashboard en mosaico
+
+**Sin cambios de esquema** — solo código.
+
+### Portal del cliente — Resumen reorganizado
+
+Orden nuevo, tal como lo pediste:
+1. **Solicitud al equipo** — arriba de todo, siempre visible.
+2. **Carrusel 3D de proyectos** — efecto coverflow real con perspectiva CSS: el proyecto del centro queda de frente, los de al lado se inclinan y se atenúan. Tocás una tarjeta lateral para traerla al centro, tocás la del centro para abrirla.
+3. **Facturas** — dos tarjetas grandes, pendientes y pagadas, cada una con su total y cantidad.
+4. **Más herramientas** — grilla de accesos rápidos al final (Actividad, Cotizaciones, Vencimientos, Credenciales, Notificaciones), cada una con su contador si tiene algo pendiente.
+
+### Pantalla completa al abrir un proyecto
+
+Al tocar un proyecto del carrusel, ya no se abre un modal chico — se abre una **pantalla completa** con su propio fondo, header y 3 pestañas: **Resumen** (progreso, fase, descripción), **Archivos**, y **Tareas** (con comentarios, se puede expandir cada una ahí mismo).
+
+### Dashboard del admin — mosaico real con Grid
+
+Antes eran dos columnas fijas apiladas con flexbox. Ahora es una grilla real de 4 columnas que se reorganiza sola según el ancho:
+- **Celular**: todo en una columna, en orden de lectura.
+- **Tablet**: 2 columnas parejas.
+- **Pantalla ancha**: la gráfica de ingresos ocupa 3/4 del ancho, el dólar cripto el resto arriba; proyectos y tareas se reparten abajo — aprovecha el espacio en vez de dejarlo vacío a los costados.
+
+### Elevado en toda la app (por el efecto cascada)
+
+Actualicé la tarjeta (`.card`) y los botones (`.btn-glass`, `.btn-ghost`) que se usan en **absolutamente todas** las pantallas — más profundidad, un filo de luz sutil arriba, transición más suave al pasar el mouse, y feedback táctil al tocar/hacer clic. Esto eleva la sensación general de todo el admin sin tener que reescribir cada página una por una.
+
+### Honestidad sobre el alcance
+
+Le puse profundidad real a lo que pediste explícitamente (Portal y Dashboard) y elevé los componentes compartidos para que se sienta en todos lados. **No reescribí individualmente cada página del admin** (Clientes, Proyectos, Finanzas, etc.) — ya heredan la mejora de las tarjetas y botones, pero si querés que le dé una pasada de diseño dedicada a alguna en particular, decime cuál te importa más y seguimos por ahí.

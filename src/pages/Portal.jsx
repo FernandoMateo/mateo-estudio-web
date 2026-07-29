@@ -16,6 +16,8 @@ import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
+import ProjectCarousel3D from '../components/ProjectCarousel3D'
+import ProjectWorkspace from '../components/ProjectWorkspace'
 
 const TABS = [
   ['resumen', 'Resumen'],
@@ -111,7 +113,7 @@ export default function Portal() {
   const auth = getAuth()
 
   const [tab, setTab] = useState('resumen')
-  const [viewingProject, setViewingProject] = useState(null)
+  const [workspaceProject, setWorkspaceProject] = useState(null)
   const [viewingTask, setViewingTask] = useState(null)
   const [client, setClient] = useState(null)
   const [projects, setProjects] = useState([])
@@ -193,7 +195,6 @@ export default function Portal() {
   }
 
   const firstName = (client?.contact_name || auth?.record?.name || auth?.record?.email || '').split(' ')[0].split('@')[0]
-  const activeProject = useMemo(() => projects.find(p => p.status === 'en_progreso') || projects[0] || null, [projects])
   const RECURRING_TYPES = { mensual: true, trimestral: true, anual: true }
   const upcomingRenewals = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -208,7 +209,9 @@ export default function Portal() {
   }, [projects])
   const pendingInvoices = invoices.filter(i => i.status === 'pendiente' || i.status === 'vencido')
   const overdueInvoices = invoices.filter(i => i.status === 'vencido')
+  const paidInvoices = invoices.filter(i => i.status === 'pagado')
   const pendingTotalArs = pendingInvoices.reduce((a, i) => a + (Number(i.amount_ars ?? i.amount) || 0), 0)
+  const paidTotalArs = paidInvoices.reduce((a, i) => a + (Number(i.amount_ars ?? i.amount) || 0), 0)
 
   /* ── Guardar solicitud al equipo ── */
   async function sendRequest() {
@@ -411,154 +414,81 @@ export default function Portal() {
             {/* ═══════════ RESUMEN ═══════════ */}
             {tab === 'resumen' && (
               <div className="grid gap-5">
-                {/* Proyecto activo */}
-                {activeProject ? (
-                  <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="card !p-6">
-                    <div className="flex items-start gap-6 flex-wrap md:flex-nowrap">
-                      <ProgressRing pct={Math.max(0, Math.min(100, Number(activeProject.progress) || 0))} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-[18px] font-bold truncate">{activeProject.name}</h2>
-                          <Pill value={activeProject.status || 'propuesta'} />
-                        </div>
-                        {activeProject.description && <p className="text-[13px] text-white/45 mt-2 leading-relaxed">{activeProject.description}</p>}
-                        <div className="flex gap-5 mt-3 text-[11.5px] text-white/40 flex-wrap">
-                          {activeProject.start_date && <span>Inicio: <b className="text-white/70">{activeProject.start_date.slice(0, 10)}</b></span>}
-                          {activeProject.due_date && <span>Entrega: <b className="text-white/70">{activeProject.due_date.slice(0, 10)}</b></span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-7 pt-5 border-t border-white/[.06]">
-                      <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
-                      <PhaseStepper current={activeProject.phase} />
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="card text-center py-14">
-                    <p className="text-[14px] font-semibold">Todavía no hay un proyecto en marcha</p>
-                    <p className="text-[12.5px] text-white/40 mt-1.5">En cuanto arranquemos, vas a verlo acá con su avance en tiempo real.</p>
+                {/* Solicitud al equipo — arriba de todo */}
+                <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+                  className="card !p-5 flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                  <div className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
+                    <svg className="w-5 h-5 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 5v14M5 12h14" /></svg>
                   </div>
-                )}
-
-                {/* Otros proyectos */}
-                {projects.length > 1 && (
-                  <div className="card !px-0">
-                    <h3 className="text-[13.5px] font-bold mb-4 px-5">Todos tus proyectos</h3>
-                    <div className="flex gap-3 overflow-x-auto px-5 pb-1" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-                      {projects.map((p, i) => {
-                        const prog = Math.max(0, Math.min(100, Number(p.progress) || 0))
-                        return (
-                          <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                            onClick={() => setViewingProject(p)} whileTap={{ scale: 0.97 }}
-                            style={{ scrollSnapAlign: 'start' }}
-                            className="flex-shrink-0 w-[168px] cursor-pointer">
-                            <div className="rounded-2xl p-3.5 h-full" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.08)' }}>
-                              <div className="text-[12.5px] font-semibold leading-snug line-clamp-2 min-h-[32px]">{p.name}</div>
-                              <div className="mt-3">
-                                <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
-                                  <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_10px_rgba(139,92,246,.6)]"
-                                    initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.9, delay: 0.15 + i * 0.05 }} />
-                                </div>
-                                <div className="text-[10px] text-white/40 mt-1">{prog}%</div>
-                              </div>
-                              <div className="mt-2.5"><Pill value={p.status || 'propuesta'} /></div>
-                            </div>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[14px] font-bold">¿Necesitás algo del equipo?</h3>
+                    <p className="text-[12px] text-white/40 mt-0.5">Mandanos un pedido, un link o un comentario — lo sumamos a la lista de trabajo.</p>
                   </div>
-                )}
+                  <motion.button whileTap={{ scale: 0.97 }} className="btn-glass flex-shrink-0" onClick={() => setReqOpen(true)}>
+                    Enviar solicitud
+                  </motion.button>
+                </motion.div>
 
-                {/* Vencimientos recurrentes */}
-                {!!upcomingRenewals.length && (
-                  <div className="card">
-                    <div className="flex items-center gap-2 mb-4">
-                      <h3 className="text-[13.5px] font-bold">Vencimientos</h3>
-                      {upcomingRenewals.some(r => r.daysLeft <= 2) && (
-                        <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
-                          className="w-2 h-2 rounded-full bg-coral" style={{ boxShadow: '0 0 8px rgba(251,113,133,.9)' }} />
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {upcomingRenewals.slice(0, 5).map((r, i) => {
-                        const overdue = r.daysLeft < 0, soon = r.daysLeft >= 0 && r.daysLeft <= 2
-                        const color = overdue || soon ? 'text-coral' : r.daysLeft <= 7 ? 'text-amber' : 'text-white/50'
-                        return (
-                          <motion.div key={r.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${overdue || soon ? 'bg-coral' : r.daysLeft <= 7 ? 'bg-amber' : 'bg-white/25'}`}
-                              style={(overdue || soon) ? { boxShadow: '0 0 8px rgba(251,113,133,.7)' } : undefined} />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[13px] font-medium truncate">{r.expand?.service?.name || r.name}</div>
-                              <div className="text-[10.5px] text-white/30">{r.next_renewal_date.slice(0, 10)}</div>
-                            </div>
-                            <span className={`text-[11.5px] font-bold flex-shrink-0 ${color}`}>
-                              {overdue ? `Venció hace ${Math.abs(r.daysLeft)}d` : r.daysLeft === 0 ? 'Vence hoy' : `en ${r.daysLeft}d`}
-                            </span>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
+                {/* Carrusel 3D de proyectos */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4 px-1">
+                    <h3 className="text-[13.5px] font-bold">Tus proyectos</h3>
+                    {!!projects.length && <span className="text-[10.5px] font-semibold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2 py-0.5">{projects.length}</span>}
                   </div>
-                )}
-
-                {/* Cotizaciones recibidas */}
-                {!!receivedQuotes.length && (
-                  <div className="card">
-                    <div className="flex items-center gap-2 mb-4">
-                      <h3 className="text-[13.5px] font-bold">Tus cotizaciones</h3>
-                      {receivedQuotes.some(q => q.status === 'enviado') && (
-                        <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
-                          className="w-2 h-2 rounded-full bg-amber" style={{ boxShadow: '0 0 8px rgba(251,191,36,.9)' }} />
-                      )}
-                      <div className="flex-1" />
-                      <button onClick={() => setTab('presupuestos')} className="text-[11.5px] font-semibold text-violet-light hover:text-violet-light/80 transition-colors">Ver todas →</button>
+                  {!projects.length ? (
+                    <div className="card text-center py-14">
+                      <p className="text-[14px] font-semibold">Todavía no hay un proyecto en marcha</p>
+                      <p className="text-[12.5px] text-white/40 mt-1.5">En cuanto arranquemos, vas a verlo acá con su avance en tiempo real.</p>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      {receivedQuotes.slice(0, 4).map((q, i) => (
-                        <motion.div key={q.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                          onClick={() => { setQuoteAutoPrint(false); setViewingQuote(q) }}
-                          className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors cursor-pointer">
-                          <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{q.title}</span>
-                          <span className="text-[12px] font-bold flex-shrink-0">{fmtByCurrency(q.total, q.currency)}</span>
-                          <Pill value={q.status || 'borrador'} />
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  ) : (
+                    <ProjectCarousel3D projects={projects} onOpen={setWorkspaceProject} />
+                  )}
+                </div>
 
-                {/* Solicitudes + actividad */}
-                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))' }}>
-                  <div className="card flex flex-col">
-                    <h3 className="text-[13.5px] font-bold mb-2">¿Necesitás algo del equipo?</h3>
-                    <p className="text-[12.5px] text-white/40 mb-4 leading-relaxed">
-                      Mandanos un pedido, un link de referencia o un comentario. Lo vemos y lo sumamos a la lista de trabajo.
-                    </p>
-                    <motion.button whileTap={{ scale: 0.97 }} className="btn-glass w-full justify-center mt-auto" onClick={() => setReqOpen(true)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                      Enviar una solicitud
-                    </motion.button>
-                  </div>
-
-                  <div className="card">
-                    <h3 className="text-[13.5px] font-bold mb-4">Actividad reciente</h3>
-                    {!tasks.length ? (
-                      <p className="text-[12.5px] text-white/35">Todavía no hay movimientos para mostrar.</p>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {tasks.slice(0, 7).map((t, i) => (
-                          <motion.div key={t.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                            onClick={() => setViewingTask(t)}
-                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors cursor-pointer">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint shadow-[0_0_8px_rgba(52,211,153,.6)]' : t.priority === 'urgente' ? 'bg-coral shadow-[0_0_8px_rgba(251,113,133,.6)]' : 'bg-violet-light shadow-[0_0_8px_rgba(139,92,246,.6)]'}`} />
-                            <span className={`flex-1 min-w-0 text-[12.5px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
-                            {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">tuya</span>}
-                          </motion.div>
-                        ))}
-                      </div>
+                {/* Facturas: pendientes y pagadas */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <motion.button whileTap={{ scale: 0.98 }} onClick={() => setTab('facturas')}
+                    className="card !p-5 text-left relative overflow-hidden">
+                    {overdueInvoices.length > 0 && (
+                      <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
+                        className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-coral" style={{ boxShadow: '0 0 10px rgba(251,113,133,.9)' }} />
                     )}
+                    <div className="text-[11px] uppercase font-bold tracking-wide text-white/40">Pendientes de pago</div>
+                    <div className="text-[24px] font-extrabold tracking-tight mt-2 text-amber">{fmtARS(pendingTotalArs)}</div>
+                    <div className="text-[11.5px] text-white/35 mt-1.5">{pendingInvoices.length} factura{pendingInvoices.length !== 1 ? 's' : ''}{overdueInvoices.length > 0 ? ` · ${overdueInvoices.length} vencida${overdueInvoices.length > 1 ? 's' : ''}` : ''}</div>
+                  </motion.button>
+                  <motion.button whileTap={{ scale: 0.98 }} onClick={() => setTab('facturas')}
+                    className="card !p-5 text-left">
+                    <div className="text-[11px] uppercase font-bold tracking-wide text-white/40">Ya pagadas</div>
+                    <div className="text-[24px] font-extrabold tracking-tight mt-2 text-mint">{fmtARS(paidTotalArs)}</div>
+                    <div className="text-[11.5px] text-white/35 mt-1.5">{paidInvoices.length} factura{paidInvoices.length !== 1 ? 's' : ''}</div>
+                  </motion.button>
+                </div>
+
+                {/* Utilidades */}
+                <div>
+                  <h3 className="text-[13.5px] font-bold mb-3 px-1">Más herramientas</h3>
+                  <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(140px,100%),1fr))' }}>
+                    {[
+                      { key: 'tareas_link', label: 'Actividad', sub: `${tasks.length} movimiento${tasks.length !== 1 ? 's' : ''}`, icon: <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />, color: '#A78BFA', badge: tasks.filter(t => t.status !== 'completada').length, onClick: () => tasks[0] && setViewingTask(tasks[0]) },
+                      { key: 'presupuestos', label: 'Cotizaciones', sub: `${receivedQuotes.length + myQuotes.length} en total`, icon: <><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></>, color: '#60A5FA', badge: receivedQuotes.filter(q => q.status === 'enviado').length, onClick: () => setTab('presupuestos') },
+                      { key: 'vencimientos', label: 'Vencimientos', sub: upcomingRenewals.length ? `${upcomingRenewals.length} activos` : 'Sin recurrentes', icon: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>, color: '#FBBF24', badge: upcomingRenewals.filter(r => r.daysLeft <= 2).length, onClick: () => {} },
+                      { key: 'credenciales', label: 'Credenciales', sub: `${creds.length} guardadas`, icon: <><rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>, color: '#34D399', badge: 0, onClick: () => setTab('credenciales') },
+                      { key: 'notificaciones', label: 'Notificaciones', sub: 'Ver todas', icon: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" /><path d="M10 19a2.2 2.2 0 0 0 4 0" /></>, color: '#F472F0', badge: 0, onClick: () => setTab('notificaciones') },
+                    ].map((u, i) => (
+                      <motion.button key={u.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                        whileHover={{ y: -3 }} whileTap={{ scale: 0.96 }} onClick={u.onClick}
+                        className="card !p-4 text-left relative overflow-hidden">
+                        {u.badge > 0 && (
+                          <span className="absolute top-3 right-3 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center text-white" style={{ background: u.color, boxShadow: `0 0 8px ${u.color}90` }}>{u.badge}</span>
+                        )}
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2.5" style={{ background: `${u.color}18`, border: `1px solid ${u.color}40` }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={u.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{u.icon}</svg>
+                        </div>
+                        <div className="text-[12.5px] font-bold">{u.label}</div>
+                        <div className="text-[10.5px] text-white/35 mt-0.5">{u.sub}</div>
+                      </motion.button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -917,33 +847,8 @@ export default function Portal() {
         canDecide={viewingQuote?.issuer_type === 'estudio' && viewingQuote?.status === 'enviado'} onDecide={decideQuote} deciding={decidingQuote} />
       <CatalogViewer open={catalogViewOpen} onClose={() => setCatalogViewOpen(false)} items={catalogItems} client={client} autoPrint={catalogAutoPrint} />
 
-      {/* ── Detalle individual de un proyecto ── */}
-      <Modal open={!!viewingProject} onClose={() => setViewingProject(null)}>
-        {viewingProject && (
-          <>
-            <ModalHead title={viewingProject.name} onClose={() => setViewingProject(null)} />
-            <div className="flex items-start gap-6 flex-wrap sm:flex-nowrap">
-              <ProgressRing pct={Math.max(0, Math.min(100, Number(viewingProject.progress) || 0))} size={104} />
-              <div className="flex-1 min-w-0">
-                <Pill value={viewingProject.status || 'propuesta'} />
-                {viewingProject.description && <p className="text-[13px] text-white/45 mt-3 leading-relaxed">{viewingProject.description}</p>}
-                <div className="flex gap-5 mt-3 text-[11.5px] text-white/40 flex-wrap">
-                  {viewingProject.start_date && <span>Inicio: <b className="text-white/70">{viewingProject.start_date.slice(0, 10)}</b></span>}
-                  {viewingProject.due_date && <span>Entrega: <b className="text-white/70">{viewingProject.due_date.slice(0, 10)}</b></span>}
-                </div>
-              </div>
-            </div>
-            <div className="mt-7 pt-5 border-t border-white/[.06]">
-              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-1">Fase actual</div>
-              <PhaseStepper current={viewingProject.phase} />
-            </div>
-            <div className="mt-7 pt-5 border-t border-white/[.06]">
-              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Archivos</div>
-              <ProjectFiles projectId={viewingProject.id} canManage={false} />
-            </div>
-          </>
-        )}
-      </Modal>
+      {/* ── Detalle individual de un proyecto: pantalla completa con pestañas ── */}
+      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} />
 
       {/* ── Detalle de una tarea, con comentarios ── */}
       <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>

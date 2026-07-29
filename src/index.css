@@ -23,19 +23,29 @@
 }
 
 @layer components {
-  /* ── Tarjeta de vidrio v2: borde que respira + glow en hover ── */
+  /* ── Tarjeta de vidrio v3: borde que respira + glow en hover + filo de luz ── */
   .card {
-    @apply relative rounded-[20px] p-5 transition-all duration-300;
+    @apply relative rounded-[20px] p-5;
     background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
     border: 1px solid rgba(255,255,255,.08);
     backdrop-filter: blur(20px);
     box-shadow: 0 8px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+    transition: transform .45s cubic-bezier(.19,1,.22,1), box-shadow .45s cubic-bezier(.19,1,.22,1), border-color .3s ease, background .3s ease;
+  }
+  .card::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(180deg, rgba(255,255,255,.14), transparent 40%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: .6; pointer-events: none; transition: opacity .3s ease;
   }
   .card:hover {
-    border-color: rgba(167,139,250,.35);
-    box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(139,92,246,.15), 0 0 40px rgba(139,92,246,.12), inset 0 1px 0 rgba(255,255,255,.06);
-    transform: translateY(-2px);
+    border-color: rgba(167,139,250,.4);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    box-shadow: 0 20px 46px rgba(0,0,0,.55), 0 0 0 1px rgba(139,92,246,.18), 0 0 46px rgba(139,92,246,.16), inset 0 1px 0 rgba(255,255,255,.07);
+    transform: translateY(-3px);
   }
+  .card:hover::before { opacity: 1; }
 
   /* ── Campos: glow al enfocar, línea inferior animada ── */
   .field {
@@ -73,6 +83,7 @@
     border-color: rgba(196,181,253,.9);
     box-shadow: 0 0 0 1px rgba(167,139,250,.3), 0 0 26px rgba(139,92,246,.55), 0 4px 20px rgba(139,92,246,.3);
   }
+  .btn-glass:active, .btn-ghost:active { transform: scale(.96); }
 
   .btn-ghost {
     @apply inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-white/50 bg-white/[.03] border border-white/[.08] transition-all duration-200;
