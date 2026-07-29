@@ -352,21 +352,25 @@ export default function Finanzas() {
             {recurringExpenses.map(e => {
               const inactive = e.active === false
               return (
-                <div key={e.id} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl flex-wrap sm:flex-nowrap ${inactive ? 'opacity-50' : ''}`}
+                <div key={e.id} className={`flex flex-col sm:flex-row sm:items-center gap-3 px-3.5 py-2.5 rounded-xl ${inactive ? 'opacity-50' : ''}`}
                   style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
-                  <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-coral bg-coral/[.1] border border-coral/25">{e.day_of_month}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium truncate">{e.concept}</div>
-                    <div className="text-[10.5px] text-white/35">Día {e.day_of_month} de cada mes{e.method ? ` · ${e.method}` : ''}</div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-coral bg-coral/[.1] border border-coral/25">{e.day_of_month}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium truncate">{e.concept}</div>
+                      <div className="text-[10.5px] text-white/35">Día {e.day_of_month} de cada mes{e.method ? ` · ${e.method}` : ''}</div>
+                    </div>
                   </div>
-                  <span className="text-[13px] font-bold text-coral flex-shrink-0">{e.currency === 'USD' ? 'US$' : e.currency === 'MXN' ? 'MX$' : '$'}{Number(e.amount).toLocaleString('es-AR')}</span>
-                  <button onClick={() => toggleRecActive(e)}
-                    className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border flex-shrink-0 transition-colors ${inactive ? 'text-white/35 border-white/10' : 'text-mint border-mint/30 bg-mint/10'}`}>
-                    {inactive ? 'Pausado' : 'Activo'}
-                  </button>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <IconBtn onClick={() => openRecEdit(e)} title="Editar"><EditIcon /></IconBtn>
-                    <IconBtn onClick={() => delRec(e)} danger title="Eliminar"><TrashIcon /></IconBtn>
+                  <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap sm:ml-auto">
+                    <span className="text-[13px] font-bold text-coral flex-shrink-0">{e.currency === 'USD' ? 'US$' : e.currency === 'MXN' ? 'MX$' : '$'}{Number(e.amount).toLocaleString('es-AR')}</span>
+                    <button onClick={() => toggleRecActive(e)}
+                      className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border flex-shrink-0 transition-colors ${inactive ? 'text-white/35 border-white/10' : 'text-mint border-mint/30 bg-mint/10'}`}>
+                      {inactive ? 'Pausado' : 'Activo'}
+                    </button>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <IconBtn onClick={() => openRecEdit(e)} title="Editar"><EditIcon /></IconBtn>
+                      <IconBtn onClick={() => delRec(e)} danger title="Eliminar"><TrashIcon /></IconBtn>
+                    </div>
                   </div>
                 </div>
               )
@@ -388,26 +392,30 @@ export default function Finanzas() {
             const meta = [cn, pn, t.date?.slice(0, 10), t.method].filter(Boolean).join(' · ')
             return (
               <motion.div key={t.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3.5 bg-white/[.035] border border-white/[.07] rounded-xl px-4 py-3.5 hover:border-violet-light/25 transition-colors flex-wrap sm:flex-nowrap">
-                <div className={`w-10 h-10 rounded-[11px] flex-shrink-0 flex items-center justify-center ${isIn ? 'bg-mint/[.12] border border-mint/35 text-mint' : 'bg-coral/[.1] border border-coral/30 text-coral'}`}>
-                  <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    {isIn ? <><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></> : <><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></>}
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold truncate">{t.concept}</div>
-                  <div className="text-[11.5px] text-white/35 truncate mt-0.5 flex items-center gap-1.5">
-                    {t.status === 'vencido' && <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.1, repeat: Infinity }} className="w-2 h-2 rounded-full bg-coral shadow-[0_0_8px_rgba(248,113,113,.8)]" />}
-                    {meta || 'Sin detalles'}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5 bg-white/[.035] border border-white/[.07] rounded-xl px-4 py-3.5 hover:border-violet-light/25 transition-colors">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className={`w-10 h-10 rounded-[11px] flex-shrink-0 flex items-center justify-center ${isIn ? 'bg-mint/[.12] border border-mint/35 text-mint' : 'bg-coral/[.1] border border-coral/30 text-coral'}`}>
+                    <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      {isIn ? <><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></> : <><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></>}
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{t.concept}</div>
+                    <div className="text-[11.5px] text-white/35 truncate mt-0.5 flex items-center gap-1.5">
+                      {t.status === 'vencido' && <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.1, repeat: Infinity }} className="w-2 h-2 rounded-full bg-coral shadow-[0_0_8px_rgba(248,113,113,.8)] flex-shrink-0" />}
+                      <span className="truncate">{meta || 'Sin detalles'}</span>
+                    </div>
                   </div>
                 </div>
-                <span className={`font-extrabold whitespace-nowrap text-right ${isIn ? 'text-mint' : 'text-coral'}`}>
-                  {isIn ? '+' : '−'}<MoneyDisplay amount={t.amount} currency={t.currency} amountArs={t.currency && t.currency !== 'ARS' ? t.amount_ars : null} />
-                </span>
-                <Pill value={t.status || 'pendiente'} />
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <IconBtn onClick={() => openEdit(t)} title="Editar"><EditIcon /></IconBtn>
-                  <IconBtn onClick={() => del(t)} danger title="Eliminar"><TrashIcon /></IconBtn>
+                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap sm:ml-auto">
+                  <span className={`font-extrabold whitespace-nowrap ${isIn ? 'text-mint' : 'text-coral'}`}>
+                    {isIn ? '+' : '−'}<MoneyDisplay amount={t.amount} currency={t.currency} amountArs={t.currency && t.currency !== 'ARS' ? t.amount_ars : null} />
+                  </span>
+                  <Pill value={t.status || 'pendiente'} />
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <IconBtn onClick={() => openEdit(t)} title="Editar"><EditIcon /></IconBtn>
+                    <IconBtn onClick={() => del(t)} danger title="Eliminar"><TrashIcon /></IconBtn>
+                  </div>
                 </div>
               </motion.div>
             )

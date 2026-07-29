@@ -23,7 +23,7 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString('es-AR')
 }
 
-export default function NotificationsList({ onCountChange }) {
+export default function NotificationsList({ onCountChange, onNavigate }) {
   const toast = useToast()
   const [items, setItems] = useState([])
   const [filter, setFilter] = useState('todas')
@@ -92,7 +92,7 @@ export default function NotificationsList({ onCountChange }) {
               const meta = TYPE_META[n.type] || TYPE_META.info
               return (
                 <motion.div key={n.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}
-                  onClick={() => markRead(n)}
+                  onClick={() => { markRead(n); onNavigate?.(n) }}
                   className={`group relative flex items-start gap-3 rounded-2xl px-4 py-3.5 cursor-pointer transition-colors overflow-hidden
                     ${n.read ? 'opacity-55' : ''}`}
                   style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.07)' }}>
@@ -107,6 +107,9 @@ export default function NotificationsList({ onCountChange }) {
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {!n.read && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />}
+                    {onNavigate && (n.task || n.project || n.client) && (
+                      <svg className="w-3.5 h-3.5 text-white/20 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                    )}
                     <button onClick={e => { e.stopPropagation(); del(n) }} title="Eliminar"
                       className="opacity-0 group-hover:opacity-100 text-white/25 hover:text-coral transition-all p-1">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>

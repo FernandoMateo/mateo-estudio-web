@@ -16,9 +16,16 @@ export default function ProjectCarousel3D({ projects, onOpen }) {
 
   function go(delta) { setIndex(i => Math.max(0, Math.min(projects.length - 1, i + delta))) }
 
+  function handleDragEnd(_, info) {
+    const threshold = 60
+    if (info.offset.x < -threshold || info.velocity.x < -400) go(1)
+    else if (info.offset.x > threshold || info.velocity.x > 400) go(-1)
+  }
+
   return (
     <div className="relative">
-      <div className="relative h-[220px] sm:h-[240px]" style={{ perspective: 1200 }}>
+      <motion.div className="relative h-[220px] sm:h-[240px] touch-pan-y" style={{ perspective: 1200 }}
+        drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.2} onDragEnd={handleDragEnd}>
         {projects.map((p, i) => {
           const offset = i - index
           const abs = Math.abs(offset)
@@ -73,7 +80,7 @@ export default function ProjectCarousel3D({ projects, onOpen }) {
             </motion.div>
           )
         })}
-      </div>
+      </motion.div>
 
       {projects.length > 1 && (
         <div className="flex items-center justify-center gap-4 mt-3">

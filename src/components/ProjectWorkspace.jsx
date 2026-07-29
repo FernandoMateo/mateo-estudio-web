@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { list, fmtByCurrency } from '../lib/api'
+import { list, createRec, fmtByCurrency } from '../lib/api'
+import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
 import ProjectFiles from './ProjectFiles'
 import TaskComments from './TaskComments'
 
 const STATUS_GLOW = { en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
-const TABS = [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']]
 
 function ProgressRing({ pct, glow, size = 118 }) {
   const r = size / 2 - 9, C = 2 * Math.PI * r
@@ -26,18 +26,37 @@ function ProgressRing({ pct, glow, size = 118 }) {
   )
 }
 
-export default function ProjectWorkspace({ project, onClose }) {
+/**
+ * canManage: true para admin/equipo — habilita subir archivos, ver presupuesto y crear tareas nuevas.
+ * clientName: nombre del cliente a mostrar (el admin ve varios clientes distintos).
+ * onEdit: si se pasa, muestra un botón "Editar" que dispara esta función (abre el formulario completo).
+ */
+export default function ProjectWorkspace({ project, onClose, canManage = false, clientName, onEdit }) {
+  const toast = useToast()
+  const TABS = canManage ? [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']] : [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']]
   const [tab, setTab] = useState('resumen')
   const [tasks, setTasks] = useState([])
   const [expandedTask, setExpandedTask] = useState(null)
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [addingTask, setAddingTask] = useState(false)
   const glow = STATUS_GLOW[project?.status] || '#8B5CF6'
+
+  const loadTasks = () => project && list('tasks', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created').then(setTasks).catch(() => setTasks([]))
 
   useEffect(() => {
     if (!project) return
-    setTab('resumen'); setExpandedTask(null)
-    list('tasks', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created')
-      .then(setTasks).catch(() => setTasks([]))
+    setTab('resumen'); setExpandedTask(null); setNewTaskTitle('')
+    loadTasks()
   }, [project?.id])
+
+  async function addTask() {
+    if (!newTaskTitle.trim() || !project) return
+    setAddingTask(true)
+    try {
+      await createRec('tasks', { title: newTaskTitle.trim(), project: project.id, client: project.client || '', status: 'pendiente', priority: 'media' })
+      setNewTaskTitle(''); toast('✦ Tarea agregada'); loadTasks()
+    } catch { toast('No se pudo crear la tarea.', true) } finally { setAddingTask(false) }
+  }
 
   return (
     <AnimatePresence>
@@ -50,10 +69,18 @@ export default function ProjectWorkspace({ project, onClose }) {
 
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }}
             className="max-w-[720px] mx-auto px-4 sm:px-6 pt-6 pb-16">
-            <button onClick={onClose} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-white/50 hover:text-white transition-colors mb-5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-              Volver
-            </button>
+            <div className="flex items-center justify-between mb-5 gap-3">
+              <button onClick={onClose} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-white/50 hover:text-white transition-colors">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                Volver
+              </button>
+              {canManage && onEdit && (
+                <button onClick={() => onEdit(project)} className="btn-ghost !py-1.5 !px-3 text-[12px]">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                  Editar
+                </button>
+              )}
+            </div>
 
             <div className="flex items-start gap-5 flex-wrap sm:flex-nowrap mb-2">
               <ProgressRing pct={Math.max(0, Math.min(100, Number(project.progress) || 0))} glow={glow} />
@@ -61,10 +88,14 @@ export default function ProjectWorkspace({ project, onClose }) {
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ color: glow, background: `${glow}18`, border: `1px solid ${glow}40` }}>
                   {(project.status || 'propuesta').replace('_', ' ')}
                 </span>
-                <h1 className="text-[22px] sm:text-[26px] font-extrabold tracking-tight mt-2 leading-tight">{project.name}</h1>
+                <h1 className="text-[22px] sm:text-[26px] font-extrabold tracking-tight mt-2 leading-tight break-words">{project.name}</h1>
+                {clientName && <p className="text-[12.5px] text-white/40 mt-1">{clientName}</p>}
                 <div className="flex gap-4 mt-2 text-[11.5px] text-white/40 flex-wrap">
                   {project.start_date && <span>Inicio: <b className="text-white/70">{project.start_date.slice(0, 10)}</b></span>}
                   {project.due_date && <span>Entrega: <b className="text-white/70">{project.due_date.slice(0, 10)}</b></span>}
+                  {canManage && project.budget != null && project.budget > 0 && (
+                    <span>Presupuesto: <b className="text-white/70">{fmtByCurrency(project.budget, project.budget_currency)}</b></span>
+                  )}
                 </div>
               </div>
             </div>
@@ -74,7 +105,7 @@ export default function ProjectWorkspace({ project, onClose }) {
                 <button key={key} onClick={() => setTab(key)}
                   className={`relative text-[12.5px] font-bold px-4 py-2 rounded-full transition-colors ${tab === key ? 'text-white' : 'text-white/45 hover:text-white/75'}`}>
                   {tab === key && (
-                    <motion.span layoutId="workspace-tab" transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+                    <motion.span layoutId={canManage ? 'admin-workspace-tab' : 'workspace-tab'} transition={{ type: 'spring', stiffness: 340, damping: 28 }}
                       className="absolute inset-0 -z-10 rounded-full" style={{ background: `linear-gradient(135deg, ${glow}cc, ${glow}66)`, boxShadow: `0 0 18px ${glow}55` }} />
                   )}
                   {label}{key === 'tareas' && tasks.length > 0 && <span className="ml-1.5 opacity-70">({tasks.length})</span>}
@@ -109,31 +140,42 @@ export default function ProjectWorkspace({ project, onClose }) {
                 </div>
               )}
 
-              {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={false} />}
+              {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={canManage} projectName={project.name} />}
 
               {tab === 'tareas' && (
-                !tasks.length ? (
-                  <p className="text-[12.5px] text-white/35">Todavía no hay tareas ligadas a este proyecto.</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {tasks.map(t => (
-                      <div key={t.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)' }}>
-                        <button onClick={() => setExpandedTask(id => id === t.id ? null : t.id)}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-white/[.03] transition-colors">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint' : 'bg-violet-light'}`} />
-                          <span className={`flex-1 min-w-0 text-[13px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
-                          <svg className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform ${expandedTask === t.id ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-                        </button>
-                        {expandedTask === t.id && (
-                          <div className="px-3.5 pb-3.5 pt-1">
-                            {t.description && <p className="text-[12px] text-white/45 mb-3">{t.description}</p>}
-                            <TaskComments taskId={t.id} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )
+                <div>
+                  {canManage && (
+                    <div className="flex gap-2 mb-4">
+                      <input className="field flex-1" placeholder="Nueva tarea para este proyecto…" value={newTaskTitle}
+                        onChange={e => setNewTaskTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} />
+                      <button onClick={addTask} disabled={addingTask || !newTaskTitle.trim()} className="btn-glass !px-3.5 disabled:opacity-40">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                      </button>
+                    </div>
+                  )}
+                  {!tasks.length ? (
+                    <p className="text-[12.5px] text-white/35">Todavía no hay tareas ligadas a este proyecto.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {tasks.map(t => (
+                        <div key={t.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)' }}>
+                          <button onClick={() => setExpandedTask(id => id === t.id ? null : t.id)}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-white/[.03] transition-colors">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint' : 'bg-violet-light'}`} />
+                            <span className={`flex-1 min-w-0 text-[13px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
+                            <svg className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform ${expandedTask === t.id ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
+                          </button>
+                          {expandedTask === t.id && (
+                            <div className="px-3.5 pb-3.5 pt-1">
+                              {t.description && <p className="text-[12px] text-white/45 mb-3">{t.description}</p>}
+                              <TaskComments taskId={t.id} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </motion.div>
           </motion.div>

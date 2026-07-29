@@ -114,7 +114,6 @@ export default function Portal() {
 
   const [tab, setTab] = useState('resumen')
   const [workspaceProject, setWorkspaceProject] = useState(null)
-  const [viewingProject, setViewingProject] = useState(null)
   const [viewingTask, setViewingTask] = useState(null)
   const [client, setClient] = useState(null)
   const [projects, setProjects] = useState([])
@@ -291,6 +290,18 @@ export default function Portal() {
       await removeRec('quotes', q.id)
       toast('Cotización eliminada ✓'); loadAll()
     } catch { toast('No se pudo eliminar.', true) }
+  }
+
+  function handleNotifNavigate(n) {
+    if (n.task) {
+      const t = tasks.find(x => x.id === n.task)
+      if (t) { setViewingTask(t); return }
+    }
+    if (n.project) {
+      const p = projects.find(x => x.id === n.project)
+      if (p) { setWorkspaceProject(p); return }
+    }
+    setTab('presupuestos')
   }
 
   async function decideQuote(status) {
@@ -789,7 +800,7 @@ export default function Portal() {
             )}
 
             {/* ═══════════ NOTIFICACIONES ═══════════ */}
-            {tab === 'notificaciones' && <NotificationsList />}
+            {tab === 'notificaciones' && <NotificationsList onNavigate={handleNotifNavigate} />}
 
           </motion.div>
       </main>
@@ -850,29 +861,6 @@ export default function Portal() {
 
       {/* ── Detalle individual de un proyecto: pantalla completa con pestañas ── */}
       <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} />
-
-      {/* ── Detalle de una tarea, con comentarios ── */}
-      <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>
-        {viewingTask && (
-          <>
-            <ModalHead title={viewingTask.title} onClose={() => setViewingTask(null)} />
-            <div className="flex items-center gap-2 mb-1">
-              <Pill value={viewingTask.status || 'pendiente'} />
-              {viewingTask.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30">tuya</span>}
-            </div>
-            {viewingTask.description && <p className="text-[13px] text-white/45 mt-3 leading-relaxed">{viewingTask.description}</p>}
-            {viewingTask.link && <a href={viewingTask.link} target="_blank" rel="noopener" className="text-[12px] text-violet-light hover:text-violet-light/80 transition-colors block mt-2 truncate">{viewingTask.link}</a>}
-            <div className="mt-6 pt-4 border-t border-white/[.06]">
-              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Comentarios</div>
-              <TaskComments taskId={viewingTask.id} />
-            </div>
-            <div className="mt-7 pt-5 border-t border-white/[.06]">
-              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Archivos</div>
-              <ProjectFiles projectId={viewingProject.id} canManage={false} />
-            </div>
-          </>
-        )}
-      </Modal>
 
       {/* ── Detalle de una tarea, con comentarios ── */}
       <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>

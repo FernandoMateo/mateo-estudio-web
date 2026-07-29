@@ -507,7 +507,6 @@ Si el cliente **rechaza**, no se crea nada.
 ### 4. Documentos de la empresa (Portal → Mis datos)
 
 Nueva tarjeta donde el cliente sube sus propios documentos (contratos, papeles impositivos, lo que sea) — separado de los archivos por proyecto, que son los que sube el estudio. Vos podés verlos y gestionarlos desde **Clientes** → ícono de carpeta en cada fila.
-<<<<<<< HEAD
 
 ---
 
@@ -563,5 +562,55 @@ Actualicé la tarjeta (`.card`) y los botones (`.btn-glass`, `.btn-ghost`) que s
 ### Honestidad sobre el alcance
 
 Le puse profundidad real a lo que pediste explícitamente (Portal y Dashboard) y elevé los componentes compartidos para que se sienta en todos lados. **No reescribí individualmente cada página del admin** (Clientes, Proyectos, Finanzas, etc.) — ya heredan la mejora de las tarjetas y botones, pero si querés que le dé una pasada de diseño dedicada a alguna en particular, decime cuál te importa más y seguimos por ahí.
-=======
->>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c
+
+---
+
+## Corrección de bugs reales: filas cortadas, ítems del cotizador rotos, arrastre del carrusel, error mejorado
+
+**Sin cambios de esquema** — solo código.
+
+### El bug de los nombres cortados a una letra (Proyectos, Cotizador)
+
+Encontré la causa real: los componentes de fila (`Row`, `QuoteRow`) usaban `flex-wrap` esperando que el título pasara a otra línea si no entraba — pero el navegador prefiere achicar el texto casi a cero antes que envolver, cuando hay varios elementos de ancho fijo al lado (como el nuevo botón de fase). Reestructuré ambos componentes, y las filas de Finanzas, Tareas y Usuarios que tenían el mismo patrón: ahora el título/nombre siempre ocupa **su propia línea completa**, y los controles (precio, estado, botones) van en una segunda línea que sí puede envolver libremente sin robarle espacio al texto.
+
+### Ítems del Cotizador rotos (imagen 1)
+
+Encontré el bug exacto: el grid de 2 columnas no tenía definido cuántas columnas ocupaba cada campo, así que el navegador los repartía solo, de forma impredecible (por eso las cajitas vacías y el total flotando). Lo rehice con una estructura simple y previsible: descripción arriba, unidad/cantidad/costo en una fila de 3, subtotal abajo — siempre en el mismo orden, sin sorpresas.
+
+### El carrusel ahora se mueve con el dedo
+
+Agregué arrastre táctil real (`drag`) al carrusel 3D del Portal — antes solo se podía tocar los costados o las flechitas. Ahora deslizás con el dedo para pasar de un proyecto a otro, con inercia según la velocidad del gesto.
+
+### El error "Cannot read properties of null" — corregido lo que encontré, y mejorado para la próxima
+
+Encontré y corregí un bug real: al mandar un comentario en una tarea, si por algún motivo la sesión no estaba disponible en ese instante, el código intentaba leer `.id` de algo que podía ser `null`. Ya está blindado.
+
+**Sé honesto**: sin el detalle técnico completo del error (solo tenía el mensaje, no la pila de componentes) no puedo garantizar al 100% que esa haya sido la única causa. Por eso mejoré el `ErrorBoundary`: si vuelve a pasar algo, ahora te va a mostrar **qué componente exacto** lo disparó, no solo el mensaje genérico. Si alguna vez lo ves de nuevo, mandame una captura de esa pantalla completa (con el recuadro violeta de abajo) y lo resuelvo al instante, sin adivinar.
+
+---
+
+## Login sin scroll, Proyectos en tarjetas con detalle completo, notificaciones que navegan
+
+**Sin cambios de esquema** — solo código.
+
+### 1. Login sin scroll fantasma
+
+Usaba `min-h-screen` (100vh fijo), que en mobile queda más alto que el espacio real visible cuando el navegador tiene la barra de direcciones desplegada — eso generaba un scroll mínimo pero molesto. Cambiado a la altura dinámica real del viewport.
+
+### 2. Proyectos ahora son tarjetas, no filas
+
+Cada proyecto tiene su propia tarjeta con espacio de sobra: nombre completo (sin cortar), cliente, servicio, barra de progreso, fecha de entrega o vencimiento, y abajo el botón de fase + editar + eliminar. Nada compite por el mismo renglón.
+
+### 3. Detalle completo al tocar la tarjeta
+
+Tocar cualquier tarjeta (fuera de los botones de acción) abre la misma pantalla completa con pestañas que ya tenía el Portal del cliente, pero ahora también para vos: **Resumen** (progreso, fase, presupuesto), **Archivos** (podés subir/borrar), y **Tareas** — desde ahí podés **crear tareas nuevas ligadas al proyecto** directamente, sin salir de la pantalla, y comentarlas.
+
+### 4. Notificaciones que te llevan al lugar correspondiente
+
+Tocar una notificación ahora navega a donde corresponde según de qué se trate:
+- Si es sobre una tarea → te lleva a Tareas (admin) o abre esa tarea con sus comentarios (Portal)
+- Si es sobre un proyecto → te lleva a Proyectos (admin) o abre ese proyecto (Portal)
+- Si es sobre una cotización → te lleva al Cotizador / pestaña Presupuestos
+- Si es sobre un cliente → te lleva a Clientes (admin)
+
+En el Portal, como ya tenías tareas y proyectos cargados en memoria, no hace ningún pedido extra al servidor — abre directo.

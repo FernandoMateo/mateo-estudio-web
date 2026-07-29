@@ -204,7 +204,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
           </div>
 
           <div className="mt-5">
-            <div className="flex items-center justify-between mb-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
               <span className="field-label !mb-0">Ítems del presupuesto</span>
               {!!catalog.length && (
                 <Select value="" onChange={id => { const it = catalog.find(c => c.id === id); if (it) addLine(it) }}
@@ -215,19 +215,24 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
             {loadingLines ? (
               <p className="text-[12.5px] text-white/35 py-4">Cargando ítems…</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 <AnimatePresence initial={false}>
                   {lines.map(l => (
-                    <motion.div key={l.tempId} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="w-full overflow-hidden">
-                      <div className="grid grid-cols-[1fr_auto] sm:flex sm:items-center gap-2 w-full">
-                        <input className="field sm:flex-[3] sm:min-w-[120px] col-span-2 sm:col-span-1" placeholder="Descripción" value={l.description || ''} onChange={e => updateLine(l.tempId, { description: e.target.value })} />
-                        <input className="field sm:w-[76px] sm:flex-shrink-0 min-w-0" placeholder="Unidad" value={l.unit || ''} onChange={e => updateLine(l.tempId, { unit: e.target.value })} />
-                        <input type="number" min="0" step="0.01" className="field sm:w-[72px] sm:flex-shrink-0 min-w-0" placeholder="Cant." value={l.quantity ?? ''} onChange={e => updateLine(l.tempId, { quantity: e.target.value })} />
-                        <input type="number" min="0" step="0.01" className="field sm:w-[100px] sm:flex-shrink-0 min-w-0" placeholder="Costo u." value={l.unit_cost ?? ''} onChange={e => updateLine(l.tempId, { unit_cost: e.target.value })} />
-                        <span className="text-[12px] text-white/50 sm:w-24 sm:flex-shrink-0 text-right self-center truncate">{fmt((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</span>
-                        <button onClick={() => removeLine(l.tempId)} title="Eliminar ítem" className="text-white/25 hover:text-coral transition-colors flex-shrink-0 p-1.5 justify-self-end sm:justify-self-auto">
+                    <motion.div key={l.tempId} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      className="w-full overflow-hidden rounded-xl p-3" style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)' }}>
+                      <div className="flex items-start gap-2">
+                        <input className="field flex-1 min-w-0" placeholder="Descripción" value={l.description || ''} onChange={e => updateLine(l.tempId, { description: e.target.value })} />
+                        <button onClick={() => removeLine(l.tempId)} title="Eliminar ítem" className="text-white/25 hover:text-coral transition-colors flex-shrink-0 p-2">
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                         </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <input className="field" placeholder="Unidad" value={l.unit || ''} onChange={e => updateLine(l.tempId, { unit: e.target.value })} />
+                        <input type="number" min="0" step="0.01" className="field" placeholder="Cant." value={l.quantity ?? ''} onChange={e => updateLine(l.tempId, { quantity: e.target.value })} />
+                        <input type="number" min="0" step="0.01" className="field" placeholder="Costo u." value={l.unit_cost ?? ''} onChange={e => updateLine(l.tempId, { unit_cost: e.target.value })} />
+                      </div>
+                      <div className="text-right text-[12px] text-white/45 mt-1.5">
+                        Subtotal: <span className="font-bold text-white/80">{fmt((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0))}</span>
                       </div>
                     </motion.div>
                   ))}

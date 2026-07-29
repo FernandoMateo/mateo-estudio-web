@@ -126,17 +126,21 @@ export function Row({ icon, title, meta, right, children }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2, borderColor: 'rgba(167,139,250,.4)' }}
-      className="group relative flex items-center gap-3.5 rounded-2xl px-4 py-3.5 flex-wrap sm:flex-nowrap overflow-hidden transition-shadow"
+      className="group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5 rounded-2xl px-4 py-3.5 overflow-hidden transition-shadow"
       style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.07)' }}
     >
       <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-violet-light to-neon-pink opacity-0 group-hover:opacity-100 transition-opacity" />
-      {icon}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold truncate">{title}</div>
-        {meta && <div className="text-[11.5px] text-white/35 truncate mt-0.5">{meta}</div>}
+      <div className="flex items-center gap-3.5 min-w-0">
+        {icon}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold truncate">{title}</div>
+          {meta && <div className="text-[11.5px] text-white/35 truncate mt-0.5">{meta}</div>}
+        </div>
       </div>
-      {right}
-      {children}
+      <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap sm:ml-auto sm:flex-shrink-0">
+        {right}
+        {children}
+      </div>
     </motion.div>
   )
 }
