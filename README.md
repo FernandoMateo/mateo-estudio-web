@@ -507,6 +507,7 @@ Si el cliente **rechaza**, no se crea nada.
 ### 4. Documentos de la empresa (Portal → Mis datos)
 
 Nueva tarjeta donde el cliente sube sus propios documentos (contratos, papeles impositivos, lo que sea) — separado de los archivos por proyecto, que son los que sube el estudio. Vos podés verlos y gestionarlos desde **Clientes** → ícono de carpeta en cada fila.
+<<<<<<< HEAD
 
 ---
 
@@ -562,3 +563,5 @@ Actualicé la tarjeta (`.card`) y los botones (`.btn-glass`, `.btn-ghost`) que s
 ### Honestidad sobre el alcance
 
 Le puse profundidad real a lo que pediste explícitamente (Portal y Dashboard) y elevé los componentes compartidos para que se sienta en todos lados. **No reescribí individualmente cada página del admin** (Clientes, Proyectos, Finanzas, etc.) — ya heredan la mejora de las tarjetas y botones, pero si querés que le dé una pasada de diseño dedicada a alguna en particular, decime cuál te importa más y seguimos por ahí.
+=======
+>>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c

@@ -16,8 +16,11 @@ import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
+<<<<<<< HEAD
 import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import ProjectWorkspace from '../components/ProjectWorkspace'
+=======
+>>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c
 
 const TABS = [
   ['resumen', 'Resumen'],
@@ -113,7 +116,11 @@ export default function Portal() {
   const auth = getAuth()
 
   const [tab, setTab] = useState('resumen')
+<<<<<<< HEAD
   const [workspaceProject, setWorkspaceProject] = useState(null)
+=======
+  const [viewingProject, setViewingProject] = useState(null)
+>>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c
   const [viewingTask, setViewingTask] = useState(null)
   const [client, setClient] = useState(null)
   const [projects, setProjects] = useState([])
@@ -420,9 +427,41 @@ export default function Portal() {
                   <div className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
                     <svg className="w-5 h-5 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 5v14M5 12h14" /></svg>
                   </div>
+<<<<<<< HEAD
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[14px] font-bold">¿Necesitás algo del equipo?</h3>
                     <p className="text-[12px] text-white/40 mt-0.5">Mandanos un pedido, un link o un comentario — lo sumamos a la lista de trabajo.</p>
+=======
+                )}
+
+                {/* Otros proyectos */}
+                {projects.length > 1 && (
+                  <div className="card !px-0">
+                    <h3 className="text-[13.5px] font-bold mb-4 px-5">Todos tus proyectos</h3>
+                    <div className="flex gap-3 overflow-x-auto px-5 pb-1" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                      {projects.map((p, i) => {
+                        const prog = Math.max(0, Math.min(100, Number(p.progress) || 0))
+                        return (
+                          <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                            onClick={() => setViewingProject(p)} whileTap={{ scale: 0.97 }}
+                            style={{ scrollSnapAlign: 'start' }}
+                            className="flex-shrink-0 w-[168px] cursor-pointer">
+                            <div className="rounded-2xl p-3.5 h-full" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.08)' }}>
+                              <div className="text-[12.5px] font-semibold leading-snug line-clamp-2 min-h-[32px]">{p.name}</div>
+                              <div className="mt-3">
+                                <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
+                                  <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_10px_rgba(139,92,246,.6)]"
+                                    initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.9, delay: 0.15 + i * 0.05 }} />
+                                </div>
+                                <div className="text-[10px] text-white/40 mt-1">{prog}%</div>
+                              </div>
+                              <div className="mt-2.5"><Pill value={p.status || 'propuesta'} /></div>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+>>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c
                   </div>
                   <motion.button whileTap={{ scale: 0.97 }} className="btn-glass flex-shrink-0" onClick={() => setReqOpen(true)}>
                     Enviar solicitud
@@ -445,6 +484,7 @@ export default function Portal() {
                   )}
                 </div>
 
+<<<<<<< HEAD
                 {/* Facturas: pendientes y pagadas */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <motion.button whileTap={{ scale: 0.98 }} onClick={() => setTab('facturas')}
@@ -452,6 +492,37 @@ export default function Portal() {
                     {overdueInvoices.length > 0 && (
                       <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
                         className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-coral" style={{ boxShadow: '0 0 10px rgba(251,113,133,.9)' }} />
+=======
+                {/* Solicitudes + actividad */}
+                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))' }}>
+                  <div className="card flex flex-col">
+                    <h3 className="text-[13.5px] font-bold mb-2">¿Necesitás algo del equipo?</h3>
+                    <p className="text-[12.5px] text-white/40 mb-4 leading-relaxed">
+                      Mandanos un pedido, un link de referencia o un comentario. Lo vemos y lo sumamos a la lista de trabajo.
+                    </p>
+                    <motion.button whileTap={{ scale: 0.97 }} className="btn-glass w-full justify-center mt-auto" onClick={() => setReqOpen(true)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                      Enviar una solicitud
+                    </motion.button>
+                  </div>
+
+                  <div className="card">
+                    <h3 className="text-[13.5px] font-bold mb-4">Actividad reciente</h3>
+                    {!tasks.length ? (
+                      <p className="text-[12.5px] text-white/35">Todavía no hay movimientos para mostrar.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {tasks.slice(0, 7).map((t, i) => (
+                          <motion.div key={t.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                            onClick={() => setViewingTask(t)}
+                            className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/[.04] transition-colors cursor-pointer">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint shadow-[0_0_8px_rgba(52,211,153,.6)]' : t.priority === 'urgente' ? 'bg-coral shadow-[0_0_8px_rgba(251,113,133,.6)]' : 'bg-violet-light shadow-[0_0_8px_rgba(139,92,246,.6)]'}`} />
+                            <span className={`flex-1 min-w-0 text-[12.5px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
+                            {t.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">tuya</span>}
+                          </motion.div>
+                        ))}
+                      </div>
+>>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c
                     )}
                     <div className="text-[11px] uppercase font-bold tracking-wide text-white/40">Pendientes de pago</div>
                     <div className="text-[24px] font-extrabold tracking-tight mt-2 text-amber">{fmtARS(pendingTotalArs)}</div>
@@ -849,6 +920,29 @@ export default function Portal() {
 
       {/* ── Detalle individual de un proyecto: pantalla completa con pestañas ── */}
       <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} />
+
+      {/* ── Detalle de una tarea, con comentarios ── */}
+      <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>
+        {viewingTask && (
+          <>
+            <ModalHead title={viewingTask.title} onClose={() => setViewingTask(null)} />
+            <div className="flex items-center gap-2 mb-1">
+              <Pill value={viewingTask.status || 'pendiente'} />
+              {viewingTask.from_client && <span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30">tuya</span>}
+            </div>
+            {viewingTask.description && <p className="text-[13px] text-white/45 mt-3 leading-relaxed">{viewingTask.description}</p>}
+            {viewingTask.link && <a href={viewingTask.link} target="_blank" rel="noopener" className="text-[12px] text-violet-light hover:text-violet-light/80 transition-colors block mt-2 truncate">{viewingTask.link}</a>}
+            <div className="mt-6 pt-4 border-t border-white/[.06]">
+              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Comentarios</div>
+              <TaskComments taskId={viewingTask.id} />
+            </div>
+            <div className="mt-7 pt-5 border-t border-white/[.06]">
+              <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-3">Archivos</div>
+              <ProjectFiles projectId={viewingProject.id} canManage={false} />
+            </div>
+          </>
+        )}
+      </Modal>
 
       {/* ── Detalle de una tarea, con comentarios ── */}
       <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>
