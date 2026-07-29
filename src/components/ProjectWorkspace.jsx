@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { list, createRec, fmtByCurrency } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
@@ -58,11 +58,11 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
     } catch { toast('No se pudo crear la tarea.', true) } finally { setAddingTask(false) }
   }
 
+  if (!project) return null
+
   return (
-    <AnimatePresence>
-      {project && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] bg-ink overflow-y-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[60] bg-ink overflow-y-auto">
           <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
             <div className="absolute w-[70vw] h-[70vw] rounded-full blur-[130px] opacity-40" style={{ top: '-25%', left: '-20%', background: `radial-gradient(circle, ${glow}, transparent 65%)` }} />
           </div>
@@ -179,8 +179,6 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
               )}
             </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </motion.div>
   )
 }

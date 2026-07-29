@@ -614,3 +614,33 @@ Tocar una notificación ahora navega a donde corresponde según de qué se trate
 - Si es sobre un cliente → te lleva a Clientes (admin)
 
 En el Portal, como ya tenías tareas y proyectos cargados en memoria, no hace ningún pedido extra al servidor — abre directo.
+
+---
+
+## Select escapando de las tarjetas, cierre de proyecto sin bloqueo, cotizador sin unidades, un proyecto por servicio
+
+### Instalación
+
+Importá **`pb-schema-quote-service-link.json`** (Merge). Agrega un solo campo (`service`) a `quote_lines`.
+
+### 1. El menú desplegable ya no se corta detrás de la siguiente tarjeta
+
+Causa técnica real: las tarjetas usan `backdrop-filter` (el efecto vidrio), y eso crea un "contexto de apilamiento" propio en CSS — el menú quedaba atrapado adentro de su tarjeta sin importar el z-index, y la tarjeta siguiente (que viene después en el HTML) siempre lo tapaba. Lo solucioné con un patrón estándar: el menú ahora se renderiza en un **portal** directo al final del documento, calculando su posición en pantalla — así escapa de cualquier tarjeta y siempre queda por encima de todo.
+
+### 2. Abrir y cerrar un proyecto ya no bloquea los clics
+
+La pantalla completa del proyecto tenía una animación de salida que la dejaba, por un instante, invisible pero todavía **capturando clics** mientras se desvanecía. Le saqué esa animación de cierre — ahora desaparece al instante, sin dejar nada bloqueando la pantalla.
+
+### 3. Cotizador sin unidades
+
+Saqué el campo "Unidad" de los ítems del Cotizador — ahora es solo descripción, cantidad y costo. (El campo sigue existiendo en la base por compatibilidad con cotizaciones viejas, pero ya no se pide ni se muestra en las nuevas.)
+
+### 4. Un proyecto individual por cada servicio activo aprobado
+
+Este es el cambio más importante: cuando armás una cotización agregando ítems **desde tu catálogo de Servicios**, cada ítem queda vinculado a ese servicio. Cuando el cliente la aprueba:
+
+- Por **cada ítem que corresponda a un servicio que sigue activo** en tu catálogo, se crea **su propio proyecto individual** — con su propio presupuesto (el de esa línea, no el total de toda la cotización), y vinculado a ese servicio (así sigue funcionando todo lo de vencimientos recurrentes e ingresos estimados que ya tenías).
+- Los **ítems sueltos** (los que escribiste a mano, sin venir del catálogo, o que corresponden a un servicio que ya desactivaste) **no generan ningún proyecto** — quedan solamente registrados en la cotización.
+- Si una cotización tiene, por ejemplo, 3 servicios distintos y los 3 siguen activos, al aprobarla se crean **3 proyectos separados**, cada uno con su propia metodología, fase y seguimiento — tal como pediste, porque cada servicio tiene su propio precio y forma de pago.
+
+Esto aplica solo a las cotizaciones que vos armás para tus clientes (no a las de marca blanca que arma un cliente para sus propios clientes, que no tienen ninguna relación con tu catálogo de servicios).

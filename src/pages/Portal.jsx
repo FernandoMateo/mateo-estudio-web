@@ -315,22 +315,39 @@ export default function Portal() {
       })
       logActivity({ action: 'actualizar', entity: 'cotización', entity_name: viewingQuote.title, summary: `el cliente la ${status === 'aprobado' ? 'aprobó' : 'rechazó'}` })
 
-      // Al aprobar, se crea el proyecto solo y ya le queda asignado — arranca visible en su Portal.
+      // Al aprobar: se crea UN PROYECTO POR CADA ÍTEM que corresponda a un servicio activo del catálogo
+      // (cada servicio tiene su propia metodología, precio y forma de pago). Los ítems sueltos que no
+      // están ligados a un servicio activo quedan solo en la cotización — no generan ningún proyecto.
+      let createdCount = 0
       if (status === 'aprobado' && viewingQuote.issuer_type === 'estudio') {
         try {
-          const newProject = await createRec('projects', {
-            name: viewingQuote.title, client: client?.id || '',
-            status: 'en_progreso', phase: 'descubrimiento', progress: PHASE_PROGRESS.descubrimiento,
-            description: 'Generado automáticamente a partir de una cotización aprobada.',
-            budget: viewingQuote.total, budget_currency: viewingQuote.currency,
-            budget_fx_rate: viewingQuote.fx_rate || 1, budget_ars: viewingQuote.total_ars,
-          })
-          logActivity({ action: 'crear', entity: 'proyecto', entity_name: viewingQuote.title, summary: 'creado automáticamente al aprobar una cotización' })
-          void newProject
-        } catch { /* si falla la creación del proyecto, la aprobación de la cotización ya quedó guardada igual */ }
+          const lines = await list('quote_lines', '&filter=' + encodeURIComponent(`quote="${viewingQuote.id}"`))
+          const serviceLines = lines.filter(l => l.service)
+          if (serviceLines.length) {
+            const serviceIds = [...new Set(serviceLines.map(l => l.service))]
+            const filterExpr = serviceIds.map(id => `id="${id}"`).join(' || ')
+            const activeServices = await list('services', '&filter=' + encodeURIComponent(`(${filterExpr}) && active=true`))
+            const activeIds = new Set(activeServices.map(s => s.id))
+            const qualifying = serviceLines.filter(l => activeIds.has(l.service))
+            for (const line of qualifying) {
+              const lineArs = viewingQuote.currency === 'ARS' ? line.line_total : line.line_total * (viewingQuote.fx_rate || 1)
+              await createRec('projects', {
+                name: line.description, client: client?.id || '', service: line.service,
+                status: 'en_progreso', phase: 'descubrimiento', progress: PHASE_PROGRESS.descubrimiento,
+                description: `Generado automáticamente al aprobar la cotización "${viewingQuote.title}".`,
+                budget: line.line_total, budget_currency: viewingQuote.currency,
+                budget_fx_rate: viewingQuote.fx_rate || 1, budget_ars: Math.round(lineArs),
+              })
+              logActivity({ action: 'crear', entity: 'proyecto', entity_name: line.description, summary: 'creado automáticamente al aprobar una cotización' })
+              createdCount++
+            }
+          }
+        } catch { /* si falla, la aprobación de la cotización ya quedó guardada igual */ }
       }
 
-      toast(status === 'aprobado' ? '✓ Cotización aprobada — ya podés ver el proyecto en "Mis proyectos"' : 'Cotización rechazada')
+      toast(status === 'aprobado'
+        ? (createdCount > 0 ? `✓ Cotización aprobada — se ${createdCount > 1 ? 'crearon' : 'creó'} ${createdCount} proyecto${createdCount > 1 ? 's' : ''}` : '✓ Cotización aprobada')
+        : 'Cotización rechazada')
       setViewingQuote(null)
       loadAll()
     } catch { toast('No se pudo registrar tu decisión. Intentá de nuevo.', true) }

@@ -65,7 +65,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
       setNotes(editingQuote.notes || '')
       setLoadingLines(true)
       list('quote_lines', `&filter=${encodeURIComponent('quote="' + editingQuote.id + '"')}`)
-        .then(items => setLines(items.map(l => ({ tempId: l.id, description: l.description, unit: l.unit || '', quantity: l.quantity, unit_cost: l.unit_cost }))))
+        .then(items => setLines(items.map(l => ({ tempId: l.id, description: l.description, quantity: l.quantity, unit_cost: l.unit_cost, serviceId: l.service || '' }))))
         .catch(() => toast('No se pudieron cargar los ítems de esta cotización.', true))
         .finally(() => setLoadingLines(false))
     } else {
@@ -76,9 +76,9 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
   function addLine(fromCatalog) {
     if (fromCatalog) {
       const converted = convertAmount(fromCatalog.unit_cost, fromCatalog.currency || 'ARS', currency, rates)
-      setLines(ls => [...ls, { tempId: crypto.randomUUID(), description: fromCatalog.name, unit: fromCatalog.unit || 'unidad', quantity: 1, unit_cost: Math.round(converted * 100) / 100 }])
+      setLines(ls => [...ls, { tempId: crypto.randomUUID(), description: fromCatalog.name, quantity: 1, unit_cost: Math.round(converted * 100) / 100, serviceId: mode === 'estudio' ? fromCatalog.id : '' }])
     } else {
-      setLines(ls => [...ls, { tempId: crypto.randomUUID(), description: '', unit: 'unidad', quantity: 1, unit_cost: '' }])
+      setLines(ls => [...ls, { tempId: crypto.randomUUID(), description: '', quantity: 1, unit_cost: '', serviceId: '' }])
     }
   }
   function updateLine(tempId, patch) { setLines(ls => ls.map(l => l.tempId === tempId ? { ...l, ...patch } : l)) }
@@ -128,7 +128,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
         }
       }
       await Promise.all(validLines.map(l => createRec('quote_lines', {
-        quote: quoteId, description: (l.description || '').trim(), unit: l.unit || '',
+        quote: quoteId, description: (l.description || '').trim(), service: l.serviceId || '',
         quantity: Number(l.quantity), unit_cost: Number(l.unit_cost) || 0,
         line_total: Math.round((Number(l.quantity) || 0) * (Number(l.unit_cost) || 0) * 100) / 100,
       })))
@@ -226,8 +226,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                         </button>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        <input className="field" placeholder="Unidad" value={l.unit || ''} onChange={e => updateLine(l.tempId, { unit: e.target.value })} />
+                      <div className="grid grid-cols-2 gap-2 mt-2">
                         <input type="number" min="0" step="0.01" className="field" placeholder="Cant." value={l.quantity ?? ''} onChange={e => updateLine(l.tempId, { quantity: e.target.value })} />
                         <input type="number" min="0" step="0.01" className="field" placeholder="Costo u." value={l.unit_cost ?? ''} onChange={e => updateLine(l.tempId, { unit_cost: e.target.value })} />
                       </div>
