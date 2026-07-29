@@ -16,11 +16,8 @@ import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
-<<<<<<< HEAD
 import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import ProjectWorkspace from '../components/ProjectWorkspace'
-=======
->>>>>>> ccaae97974b97b00c03c0cfd29d1c0c3855f019c
 
 const TABS = [
   ['resumen', 'Resumen'],
