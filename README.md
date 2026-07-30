@@ -752,6 +752,7 @@ Las etiquetas de los inputs (el textito chico arriba de cada campo, como "NOMBRE
 Dentro de cualquier proyecto (Portal y admin) → pestaña Tareas:
 - Arriba, un donut con la cantidad y el porcentaje de tareas pendientes / en progreso / completadas.
 - Cada tarea se puede **editar** (título, descripción y estado) tocando "✎ Editar tarea" al expandirla — tanto vos como el cliente, dentro de su propio proyecto.
+<<<<<<< HEAD
 
 ---
 
@@ -767,3 +768,5 @@ Dos causas posibles, y ahora las dos están cubiertas:
 Ya lo resolví de raíz: cada vez que compilás (`npm run build`), el logo ahora se pide con una marca de tiempo en la URL (`/logo.png?v=...`) que cambia en cada build — así el navegador jamás lo confunde con una versión anterior, sin que tengas que hacer nada manual.
 
 **Para aplicar:** reemplazá `public/logo.png` por tu logo real (si no lo hiciste todavía), `npm run build`, desplegar. Con esto ya no debería hacer falta ningún refresco especial.
+=======
+>>>>>>> ef3bc952014e7e2c1859205717e610c97bb6ad74
