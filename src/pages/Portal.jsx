@@ -16,13 +16,15 @@ import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
+import Logo from '../components/Logo'
 import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import ProjectWorkspace from '../components/ProjectWorkspace'
 
 const TABS = [
   ['resumen', 'Resumen'],
   ['datos', 'Mis datos'],
-  ['presupuestos', 'Presupuestos'],
+  ['cotizaciones', 'Cotizaciones'],
+  ['presupuestos', 'Mi Cotizador'],
   ['facturas', 'Facturas'],
   ['credenciales', 'Credenciales'],
   ['notificaciones', 'Notificaciones'],
@@ -301,19 +303,19 @@ export default function Portal() {
       const p = projects.find(x => x.id === n.project)
       if (p) { setWorkspaceProject(p); return }
     }
-    setTab('presupuestos')
+    setTab('cotizaciones')
   }
 
-  async function decideQuote(status) {
+  async function decideQuote(status, reason) {
     if (!viewingQuote) return
     setDecidingQuote(true)
     try {
-      await updateRec('quotes', viewingQuote.id, { status })
+      await updateRec('quotes', viewingQuote.id, status === 'rechazado' ? { status, rejection_reason: reason || '' } : { status })
       notifyTeam({
         title: `${client?.name || 'Un cliente'} ${status === 'aprobado' ? 'aprobó' : 'rechazó'} una cotización`,
-        message: viewingQuote.title, type: 'pago', client: client?.id || '',
+        message: status === 'rechazado' && reason ? `Motivo: ${reason}` : viewingQuote.title, type: 'pago', client: client?.id || '',
       })
-      logActivity({ action: 'actualizar', entity: 'cotización', entity_name: viewingQuote.title, summary: `el cliente la ${status === 'aprobado' ? 'aprobó' : 'rechazó'}` })
+      logActivity({ action: 'actualizar', entity: 'cotización', entity_name: viewingQuote.title, summary: status === 'rechazado' ? `rechazada: ${reason || 'sin motivo'}` : 'aprobada por el cliente' })
 
       // Al aprobar: se crea UN PROYECTO POR CADA ÍTEM que corresponda a un servicio activo del catálogo
       // (cada servicio tiene su propia metodología, precio y forma de pago). Los ítems sueltos que no
@@ -397,7 +399,7 @@ export default function Portal() {
             style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.3), rgba(244,114,240,.18))', border: '1px solid rgba(167,139,250,.4)', boxShadow: '0 0 22px rgba(139,92,246,.35)' }}>
             {client?.logo
               ? <img src={fileUrl('clients', client.id, client.logo, '100x100')} alt="" className="w-full h-full object-cover" />
-              : <svg width="20" height="20" viewBox="0 0 30 30"><defs><linearGradient id="pmg" x1="0" y1="0" x2="30" y2="30"><stop offset="0" stopColor="#F472F0" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs><path d="M 5 24 V 6 L 15 18 L 25 6 V 24" fill="none" stroke="url(#pmg)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              : <Logo size={20} />}
           </motion.div>
           <div className="flex-1 min-w-0">
             <motion.h1 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="text-[23px] font-extrabold tracking-tight truncate">
@@ -429,6 +431,10 @@ export default function Portal() {
               {key === 'facturas' && pendingInvoices.length > 0 && (
                 <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
                   className="w-2 h-2 rounded-full bg-coral shadow-[0_0_8px_rgba(251,113,133,.9)]" />
+              )}
+              {key === 'cotizaciones' && receivedQuotes.some(q => q.status === 'enviado') && (
+                <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.1, repeat: Infinity }}
+                  className="w-2 h-2 rounded-full bg-amber shadow-[0_0_8px_rgba(251,191,36,.9)]" />
               )}
             </button>
           ))}
@@ -500,7 +506,8 @@ export default function Portal() {
                   <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(140px,100%),1fr))' }}>
                     {[
                       { key: 'tareas_link', label: 'Actividad', sub: `${tasks.length} movimiento${tasks.length !== 1 ? 's' : ''}`, icon: <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />, color: '#A78BFA', badge: tasks.filter(t => t.status !== 'completada').length, onClick: () => tasks[0] && setViewingTask(tasks[0]) },
-                      { key: 'presupuestos', label: 'Cotizaciones', sub: `${receivedQuotes.length + myQuotes.length} en total`, icon: <><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></>, color: '#60A5FA', badge: receivedQuotes.filter(q => q.status === 'enviado').length, onClick: () => setTab('presupuestos') },
+                      { key: 'cotizaciones', label: 'Cotizaciones', sub: `${receivedQuotes.length} de Mateo Estudio`, icon: <><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></>, color: '#60A5FA', badge: receivedQuotes.filter(q => q.status === 'enviado').length, onClick: () => setTab('cotizaciones') },
+                      { key: 'presupuestos', label: 'Mi Cotizador', sub: `${myQuotes.length} propias`, icon: <><path d="M12 5v14M5 12h14" /></>, color: '#F472F0', badge: 0, onClick: () => setTab('presupuestos') },
                       { key: 'vencimientos', label: 'Vencimientos', sub: upcomingRenewals.length ? `${upcomingRenewals.length} activos` : 'Sin recurrentes', icon: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>, color: '#FBBF24', badge: upcomingRenewals.filter(r => r.daysLeft <= 2).length, onClick: () => {} },
                       { key: 'credenciales', label: 'Credenciales', sub: `${creds.length} guardadas`, icon: <><rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>, color: '#34D399', badge: 0, onClick: () => setTab('credenciales') },
                       { key: 'notificaciones', label: 'Notificaciones', sub: 'Ver todas', icon: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" /><path d="M10 19a2.2 2.2 0 0 0 4 0" /></>, color: '#F472F0', badge: 0, onClick: () => setTab('notificaciones') },
@@ -552,7 +559,7 @@ export default function Portal() {
                 <div className="card !p-6">
                   <h3 className="text-[15px] font-bold">Tus datos de contacto</h3>
                   <p className="text-[12.5px] text-white/40 mt-1.5 mb-6">Mantenelos al día para que podamos comunicarnos sin vueltas.</p>
-                  <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <Field label="Persona de contacto"><input className="field" value={dataForm.contact_name} onChange={e => setDataForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Nombre y apellido" /></Field>
                     <Field label="Teléfono"><input className="field" value={dataForm.phone} onChange={e => setDataForm(f => ({ ...f, phone: e.target.value }))} placeholder="11 0000 0000" /></Field>
                     <Field label="Correo" full><input type="email" className="field" value={dataForm.email} onChange={e => setDataForm(f => ({ ...f, email: e.target.value }))} placeholder="correo@empresa.com" /></Field>
@@ -589,7 +596,7 @@ export default function Portal() {
                 </div>
 
                 <div className="flex gap-1.5 flex-wrap">
-                  {[['mias', `Mis cotizaciones (${myQuotes.length})`], ['recibidas', `De Mateo Estudio (${receivedQuotes.length})`], ['catalogo', `Mi catálogo (${catalogItems.length})`]].map(([key, label]) => (
+                  {[['mias', `Mis cotizaciones (${myQuotes.length})`], ['catalogo', `Mi catálogo (${catalogItems.length})`]].map(([key, label]) => (
                     <button key={key} onClick={() => setQuoteSub(key)}
                       className={`relative text-xs font-bold px-4 py-2 rounded-full transition-colors z-0
                         ${quoteSub === key ? 'text-white' : 'text-white/45 hover:text-white/80'}`}>
@@ -629,23 +636,7 @@ export default function Portal() {
                   </div>
                 )}
 
-                {quoteSub === 'recibidas' && (
-                  !receivedQuotes.length ? (
-                    <div className="card text-center py-14">
-                      <p className="text-[14px] font-semibold">Sin cotizaciones recibidas</p>
-                      <p className="text-[12.5px] text-white/40 mt-1.5">Cuando Mateo Estudio te arme un presupuesto, va a aparecer acá.</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2.5">
-                      {receivedQuotes.map(q => (
-                        <QuoteRow key={q.id} quote={q} subtitle="Mateo Estudio"
-                          onView={() => { setQuoteAutoPrint(false); setViewingQuote(q) }}
-                          onDownload={() => { setQuoteAutoPrint(true); setViewingQuote(q) }}
-                          tag={<span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">recibida</span>} />
-                      ))}
-                    </div>
-                  )
-                )}
+                {quoteSub === 'recibidas' && null}
 
                 {quoteSub === 'catalogo' && (
                   <div>
@@ -683,6 +674,47 @@ export default function Portal() {
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Botón flotante para sumar una cotización rápido */}
+                <motion.button
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring', stiffness: 260 }}
+                  whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                  onClick={() => { setEditingQuote(null); setQuoteOpen(true) }}
+                  title="Nueva cotización"
+                  className="fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #8B5CF6, #F472F0)', boxShadow: '0 10px 30px rgba(139,92,246,.5), 0 0 0 1px rgba(255,255,255,.1) inset' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                </motion.button>
+              </div>
+            )}
+
+            {/* ═══════════ COTIZACIONES DE MATEO ESTUDIO (separado del cotizador propio) ═══════════ */}
+            {tab === 'cotizaciones' && (
+              <div className="grid gap-5">
+                <div className="card flex items-center gap-4 flex-wrap !p-5">
+                  <div className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
+                    <svg className="w-5 h-5 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[14px] font-bold">Cotizaciones de Mateo Estudio</h3>
+                    <p className="text-[12.5px] text-white/40 mt-1 leading-relaxed">Los presupuestos que te armamos nosotros. Podés verlos, aprobarlos o rechazarlos.</p>
+                  </div>
+                </div>
+                {!receivedQuotes.length ? (
+                  <div className="card text-center py-14">
+                    <p className="text-[14px] font-semibold">Sin cotizaciones recibidas</p>
+                    <p className="text-[12.5px] text-white/40 mt-1.5">Cuando Mateo Estudio te arme un presupuesto, va a aparecer acá.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {receivedQuotes.map(q => (
+                      <QuoteRow key={q.id} quote={q} subtitle="Mateo Estudio"
+                        onView={() => { setQuoteAutoPrint(false); setViewingQuote(q) }}
+                        onDownload={() => { setQuoteAutoPrint(true); setViewingQuote(q) }}
+                        tag={<span className="pill text-[#7DD3FC] bg-[#7DD3FC]/[.08] border border-[#7DD3FC]/30 flex-shrink-0">recibida</span>} />
+                    ))}
                   </div>
                 )}
               </div>
@@ -877,7 +909,7 @@ export default function Portal() {
       <CatalogViewer open={catalogViewOpen} onClose={() => setCatalogViewOpen(false)} items={catalogItems} client={client} autoPrint={catalogAutoPrint} />
 
       {/* ── Detalle individual de un proyecto: pantalla completa con pestañas ── */}
-      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} />
+      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} allowContribute />
 
       {/* ── Detalle de una tarea, con comentarios ── */}
       <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>
@@ -901,7 +933,7 @@ export default function Portal() {
       {/* ── Modal: ítem de catálogo propio ── */}
       <Modal open={itemOpen} onClose={() => setItemOpen(false)}>
         <ModalHead title={editingItem ? 'Editar ítem' : 'Agregar ítem al catálogo'} onClose={() => setItemOpen(false)} />
-        <div className="grid grid-cols-2 gap-3.5 max-[520px]:grid-cols-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <Field label="Nombre *" full><input className="field" value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Cemento (bolsa 50kg), Hora de instalación…" /></Field>
           <Field label="Tipo">
             <Select value={itemForm.type} onChange={v => setItemForm(f => ({ ...f, type: v }))}

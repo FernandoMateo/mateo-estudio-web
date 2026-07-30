@@ -644,3 +644,126 @@ Este es el cambio más importante: cuando armás una cotización agregando ítem
 - Si una cotización tiene, por ejemplo, 3 servicios distintos y los 3 siguen activos, al aprobarla se crean **3 proyectos separados**, cada uno con su propia metodología, fase y seguimiento — tal como pediste, porque cada servicio tiene su propio precio y forma de pago.
 
 Esto aplica solo a las cotizaciones que vos armás para tus clientes (no a las de marca blanca que arma un cliente para sus propios clientes, que no tienen ninguna relación con tu catálogo de servicios).
+
+---
+
+## Adjuntar propuesta, botones arriba, motivo de rechazo, contribución del cliente y cotizador separado
+
+### Instalación
+
+Importá **`pb-schema-propuesta-rechazo.json`** (Merge). Agrega 2 campos a `quotes`: `proposal_file` y `rejection_reason`.
+
+### Diagnóstico rápido: por qué no llegan los emails
+
+Revisé el `.env` del proyecto: las 4 variables de EmailJS (`VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, `VITE_EMAILJS_PUBLIC_KEY`, `VITE_ALERT_EMAIL`) están **vacías**. No es un bug — falta completar la configuración externa (cuenta en EmailJS, conectar tu Gmail, plantilla, y pegar esas 4 claves). Los pasos completos están en la sección "Notificaciones por Gmail" más arriba en este mismo README. Si ya las completaste y sigue sin llegar nada, revisá especialmente el paso de "Allowed origins" (dominio autorizado) — es la causa más común de fallos silenciosos.
+
+### 1. Adjuntar una propuesta a la cotización
+
+En el Cotizador (tuyo), nuevo campo para subir un PDF/Word/imagen con la propuesta completa. El cliente la ve con un botón "Ver propuesta" tanto arriba de la cotización como al lado del título.
+
+### 2. Aprobar/Rechazar arriba de la cotización
+
+Los movimos de abajo del todo a justo debajo del encabezado — se ven apenas se abre, sin tener que bajar.
+
+### 3. Motivo de rechazo
+
+Al tocar "Rechazar", se abre un cuadro pidiendo el motivo antes de confirmar — no se puede rechazar sin escribir algo. Ese motivo queda guardado y se muestra **debajo de la cotización correspondiente** en tu Cotizador, con un aviso en rojo bien visible.
+
+### 4. El cliente puede sumar tareas y archivos dentro de sus proyectos
+
+Antes, dentro del detalle de un proyecto en el Portal, el cliente solo podía ver tareas y descargar archivos. Ahora también puede **crear tareas nuevas** (quedan marcadas como "del cliente", igual que las solicitudes) y **subir sus propios archivos** al proyecto — vos las seguís viendo todas desde tu propio detalle del proyecto en el admin.
+
+### 5. Cotizador propio separado de las cotizaciones de Mateo Estudio
+
+Eran 3 pestañas mezcladas dentro de "Presupuestos". Ahora son dos cosas separadas y claras:
+- **"Cotizaciones"**: lo que vos le mandás — pestaña propia, sin mezclar con nada más.
+- **"Mi Cotizador"**: su propia herramienta de cotizar a sus clientes (antes "Presupuestos") — ahí solo están sus cotizaciones y su catálogo, nada tuyo de por medio.
+
+### 6. Botón flotante para sumar cotización
+
+Dentro de "Mi Cotizador", un botón circular con el signo "+" queda flotando abajo a la derecha todo el tiempo — un toque y arranca una cotización nueva, sin tener que buscar el botón en el medio de la pantalla.
+
+---
+
+## Contraseña de invitación en mobile + plantilla de cotización rediseñada
+
+**Sin cambios de esquema** — solo código.
+
+### 1. El paso de contraseña en la Alta de cliente
+
+Encontré la causa: ese paso usaba un límite de pantalla distinto (`480px`) al que ya había estandarizado en el resto de la app (`640px`, el estándar `sm:` de Tailwind). En teléfonos de pantalla un poco más ancha (390-480px, bastante comunes), seguía mostrando los dos campos de contraseña lado a lado, aplastados. Unifiqué los 3 pasos de la Alta — y de paso encontré el mismo desajuste en 3 lugares más (Cotizador y dos formularios del Portal) y los corregí todos con el mismo criterio.
+
+### 2. Plantilla de cotización rediseñada
+
+Tomé la idea de la referencia (bloque de contacto destacado, tabla de ítems como barras oscuras, total en píldora) pero la rehice con los colores de tu marca — violeta a rosa, como el resto de la app — en vez de copiar la ilustración de la imagen (es arte de stock, con derechos de autor; no la reproduje, hice un diseño propio con la misma idea de estructura).
+
+Qué incluye:
+- Encabezado partido: tu logo + título grande "Presupuesto" a la izquierda, una tarjeta con degradé violeta-rosa con términos, método de pago y contacto a la derecha.
+- **Código QR real** — pero solo aparece cuando hay un sitio web de verdad al que apuntar (el del cliente, en las cotizaciones de marca blanca). Preferí no mostrar un QR decorativo que no lleve a ningún lado.
+- Cada ítem como su propia barra oscura (en vez de una tabla clásica), más parecido a la referencia.
+- Total en una píldora con el degradé de marca, bien visible al final.
+
+Se ve igual tanto en pantalla como al imprimir/descargar en PDF.
+
+---
+
+## El bug de verdad: el Service Worker estaba sirviendo versiones viejas
+
+**Sin cambios de esquema** — solo código.
+
+### La causa real de "el arreglo no se nota"
+
+El Service Worker de la PWA (instalado en la v18) usaba una estrategia "caché primero": si ya tenías algo guardado en el celular, te lo mostraba **al instante tal como estaba**, y recién en segundo plano pedía la versión nueva para la *próxima* vez. Resultado: cada corrección que subía después de eso podía tardar una o más visitas en notarse — o directamente no notarse nunca si la pestaña se queda abierta mucho tiempo (como pasa seguido en el celular).
+
+Lo di vuelta a **"red primero"**: ahora la app siempre pide la versión más nueva primero, y el caché queda solo como respaldo para cuando no hay conexión. También subí la versión del caché para forzar que se borre cualquier cosa vieja que haya quedado guardada.
+
+**Un paso único después de este despliegue**: como el Service Worker viejo puede seguir controlando la pestaña que ya tenías abierta, hacé **un refresco manual completo** (o cerrá del todo la app/PWA y volvela a abrir) una sola vez después de este deploy. De ahí en adelante, cada actualización futura se va a ver sola, sin este problema.
+
+### Además, blindé el paso de contraseña
+
+Más allá de la causa raíz, dejé el paso de contraseña de la Alta de cliente **sin ningún breakpoint responsivo** — ahora es una sola columna siempre, sin excepciones, para que sea imposible que un problema de caché (o cualquier otra cosa) lo vuelva a mostrar mal.
+
+---
+
+## Adjuntar archivos, logo único, colores en modales, y gráfico de tareas
+
+### Instalación
+
+Importá **`pb-schema-permisos-cliente.json`** (Merge). No agrega colecciones nuevas — corrige 2 permisos: que el cliente pueda subir archivos a su proyecto, y que pueda editar las tareas de su proyecto.
+
+### 1. El error al adjuntar un archivo
+
+Causa real encontrada: el permiso de la base (`project_files`) nunca se actualizó cuando habilité la subida para el cliente hace unas entregas — le daba el botón en la app, pero PocketBase seguía rechazando la petición. Ya corregido. De paso, ajusté quién puede **borrar** cada archivo: admin/equipo pueden borrar cualquiera, pero un cliente solo puede borrar los que subió él mismo (no los que subiste vos).
+
+### 2. Logo único para toda la app
+
+Agregué `public/logo.png` (por ahora con el mismo monograma violeta de siempre, como placeholder) y un componente `Logo` que se usa en **todos** los lugares donde aparecía el ícono de la marca: pantalla de inicio de sesión, menú lateral, encabezado del Portal, alta de clientes, aviso de instalación de la app, y las cotizaciones que emitís vos.
+
+**Para poner tu logo real**: reemplazá el archivo `public/logo.png` por el tuyo (cuadrado, fondo transparente si es posible, mínimo 512×512px) y volvé a compilar — no hace falta tocar ni una línea de código, se actualiza solo en todos los lugares a la vez.
+
+*Nota: los íconos de la PWA (el que queda en la pantalla de inicio del celular al instalarla) son archivos aparte, ya generados — si más adelante querés que también salgan de tu logo nuevo, decímelo y los regenero.*
+
+### 3. Más color en las etiquetas de los campos
+
+Las etiquetas de los inputs (el textito chico arriba de cada campo, como "NOMBRE", "CONTRASEÑA", etc.) pasaron de un violeta apagado a un degradé violeta-rosa bien vivo. Como es una sola clase compartida, se ve así en **todos** los formularios y modales de la app sin haber tocado cada uno por separado.
+
+### 4. Gráfico de estado de tareas + edición del cliente
+
+Dentro de cualquier proyecto (Portal y admin) → pestaña Tareas:
+- Arriba, un donut con la cantidad y el porcentaje de tareas pendientes / en progreso / completadas.
+- Cada tarea se puede **editar** (título, descripción y estado) tocando "✎ Editar tarea" al expandirla — tanto vos como el cliente, dentro de su propio proyecto.
+
+---
+
+## Por qué no se veía el logo nuevo
+
+**Sin cambios de esquema** — solo código.
+
+Dos causas posibles, y ahora las dos están cubiertas:
+
+1. **`public/logo.png` necesita un `npm run build` para copiarse** a lo que se despliega — si lo reemplazaste pero no volviste a compilar, seguía viéndose el viejo.
+2. **Caché del navegador en la imagen** (esto es distinto del Service Worker que ya arreglamos): como el archivo siempre se llama `logo.png`, el navegador puede quedarse con la versión vieja guardada aunque el servidor ya tenga la nueva — es el mismo tipo de problema, pero a nivel de imagen, no de la app entera.
+
+Ya lo resolví de raíz: cada vez que compilás (`npm run build`), el logo ahora se pide con una marca de tiempo en la URL (`/logo.png?v=...`) que cambia en cada build — así el navegador jamás lo confunde con una versión anterior, sin que tengas que hacer nada manual.
+
+**Para aplicar:** reemplazá `public/logo.png` por tu logo real (si no lo hiciste todavía), `npm run build`, desplegar. Con esto ya no debería hacer falta ningún refresco especial.

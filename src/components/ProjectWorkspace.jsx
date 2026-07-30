@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, fmtByCurrency } from '../lib/api'
+import { list, createRec, updateRec, fmtByCurrency } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
 import ProjectFiles from './ProjectFiles'
 import TaskComments from './TaskComments'
 
 const STATUS_GLOW = { en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
+const STATUS_ORDER = ['pendiente', 'en_progreso', 'completada']
+const STATUS_META = {
+  pendiente: { label: 'Pendientes', color: '#A78BFA' },
+  en_progreso: { label: 'En progreso', color: '#FBBF24' },
+  completada: { label: 'Completadas', color: '#34D399' },
+}
 
 function ProgressRing({ pct, glow, size = 118 }) {
   const r = size / 2 - 9, C = 2 * Math.PI * r
@@ -31,15 +37,20 @@ function ProgressRing({ pct, glow, size = 118 }) {
  * clientName: nombre del cliente a mostrar (el admin ve varios clientes distintos).
  * onEdit: si se pasa, muestra un botón "Editar" que dispara esta función (abre el formulario completo).
  */
-export default function ProjectWorkspace({ project, onClose, canManage = false, clientName, onEdit }) {
+export default function ProjectWorkspace({ project, onClose, canManage = false, clientName, onEdit, allowContribute = false }) {
   const toast = useToast()
-  const TABS = canManage ? [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']] : [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']]
+  const canAddTasks = canManage || allowContribute
+  const canUploadFiles = canManage || allowContribute
+  const TABS = [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']]
   const [tab, setTab] = useState('resumen')
   const [tasks, setTasks] = useState([])
   const [expandedTask, setExpandedTask] = useState(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingTask, setAddingTask] = useState(false)
+  const [editingTaskId, setEditingTaskId] = useState(null)
+  const [editForm, setEditForm] = useState({ title: '', description: '', status: 'pendiente' })
   const glow = STATUS_GLOW[project?.status] || '#8B5CF6'
+  const statusCounts = tasks.reduce((acc, t) => { const s = t.status || 'pendiente'; acc[s] = (acc[s] || 0) + 1; return acc }, {})
 
   const loadTasks = () => project && list('tasks', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created').then(setTasks).catch(() => setTasks([]))
 
@@ -53,9 +64,22 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
     if (!newTaskTitle.trim() || !project) return
     setAddingTask(true)
     try {
-      await createRec('tasks', { title: newTaskTitle.trim(), project: project.id, client: project.client || '', status: 'pendiente', priority: 'media' })
+      await createRec('tasks', { title: newTaskTitle.trim(), project: project.id, client: project.client || '', status: 'pendiente', priority: 'media', from_client: !canManage })
       setNewTaskTitle(''); toast('✦ Tarea agregada'); loadTasks()
     } catch { toast('No se pudo crear la tarea.', true) } finally { setAddingTask(false) }
+  }
+
+  function openTaskEdit(t) {
+    setEditingTaskId(t.id)
+    setEditForm({ title: t.title || '', description: t.description || '', status: t.status || 'pendiente' })
+  }
+
+  async function saveTaskEdit(taskId) {
+    if (!editForm.title.trim()) { toast('El título no puede quedar vacío.', true); return }
+    try {
+      await updateRec('tasks', taskId, { title: editForm.title.trim(), description: editForm.description.trim(), status: editForm.status })
+      setEditingTaskId(null); toast('Tarea actualizada ✓'); loadTasks()
+    } catch { toast('No se pudieron guardar los cambios.', true) }
   }
 
   if (!project) return null
@@ -140,11 +164,11 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                 </div>
               )}
 
-              {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={canManage} projectName={project.name} />}
+              {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={canUploadFiles} projectName={project.name} />}
 
               {tab === 'tareas' && (
                 <div>
-                  {canManage && (
+                  {canAddTasks && (
                     <div className="flex gap-2 mb-4">
                       <input className="field flex-1" placeholder="Nueva tarea para este proyecto…" value={newTaskTitle}
                         onChange={e => setNewTaskTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} />
@@ -153,26 +177,101 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                       </button>
                     </div>
                   )}
+
+                  {!!tasks.length && (
+                    <div className="flex items-center gap-5 mb-5 p-4 rounded-2xl flex-wrap" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+                      <div className="relative flex-shrink-0" style={{ width: 76, height: 76 }}>
+                        <svg width="76" height="76" viewBox="0 0 76 76">
+                          {(() => {
+                            const r = 30, C = 2 * Math.PI * r
+                            let offset = 0
+                            return STATUS_ORDER.map(s => {
+                              const count = statusCounts[s] || 0
+                              if (!count) return null
+                              const frac = count / tasks.length
+                              const dash = frac * C
+                              const el = (
+                                <circle key={s} cx="38" cy="38" r={r} fill="none" stroke={STATUS_META[s].color} strokeWidth="10"
+                                  strokeDasharray={`${dash} ${C - dash}`} strokeDashoffset={-offset}
+                                  style={{ transform: 'rotate(-90deg)', transformOrigin: 'center', transition: 'stroke-dasharray .6s ease' }} />
+                              )
+                              offset += dash
+                              return el
+                            })
+                          })()}
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center text-[15px] font-extrabold">{tasks.length}</div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {STATUS_ORDER.map(s => {
+                          const count = statusCounts[s] || 0
+                          const pct = tasks.length ? Math.round((count / tasks.length) * 100) : 0
+                          return (
+                            <div key={s} className="flex items-center gap-2 text-[11.5px]">
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: STATUS_META[s].color }} />
+                              <span className="text-white/55 w-[78px]">{STATUS_META[s].label}</span>
+                              <span className="font-bold">{count}</span>
+                              <span className="text-white/30">· {pct}%</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {!tasks.length ? (
                     <p className="text-[12.5px] text-white/35">Todavía no hay tareas ligadas a este proyecto.</p>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {tasks.map(t => (
-                        <div key={t.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)' }}>
-                          <button onClick={() => setExpandedTask(id => id === t.id ? null : t.id)}
-                            className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-white/[.03] transition-colors">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'completada' ? 'bg-mint' : 'bg-violet-light'}`} />
-                            <span className={`flex-1 min-w-0 text-[13px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
-                            <svg className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform ${expandedTask === t.id ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-                          </button>
-                          {expandedTask === t.id && (
-                            <div className="px-3.5 pb-3.5 pt-1">
-                              {t.description && <p className="text-[12px] text-white/45 mb-3">{t.description}</p>}
-                              <TaskComments taskId={t.id} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                      {tasks.map(t => {
+                        const canEditThis = canManage || canAddTasks
+                        const isEditing = editingTaskId === t.id
+                        return (
+                          <div key={t.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)' }}>
+                            <button onClick={() => setExpandedTask(id => id === t.id ? null : t.id)}
+                              className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-white/[.03] transition-colors">
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: STATUS_META[t.status || 'pendiente'].color }} />
+                              <span className={`flex-1 min-w-0 text-[13px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
+                              <svg className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform ${expandedTask === t.id ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
+                            </button>
+                            {expandedTask === t.id && (
+                              <div className="px-3.5 pb-3.5 pt-1">
+                                {isEditing ? (
+                                  <div className="flex flex-col gap-2 mb-3">
+                                    <input className="field" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} placeholder="Título" />
+                                    <textarea className="field min-h-[60px]" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="Descripción" />
+                                    <div className="flex items-center gap-2">
+                                      {STATUS_ORDER.map(s => (
+                                        <button key={s} onClick={() => setEditForm(f => ({ ...f, status: s }))}
+                                          className="text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-colors"
+                                          style={editForm.status === s
+                                            ? { background: `${STATUS_META[s].color}22`, borderColor: STATUS_META[s].color, color: STATUS_META[s].color }
+                                            : { borderColor: 'rgba(255,255,255,.12)', color: 'rgba(255,255,255,.4)' }}>
+                                          {STATUS_META[s].label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <div className="flex justify-end gap-2 mt-1">
+                                      <button className="btn-ghost !py-1.5 !px-3 text-[12px]" onClick={() => setEditingTaskId(null)}>Cancelar</button>
+                                      <button className="btn-glass !py-1.5 !px-3 text-[12px]" onClick={() => saveTaskEdit(t.id)}>Guardar</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {t.description && <p className="text-[12px] text-white/45 mb-2">{t.description}</p>}
+                                    {canEditThis && (
+                                      <button onClick={() => openTaskEdit(t)} className="text-[11.5px] font-semibold text-violet-light hover:text-violet-light/80 transition-colors mb-3">
+                                        ✎ Editar tarea
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                                <TaskComments taskId={t.id} />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

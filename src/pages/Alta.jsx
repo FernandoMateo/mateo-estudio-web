@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PB_URL, list } from '../lib/api'
 import { COUNTRIES, flagOf } from '../lib/constants'
 import AuroraBackground from '../components/AuroraBackground'
+import SharedLogo from '../components/Logo'
 import { Stepper, StepPanel, Field, Select } from '../components/ui'
 
 const STEPS = ['Tu negocio', 'Contacto', 'Tu acceso']
@@ -13,13 +14,10 @@ const emptyForm = {
   interested_service: '', password: '', passwordConfirm: '',
 }
 
-function Logo({ size = 56 }) {
+function LocalLogo({ size = 56 }) {
   return (
     <div className="relative flex items-center justify-center rounded-2xl" style={{ width: size, height: size, background: 'linear-gradient(135deg, rgba(139,92,246,.25), rgba(244,114,240,.15))', border: '1px solid rgba(167,139,250,.4)' }}>
-      <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 30 30">
-        <defs><linearGradient id="altaLogo" x1="0" y1="0" x2="30" y2="30"><stop offset="0" stopColor="#F472F0" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs>
-        <path d="M 5 24 V 6 L 15 18 L 25 6 V 24" fill="none" stroke="url(#altaLogo)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <SharedLogo size={size * 0.6} />
     </div>
   )
 }
@@ -147,7 +145,7 @@ export default function Alta() {
 
       {status === 'invalid' && (
         <div className="relative z-10 text-center px-6">
-          <Logo />
+          <LocalLogo />
           <h1 className="text-[20px] font-bold mt-5">Este enlace ya no está disponible</h1>
           <p className="text-[13px] text-white/45 mt-2 max-w-sm mx-auto">Puede que ya lo hayas usado antes, o que el enlace haya expirado. Si creés que es un error, escribinos.</p>
           <button onClick={() => nav('/')} className="btn-glass mt-6">Ir al inicio</button>
@@ -159,7 +157,7 @@ export default function Alta() {
         {status === 'intro' && (
           <motion.div exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.6 }} className="relative z-10 text-center px-6">
             <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }}>
-              <Logo size={72} />
+              <LocalLogo size={72} />
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -183,7 +181,7 @@ export default function Alta() {
           className="relative z-10 w-[min(560px,94vw)] rounded-[18px] px-7 py-8 my-8"
           style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015))', border: '1px solid rgba(167,139,250,.18)', backdropFilter: 'blur(22px)', boxShadow: '0 24px 70px rgba(0,0,0,.6), 0 0 60px rgba(139,92,246,.08)' }}>
           <div className="flex items-center gap-3 mb-6">
-            <Logo size={44} />
+            <LocalLogo size={44} />
             <div>
               <div className="text-[15px] font-bold">Bienvenido a Mateo Estudio</div>
               <div className="text-[11.5px] text-white/40">Completá tus datos para crear tu acceso</div>
@@ -200,7 +198,7 @@ export default function Alta() {
           <div className="min-h-[230px] relative">
             <StepPanel stepKey={step} direction={dir}>
               {step === 0 && (
-                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Nombre de tu negocio *" full><input className="field" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Panadería La Espiga" /></Field>
                   <Field label="Razón comercial"><input className="field" value={form.company} onChange={e => set('company', e.target.value)} placeholder="Nombre legal (opcional)" /></Field>
                   <Field label="País">
@@ -214,7 +212,7 @@ export default function Alta() {
                 </div>
               )}
               {step === 1 && (
-                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Tu nombre"><input className="field" value={form.contact_name} onChange={e => set('contact_name', e.target.value)} placeholder="Nombre y apellido" /></Field>
                   <Field label="Teléfono"><input className="field" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+54 9 11…" /></Field>
                   <Field label="Correo * (también será tu usuario)" full><input type="email" className="field" value={form.email} onChange={e => set('email', e.target.value)} placeholder="correo@tuempresa.com" /></Field>
@@ -224,7 +222,7 @@ export default function Alta() {
                 </div>
               )}
               {step === 2 && (
-                <div className="grid grid-cols-2 gap-3.5 max-[480px]:grid-cols-1">
+                <div className="flex flex-col gap-3.5">
                   <Field label="Contraseña *" full>
                     <div className="relative">
                       <input type={showPass ? 'text' : 'password'} className="field pr-10" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Mínimo 8 caracteres" />
@@ -236,7 +234,7 @@ export default function Alta() {
                     </div>
                   </Field>
                   <Field label="Repetir contraseña *" full><input type={showPass ? 'text' : 'password'} className="field" value={form.passwordConfirm} onChange={e => set('passwordConfirm', e.target.value)} placeholder="Repetí tu contraseña" /></Field>
-                  <p className="text-[11.5px] text-white/35 col-span-2 -mt-1">Con esto vas a poder entrar a tu portal las veces que quieras, cuando quieras.</p>
+                  <p className="text-[11.5px] text-white/35 -mt-1">Con esto vas a poder entrar a tu portal las veces que quieras, cuando quieras.</p>
                 </div>
               )}
             </StepPanel>
@@ -255,7 +253,7 @@ export default function Alta() {
       {status === 'success' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 text-center px-6 max-w-md">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 240, damping: 16, delay: 0.1 }}>
-            <Logo size={68} />
+            <LocalLogo size={68} />
           </motion.div>
           <motion.div className="relative w-20 h-20 mx-auto -mt-2 mb-1" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.35, type: 'spring', stiffness: 260 }}>
             {[0, 1, 2].map(i => (

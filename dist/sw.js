@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'mateo-shell-v1'
+const SHELL_CACHE = 'mateo-shell-v2'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -23,18 +23,17 @@ self.addEventListener('fetch', (event) => {
   // Solo intervenimos pedidos GET del mismo origen (el "cascarón" de la app: JS, CSS, imágenes, íconos).
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return
 
+  // RED PRIMERO: siempre se pide la versión más nueva. El caché es solo un respaldo
+  // para cuando no hay conexión — nunca debe "tapar" una actualización nueva.
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      const fresh = fetch(event.request)
-        .then(res => {
-          if (res && res.status === 200) {
-            const copy = res.clone()
-            caches.open(SHELL_CACHE).then(cache => cache.put(event.request, copy))
-          }
-          return res
-        })
-        .catch(() => cached) // sin conexión: mostramos lo último guardado, si existe
-      return cached || fresh
-    })
+    fetch(event.request)
+      .then(res => {
+        if (res && res.status === 200) {
+          const copy = res.clone()
+          caches.open(SHELL_CACHE).then(cache => cache.put(event.request, copy))
+        }
+        return res
+      })
+      .catch(() => caches.match(event.request))
   )
 })

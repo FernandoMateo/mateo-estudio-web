@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PB_URL, setAuth } from '../lib/api'
+import Logo from '../components/Logo'
 
 export default function Login() {
   const nav = useNavigate()
@@ -82,10 +83,7 @@ export default function Login() {
         }}
       >
         <div className="w-[58px] h-[58px] mx-auto mb-4 flex items-center justify-center rounded-xl bg-white/5 border border-violet-light/[.22] backdrop-blur-md shadow-[0_0_22px_rgba(139,92,246,.18)]">
-          <svg width="30" height="30" viewBox="0 0 30 30">
-            <defs><linearGradient id="mg" x1="0" y1="0" x2="30" y2="30"><stop offset="0" stopColor="#A78BFA" /><stop offset="1" stopColor="#7C3AED" /></linearGradient></defs>
-            <path d="M 5 24 V 6 L 15 18 L 25 6 V 24" fill="none" stroke="url(#mg)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Logo size={32} />
         </div>
 
         <h1 className="text-[19px] font-semibold text-center tracking-tight">Bienvenido de vuelta</h1>

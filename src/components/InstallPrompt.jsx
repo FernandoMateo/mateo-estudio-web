@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Logo from './Logo'
 
 const DISMISS_KEY = 'pwa_install_dismissed'
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
@@ -46,7 +47,7 @@ export default function InstallPrompt() {
           className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:w-[340px] z-50 rounded-2xl p-4 flex items-center gap-3"
           style={{ background: 'rgba(15,14,22,.97)', border: '1px solid rgba(167,139,250,.3)', backdropFilter: 'blur(16px)', boxShadow: '0 20px 50px rgba(0,0,0,.5), 0 0 30px rgba(139,92,246,.15)' }}>
           <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.3), rgba(244,114,240,.18))', border: '1px solid rgba(167,139,250,.4)' }}>
-            <svg width="18" height="18" viewBox="0 0 30 30"><defs><linearGradient id="ipmg" x1="0" y1="0" x2="30" y2="30"><stop offset="0" stopColor="#F472F0" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs><path d="M 5 24 V 6 L 15 18 L 25 6 V 24" fill="none" stroke="url(#ipmg)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <Logo size={18} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[12.5px] font-bold">Instalá Mateo Estudio</div>

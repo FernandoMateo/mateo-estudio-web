@@ -38,13 +38,16 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
   const [validUntil, setValidUntil] = useState('')
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState([])
+  const [proposalFile, setProposalFile] = useState(null)
+  const [existingProposal, setExistingProposal] = useState(null)
   const [saving, setSaving] = useState(false)
   const [loadingLines, setLoadingLines] = useState(false)
 
   function resetBlank() {
     setTitle(''); setClient(mode === 'cliente' ? ownClientId : ''); setRecipientName(''); setRecipientContact('')
     setCurrency('ARS'); setMarginPct('30'); setStatus('borrador'); setPaymentMethod('transferencia'); setValidUntil(''); setNotes('')
-    setLines([{ tempId: crypto.randomUUID(), description: '', unit: 'unidad', quantity: 1, unit_cost: '' }])
+    setLines([{ tempId: crypto.randomUUID(), description: '', quantity: 1, unit_cost: '' }])
+    setProposalFile(null); setExistingProposal(null)
     setActiveEditId(null)
   }
 
@@ -63,6 +66,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
       setPaymentMethod(editingQuote.payment_method || 'transferencia')
       setValidUntil(editingQuote.valid_until?.slice(0, 10) || '')
       setNotes(editingQuote.notes || '')
+      setProposalFile(null); setExistingProposal(editingQuote.proposal_file || null)
       setLoadingLines(true)
       list('quote_lines', `&filter=${encodeURIComponent('quote="' + editingQuote.id + '"')}`)
         .then(items => setLines(items.map(l => ({ tempId: l.id, description: l.description, quantity: l.quantity, unit_cost: l.unit_cost, serviceId: l.service || '' }))))
@@ -115,12 +119,20 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
         valid_until: validUntil ? validUntil + ' 00:00:00' : '', notes: notes.trim(),
       }
       let quoteId = activeEditId
+      let payload = body
+      let isForm = false
+      if (proposalFile) {
+        const fd = new FormData()
+        Object.entries(body).forEach(([k, v]) => fd.append(k, v ?? ''))
+        fd.append('proposal_file', proposalFile)
+        payload = fd; isForm = true
+      }
       if (activeEditId) {
-        await updateRec('quotes', quoteId, body)
+        await updateRec('quotes', quoteId, payload, isForm)
         const oldLines = await list('quote_lines', `&filter=${encodeURIComponent('quote="' + quoteId + '"')}`)
         await Promise.all(oldLines.map(l => removeRec('quote_lines', l.id)))
       } else {
-        const created = await createRec('quotes', body)
+        const created = await createRec('quotes', payload, isForm)
         quoteId = created.id
         if (mode === 'estudio') {
           const opt = clientOptions.find(o => o.value === client)
@@ -180,7 +192,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
         <>
           <ModalHead title={activeEditId ? 'Editar cotización' : 'Nueva cotización'} onClose={onClose} />
 
-          <div className="grid grid-cols-2 gap-3.5 max-[560px]:grid-cols-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <Field label="Título *" full><input className="field" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej. Remodelación de cocina" /></Field>
 
             {mode === 'estudio' ? (
@@ -243,6 +255,22 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
               </div>
             )}
           </div>
+
+          <Field label="Propuesta adjunta (opcional)" full>
+            {existingProposal && !proposalFile && (
+              <div className="flex items-center gap-2 mb-2 text-[12px] text-mint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+                Ya tiene un archivo adjunto — subí uno nuevo para reemplazarlo.
+              </div>
+            )}
+            <label className="flex items-center gap-3 border-[1.5px] border-dashed border-violet-light/30 rounded-xl p-3 cursor-pointer hover:border-violet-light/60 hover:bg-violet/5 transition">
+              <div className="w-9 h-9 rounded-lg bg-violet/[.12] flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /><path d="M5 21h14" /></svg>
+              </div>
+              <span className="text-[12.5px] text-white/55 truncate">{proposalFile ? proposalFile.name : 'Subí un PDF, Word o imagen con la propuesta'}</span>
+              <input type="file" className="hidden" onChange={e => setProposalFile(e.target.files?.[0] || null)} />
+            </label>
+          </Field>
 
           <Field label="Notas / condiciones" full><textarea className="field min-h-[60px] mt-4" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Formas de pago, validez, aclaraciones…" /></Field>
 
