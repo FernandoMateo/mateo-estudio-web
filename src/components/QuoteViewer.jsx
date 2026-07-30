@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { list, fileUrl, fmtARS, fmtByCurrency } from '../lib/api'
 import { Modal } from './ui'
+import Logo from './Logo'
 
 const PAYMENT_LABELS = { efectivo: 'Efectivo', transferencia: 'Transferencia', cheque: 'Cheque', otro: 'A convenir' }
 
@@ -120,9 +121,13 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
             <div className="flex items-center gap-3 mb-7">
               {brandLogo ? (
                 <img src={brandLogo} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
-              ) : (
+              ) : isWhiteLabel ? (
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-extrabold text-lg flex-shrink-0" style={{ background: brandColor }}>
                   {brandNameTxt[0]?.toUpperCase()}
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F3F1FA' }}>
+                  <Logo size={28} />
                 </div>
               )}
               <div className="min-w-0">

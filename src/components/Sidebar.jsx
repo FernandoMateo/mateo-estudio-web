@@ -1,6 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { clearAuth } from '../lib/api'
+import Logo from './Logo'
 
 const ICONS = {
   dashboard: <path d="M3 3h8v10H3zM13 3h8v6h-8zM13 11h8v10h-8zM3 15h8v6H3z" />,
@@ -52,10 +53,7 @@ export default function Sidebar({ me, open, setOpen }) {
             animate={{ boxShadow: ['0 0 12px rgba(139,92,246,.3)', '0 0 24px rgba(139,92,246,.55)', '0 0 12px rgba(139,92,246,.3)'] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            <svg width="18" height="18" viewBox="0 0 30 30">
-              <defs><linearGradient id="mgS" x1="0" y1="0" x2="30" y2="30"><stop offset="0" stopColor="#F472F0"/><stop offset="1" stopColor="#8B5CF6"/></linearGradient></defs>
-              <path d="M 5 24 V 6 L 15 18 L 25 6 V 24" fill="none" stroke="url(#mgS)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <Logo size={18} />
           </motion.div>
           <div className="text-[13px] font-extrabold tracking-[.2em] text-gradient">MATEO</div>
         </div>

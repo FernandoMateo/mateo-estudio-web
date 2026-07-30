@@ -16,6 +16,7 @@ import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
+import Logo from '../components/Logo'
 import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import ProjectWorkspace from '../components/ProjectWorkspace'
 
@@ -398,7 +399,7 @@ export default function Portal() {
             style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.3), rgba(244,114,240,.18))', border: '1px solid rgba(167,139,250,.4)', boxShadow: '0 0 22px rgba(139,92,246,.35)' }}>
             {client?.logo
               ? <img src={fileUrl('clients', client.id, client.logo, '100x100')} alt="" className="w-full h-full object-cover" />
-              : <svg width="20" height="20" viewBox="0 0 30 30"><defs><linearGradient id="pmg" x1="0" y1="0" x2="30" y2="30"><stop offset="0" stopColor="#F472F0" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs><path d="M 5 24 V 6 L 15 18 L 25 6 V 24" fill="none" stroke="url(#pmg)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              : <Logo size={20} />}
           </motion.div>
           <div className="flex-1 min-w-0">
             <motion.h1 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="text-[23px] font-extrabold tracking-tight truncate">

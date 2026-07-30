@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, removeRec, fileUrl, logActivity } from '../lib/api'
+import { list, createRec, removeRec, fileUrl, logActivity, getAuth } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Select } from './ui'
 
@@ -22,9 +22,12 @@ function iconFor(filename) {
   return '📎'
 }
 
-/** canManage=true (admin/equipo): puede subir y borrar. false (cliente): solo ve y descarga. */
+/** canManage=true: puede subir archivos. Para borrar: admin/equipo puede borrar cualquiera,
+ *  cualquier otra persona (cliente) solo puede borrar los que subió ella misma. */
 export default function ProjectFiles({ projectId, canManage, projectName }) {
   const toast = useToast()
+  const me = getAuth()?.record
+  const isFullAdmin = me?.role === 'admin' || me?.role === 'equipo'
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -46,6 +49,7 @@ export default function ProjectFiles({ projectId, canManage, projectName }) {
       fd.append('name', name.trim() || f.name)
       fd.append('category', category)
       fd.append('file', f)
+      if (me?.id) fd.append('uploaded_by', me.id)
       await createRec('project_files', fd, true)
       logActivity({ action: 'crear', entity: 'archivo', entity_name: name.trim() || f.name, summary: projectName ? `en el proyecto "${projectName}"` : '' })
       setName(''); toast('✦ Archivo subido'); load()
@@ -92,7 +96,7 @@ export default function ProjectFiles({ projectId, canManage, projectName }) {
                   className="p-1.5 text-white/40 hover:text-violet-light transition-colors flex-shrink-0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>
                 </a>
-                {canManage && (
+                {(isFullAdmin || f.uploaded_by === me?.id) && (
                   <button onClick={() => del(f)} title="Eliminar" className="p-1.5 text-white/25 hover:text-coral transition-colors flex-shrink-0">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                   </button>

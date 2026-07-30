@@ -1,0 +1,50 @@
+[
+  {
+    "id": "pbc_projfiles001",
+    "name": "project_files",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || uploaded_by = @request.auth.id",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_pf_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_projects_0001", "hidden": false, "id": "rel_pf_project", "maxSelect": 1, "minSelect": 0, "name": "project", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_pf_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_pf_category", "maxSelect": 1, "name": "category", "presentable": false, "required": false, "system": false, "type": "select", "values": ["brief", "contrato", "entregable", "otro"] },
+      { "hidden": false, "id": "file_pf_file", "maxSelect": 1, "maxSize": 52428800, "mimeTypes": [], "name": "file", "presentable": false, "protected": false, "required": true, "system": false, "thumbs": [], "type": "file" },
+      { "cascadeDelete": false, "collectionId": "_pb_users_auth_", "hidden": false, "id": "rel_pf_uploadedby", "maxSelect": 1, "minSelect": 0, "name": "uploaded_by", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "auto_pf_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_tasks_000001",
+    "name": "tasks",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id || client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id || client.user = @request.auth.id",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id || client.user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_tk_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "hidden": false, "id": "text_tk_title", "max": 0, "min": 0, "name": "title", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "cascadeDelete": false, "collectionId": "pbc_projects_0001", "hidden": false, "id": "rel_tk_project", "maxSelect": 1, "minSelect": 0, "name": "project", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "cascadeDelete": false, "collectionId": "_pb_users_auth_", "hidden": false, "id": "rel_tk_assigned", "maxSelect": 1, "minSelect": 0, "name": "assigned_to", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "sel_tk_status", "maxSelect": 1, "name": "status", "presentable": false, "required": false, "system": false, "type": "select", "values": ["pendiente", "en_progreso", "completada"] },
+      { "hidden": false, "id": "sel_tk_priority", "maxSelect": 1, "name": "priority", "presentable": false, "required": false, "system": false, "type": "select", "values": ["baja", "media", "alta", "urgente"] },
+      { "hidden": false, "id": "date_tk_due", "max": "", "min": "", "name": "due_date", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "text_tk_desc", "max": 0, "min": 0, "name": "description", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "bool_tk_fromcli", "name": "from_client", "presentable": false, "required": false, "system": false, "type": "bool" },
+      { "exceptDomains": null, "hidden": false, "id": "url_tk_link", "name": "link", "onlyDomains": null, "presentable": false, "required": false, "system": false, "type": "url" },
+      { "cascadeDelete": false, "collectionId": "pbc_clients_00001", "hidden": false, "id": "rel_tk_client", "maxSelect": 1, "minSelect": 0, "name": "client", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "auto_tk_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_tk_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]

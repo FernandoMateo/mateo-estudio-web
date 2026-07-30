@@ -56,7 +56,11 @@
     @apply border-violet-light/70 bg-white/[.05];
     box-shadow: 0 0 0 4px rgba(139,92,246,.14), 0 0 18px rgba(139,92,246,.18);
   }
-  .field-label { @apply block text-[10.5px] font-bold text-violet-light/70 mb-1.5 tracking-[.08em] uppercase; }
+  .field-label {
+    @apply block text-[10.5px] font-bold mb-1.5 tracking-[.08em] uppercase;
+    background: linear-gradient(90deg, #C4B5FD, #F0ABFC);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
 
   .pill { @apply text-[10.5px] font-bold rounded-full px-2.5 py-[3px] whitespace-nowrap tracking-wide; }
 

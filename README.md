@@ -722,3 +722,33 @@ Lo di vuelta a **"red primero"**: ahora la app siempre pide la versión más nue
 ### Además, blindé el paso de contraseña
 
 Más allá de la causa raíz, dejé el paso de contraseña de la Alta de cliente **sin ningún breakpoint responsivo** — ahora es una sola columna siempre, sin excepciones, para que sea imposible que un problema de caché (o cualquier otra cosa) lo vuelva a mostrar mal.
+
+---
+
+## Adjuntar archivos, logo único, colores en modales, y gráfico de tareas
+
+### Instalación
+
+Importá **`pb-schema-permisos-cliente.json`** (Merge). No agrega colecciones nuevas — corrige 2 permisos: que el cliente pueda subir archivos a su proyecto, y que pueda editar las tareas de su proyecto.
+
+### 1. El error al adjuntar un archivo
+
+Causa real encontrada: el permiso de la base (`project_files`) nunca se actualizó cuando habilité la subida para el cliente hace unas entregas — le daba el botón en la app, pero PocketBase seguía rechazando la petición. Ya corregido. De paso, ajusté quién puede **borrar** cada archivo: admin/equipo pueden borrar cualquiera, pero un cliente solo puede borrar los que subió él mismo (no los que subiste vos).
+
+### 2. Logo único para toda la app
+
+Agregué `public/logo.png` (por ahora con el mismo monograma violeta de siempre, como placeholder) y un componente `Logo` que se usa en **todos** los lugares donde aparecía el ícono de la marca: pantalla de inicio de sesión, menú lateral, encabezado del Portal, alta de clientes, aviso de instalación de la app, y las cotizaciones que emitís vos.
+
+**Para poner tu logo real**: reemplazá el archivo `public/logo.png` por el tuyo (cuadrado, fondo transparente si es posible, mínimo 512×512px) y volvé a compilar — no hace falta tocar ni una línea de código, se actualiza solo en todos los lugares a la vez.
+
+*Nota: los íconos de la PWA (el que queda en la pantalla de inicio del celular al instalarla) son archivos aparte, ya generados — si más adelante querés que también salgan de tu logo nuevo, decímelo y los regenero.*
+
+### 3. Más color en las etiquetas de los campos
+
+Las etiquetas de los inputs (el textito chico arriba de cada campo, como "NOMBRE", "CONTRASEÑA", etc.) pasaron de un violeta apagado a un degradé violeta-rosa bien vivo. Como es una sola clase compartida, se ve así en **todos** los formularios y modales de la app sin haber tocado cada uno por separado.
+
+### 4. Gráfico de estado de tareas + edición del cliente
+
+Dentro de cualquier proyecto (Portal y admin) → pestaña Tareas:
+- Arriba, un donut con la cantidad y el porcentaje de tareas pendientes / en progreso / completadas.
+- Cada tarea se puede **editar** (título, descripción y estado) tocando "✎ Editar tarea" al expandirla — tanto vos como el cliente, dentro de su propio proyecto.
