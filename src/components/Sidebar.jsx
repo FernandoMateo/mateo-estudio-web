@@ -54,7 +54,7 @@ export default function Sidebar({ me, open, setOpen }) {
             animate={{ boxShadow: ['0 0 12px rgba(139,92,246,.3)', '0 0 24px rgba(139,92,246,.55)', '0 0 12px rgba(139,92,246,.3)'] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            <Logo size={18} />
+            <Logo size={28} />
           </motion.div>
           <div className="text-[13px] font-extrabold tracking-[.2em] text-gradient">MATEO</div>
         </div>

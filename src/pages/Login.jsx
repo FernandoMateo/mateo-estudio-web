@@ -83,7 +83,7 @@ export default function Login() {
         }}
       >
         <div className="w-[58px] h-[58px] mx-auto mb-4 flex items-center justify-center rounded-xl bg-white/5 border border-violet-light/[.22] backdrop-blur-md shadow-[0_0_22px_rgba(139,92,246,.18)]">
-          <Logo size={32} />
+          <Logo size={48} />
         </div>
 
         <h1 className="text-[19px] font-semibold text-center tracking-tight">Bienvenido de vuelta</h1>

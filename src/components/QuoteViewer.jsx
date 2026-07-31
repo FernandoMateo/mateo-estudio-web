@@ -127,7 +127,7 @@ export default function QuoteViewer({ open, onClose, quote, brandClient, autoPri
                 </div>
               ) : (
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F3F1FA' }}>
-                  <Logo size={28} />
+                  <Logo size={38} />
                 </div>
               )}
               <div className="min-w-0">

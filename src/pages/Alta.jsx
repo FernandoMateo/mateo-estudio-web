@@ -17,7 +17,7 @@ const emptyForm = {
 function LocalLogo({ size = 56 }) {
   return (
     <div className="relative flex items-center justify-center rounded-2xl" style={{ width: size, height: size, background: 'linear-gradient(135deg, rgba(139,92,246,.25), rgba(244,114,240,.15))', border: '1px solid rgba(167,139,250,.4)' }}>
-      <SharedLogo size={size * 0.6} />
+      <SharedLogo size={size * 0.82} />
     </div>
   )
 }

@@ -399,7 +399,7 @@ export default function Portal() {
             style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.3), rgba(244,114,240,.18))', border: '1px solid rgba(167,139,250,.4)', boxShadow: '0 0 22px rgba(139,92,246,.35)' }}>
             {client?.logo
               ? <img src={fileUrl('clients', client.id, client.logo, '100x100')} alt="" className="w-full h-full object-cover" />
-              : <Logo size={20} />}
+              : <Logo size={34} />}
           </motion.div>
           <div className="flex-1 min-w-0">
             <motion.h1 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="text-[23px] font-extrabold tracking-tight truncate">

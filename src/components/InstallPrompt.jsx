@@ -47,7 +47,7 @@ export default function InstallPrompt() {
           className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:w-[340px] z-50 rounded-2xl p-4 flex items-center gap-3"
           style={{ background: 'rgba(15,14,22,.97)', border: '1px solid rgba(167,139,250,.3)', backdropFilter: 'blur(16px)', boxShadow: '0 20px 50px rgba(0,0,0,.5), 0 0 30px rgba(139,92,246,.15)' }}>
           <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.3), rgba(244,114,240,.18))', border: '1px solid rgba(167,139,250,.4)' }}>
-            <Logo size={18} />
+            <Logo size={32} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[12.5px] font-bold">Instalá Mateo Estudio</div>
