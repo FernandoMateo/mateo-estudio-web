@@ -803,3 +803,17 @@ Dentro de cualquier proyecto → pestaña Tareas, al crear una tarea nueva ahora
 ### Honestidad sobre el alcance de "Colaborador"
 
 Le di el mismo trato que al dueño de la cuenta del cliente en lo más usado del Portal: ver/editar su ficha, sus proyectos, sus tareas, subir archivos y documentos, comentar tareas. **No llegué a extender esa paridad al Cotizador** (`quotes`, `quote_items`) — si un colaborador necesita aprobar cotizaciones o usar el cotizador propio del cliente, esa parte todavía no lo reconoce y puede fallarle. Si lo necesitás, decímelo y lo sumo en la próxima vuelta — es aplicar el mismo patrón (`|| client.collaborator = @request.auth.id`) a esas dos colecciones.
+
+---
+
+## El logo ahora vive en `public/img/logo.png`
+
+**Sin cambios de esquema** — solo código.
+
+Actualicé el componente `Logo` para que apunte a `public/img/logo.png` en vez de `public/logo.png`.
+
+**Importante — dónde tiene que estar el archivo**: en un proyecto Vite, solo se sirven en la web los archivos que están **dentro de la carpeta `public/`**. Si la carpeta `img` que creaste no está dentro de `public/` (por ejemplo, si quedó en la raíz del proyecto, al lado de `package.json`), el navegador no va a poder acceder a ella y el logo no se va a ver.
+
+**Ruta correcta**: `public/img/logo.png`
+
+Si tu carpeta `img` quedó en otro lugar, simplemente movela para que quede dentro de `public/`. El resto (que se vea en toda la app, que no se quede pegada la versión vieja en caché) ya está resuelto de antes y sigue funcionando igual.
