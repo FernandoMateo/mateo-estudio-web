@@ -752,7 +752,6 @@ Las etiquetas de los inputs (el textito chico arriba de cada campo, como "NOMBRE
 Dentro de cualquier proyecto (Portal y admin) → pestaña Tareas:
 - Arriba, un donut con la cantidad y el porcentaje de tareas pendientes / en progreso / completadas.
 - Cada tarea se puede **editar** (título, descripción y estado) tocando "✎ Editar tarea" al expandirla — tanto vos como el cliente, dentro de su propio proyecto.
-<<<<<<< HEAD
 
 ---
 
@@ -768,5 +767,39 @@ Dos causas posibles, y ahora las dos están cubiertas:
 Ya lo resolví de raíz: cada vez que compilás (`npm run build`), el logo ahora se pide con una marca de tiempo en la URL (`/logo.png?v=...`) que cambia en cada build — así el navegador jamás lo confunde con una versión anterior, sin que tengas que hacer nada manual.
 
 **Para aplicar:** reemplazá `public/logo.png` por tu logo real (si no lo hiciste todavía), `npm run build`, desplegar. Con esto ya no debería hacer falta ningún refresco especial.
-=======
->>>>>>> ef3bc952014e7e2c1859205717e610c97bb6ad74
+
+---
+
+## Roles y permisos: proyectos asignados, equipo acotado, y el nuevo rol Colaborador
+
+### ⚠️ Dos pasos obligatorios antes de que esto funcione
+
+**1. Importar el esquema** — `pb-schema-roles-asignacion.json` (Merge). Agrega `assigned_to` a proyectos, `collaborator` a clientes, y reescribe los permisos de 6 colecciones.
+
+**2. Paso manual — agregar el rol nuevo** (no se puede hacer por import, es la colección de autenticación):
+1. PocketBase → **Collections → users → Fields**
+2. Abrí el campo **`role`**
+3. En "Select values", agregá una línea nueva: **`colaborador`**
+4. Guardá
+
+Sin este paso, no vas a poder crear cuentas de colaborador — el sistema va a rechazar ese valor.
+
+### Qué cambió
+
+**Proyectos asignados**: cada proyecto ahora tiene un campo "Asignar a" (solo vos lo ves/editás). Un usuario de equipo **solo ve los proyectos que tiene asignados** — ni un cliente ni un proyecto más.
+
+**Equipo acotado a 3 módulos**: en el menú, un usuario de equipo ahora solo ve **Proyectos, Tareas y Calendario**. Todo lo demás (Clientes, Finanzas, Servicios, Cotizador, Usuarios, Notificaciones, Reportes, Historial, y el Dashboard) desaparece del menú — y si intenta entrar por la URL directa, lo mandamos de vuelta a Proyectos. Tampoco ve el presupuesto de los proyectos, ni las facturas en el Calendario: eso quedó exclusivo para admin.
+
+**Rol nuevo: Colaborador** — pensado para alguien que trabaja para uno de tus clientes (no es tu empleado) y necesita entrar con su propio usuario, pero **solo al portal de ese cliente puntual**, nada más. Se crea igual que un miembro de equipo (Usuarios → Agregar al equipo), eligiendo el rol "Colaborador de un cliente" y el cliente correspondiente.
+
+### Tareas: prioridad, asignación, animación y aviso
+
+Dentro de cualquier proyecto → pestaña Tareas, al crear una tarea nueva ahora se puede:
+- Elegir la **prioridad** (baja/media/alta/urgente)
+- **Asignarla a alguien del equipo**
+- Al crearla, aparece una **animación de confirmación** llamativa
+- Se **notifica automáticamente** a la persona asignada y a todos los admin
+
+### Honestidad sobre el alcance de "Colaborador"
+
+Le di el mismo trato que al dueño de la cuenta del cliente en lo más usado del Portal: ver/editar su ficha, sus proyectos, sus tareas, subir archivos y documentos, comentar tareas. **No llegué a extender esa paridad al Cotizador** (`quotes`, `quote_items`) — si un colaborador necesita aprobar cotizaciones o usar el cotizador propio del cliente, esa parte todavía no lo reconoce y puede fallarle. Si lo necesitás, decímelo y lo sumo en la próxima vuelta — es aplicar el mismo patrón (`|| client.collaborator = @request.auth.id`) a esas dos colecciones.

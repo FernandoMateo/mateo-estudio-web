@@ -19,17 +19,17 @@ const ICONS = {
 }
 
 const ITEMS = [
-  { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true },
-  { to: '/app/clientes', label: 'Clientes', icon: 'clientes' },
+  { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true, adminOnly: true },
+  { to: '/app/clientes', label: 'Clientes', icon: 'clientes', equipoHidden: true },
   { to: '/app/proyectos', label: 'Proyectos', icon: 'proyectos' },
   { to: '/app/tareas', label: 'Tareas', icon: 'tareas' },
   { to: '/app/calendario', label: 'Calendario', icon: 'calendario' },
   { to: '/app/finanzas', label: 'Finanzas', icon: 'finanzas', adminOnly: true },
-  { to: '/app/servicios', label: 'Servicios', icon: 'servicios' },
-  { to: '/app/cotizador', label: 'Cotizador', icon: 'cotizador' },
-  { to: '/app/usuarios', label: 'Usuarios', icon: 'usuarios' },
-  { to: '/app/notificaciones', label: 'Notificaciones', icon: 'notificaciones' },
-  { to: '/app/reportes', label: 'Reportes', icon: 'reportes' },
+  { to: '/app/servicios', label: 'Servicios', icon: 'servicios', equipoHidden: true },
+  { to: '/app/cotizador', label: 'Cotizador', icon: 'cotizador', equipoHidden: true },
+  { to: '/app/usuarios', label: 'Usuarios', icon: 'usuarios', equipoHidden: true },
+  { to: '/app/notificaciones', label: 'Notificaciones', icon: 'notificaciones', equipoHidden: true },
+  { to: '/app/reportes', label: 'Reportes', icon: 'reportes', equipoHidden: true },
   { to: '/app/historial', label: 'Historial', icon: 'historial', adminOnly: true },
 ]
 
@@ -37,6 +37,7 @@ export default function Sidebar({ me, open, setOpen }) {
   const nav = useNavigate()
   const loc = useLocation()
   const isAdmin = me?.role === 'admin'
+  const isEquipo = me?.role === 'equipo'
   const firstName = (me?.name || me?.email || '').split(' ')[0].split('@')[0]
 
   return (
@@ -59,7 +60,7 @@ export default function Sidebar({ me, open, setOpen }) {
         </div>
 
         <nav className="flex-1 flex flex-col gap-1.5 overflow-y-auto">
-          {ITEMS.filter(i => !i.adminOnly || isAdmin).map(item => {
+          {ITEMS.filter(i => (!i.adminOnly || isAdmin) && (!i.equipoHidden || !isEquipo)).map(item => {
             const active = item.end ? loc.pathname === item.to : loc.pathname.startsWith(item.to)
             return (
               <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setOpen(false)}

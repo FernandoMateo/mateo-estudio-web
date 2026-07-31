@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, removeRec, PB_URL, logActivity } from '../lib/api'
+import { list, createRec, updateRec, removeRec, PB_URL, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 
@@ -11,6 +11,7 @@ export default function Usuarios() {
   const toast = useToast()
   const [invites, setInvites] = useState([])
   const [team, setTeam] = useState([])
+  const [clientsList, setClientsList] = useState([])
   const [search, setSearch] = useState('')
 
   const [open, setOpen] = useState(false)
@@ -22,12 +23,13 @@ export default function Usuarios() {
   const [copied, setCopied] = useState(false)
 
   const [teamOpen, setTeamOpen] = useState(false)
-  const [teamForm, setTeamForm] = useState({ name: '', email: '', password: '', role: 'equipo' })
+  const [teamForm, setTeamForm] = useState({ name: '', email: '', password: '', role: 'equipo', client: '' })
   const [teamSaving, setTeamSaving] = useState(false)
 
   const load = () => {
     list('client_invites', '&sort=-created&expand=client').then(setInvites).catch(() => toast('No se pudieron cargar las invitaciones.', true))
     list('users', '&filter=' + encodeURIComponent('role!="cliente"') + '&sort=name').then(setTeam).catch(() => {})
+    list('clients', '&sort=name').then(setClientsList).catch(() => {})
   }
   useEffect(() => { load() }, [])
 
@@ -80,18 +82,22 @@ export default function Usuarios() {
   }
 
   /* ── Gestión de equipo ── */
-  function openTeamNew() { setTeamForm({ name: '', email: '', password: '', role: 'equipo' }); setTeamOpen(true) }
+  function openTeamNew() { setTeamForm({ name: '', email: '', password: '', role: 'equipo', client: '' }); setTeamOpen(true) }
 
   async function createTeamMember() {
     if (!teamForm.name.trim() || !teamForm.email.trim()) { toast('Completá nombre y correo.', true); return }
     if (!teamForm.password || teamForm.password.length < 8) { toast('La contraseña debe tener al menos 8 caracteres.', true); return }
+    if (teamForm.role === 'colaborador' && !teamForm.client) { toast('Elegí a qué cliente va a acceder este colaborador.', true); return }
     setTeamSaving(true)
     try {
-      await createRec('users', {
+      const newUser = await createRec('users', {
         name: teamForm.name.trim(), email: teamForm.email.trim(),
         password: teamForm.password, passwordConfirm: teamForm.password,
         role: teamForm.role,
       })
+      if (teamForm.role === 'colaborador') {
+        await updateRec('clients', teamForm.client, { collaborator: newUser.id })
+      }
       logActivity({ action: 'crear', entity: 'usuario', entity_name: teamForm.name.trim(), summary: `rol: ${teamForm.role}` })
       setTeamOpen(false)
       toast(`✦ ${teamForm.name.trim()} ya forma parte del equipo`)
@@ -238,8 +244,15 @@ export default function Usuarios() {
           <Field label="Contraseña *" full><input type="password" className="field" value={teamForm.password} onChange={e => setTeamForm(f => ({ ...f, password: e.target.value }))} placeholder="Mínimo 8 caracteres" /></Field>
           <Field label="Rol" full>
             <Select value={teamForm.role} onChange={v => setTeamForm(f => ({ ...f, role: v }))}
-              options={[{ value: 'equipo', label: 'Equipo' }, { value: 'admin', label: 'Admin' }]} />
+              options={[{ value: 'equipo', label: 'Equipo' }, { value: 'admin', label: 'Admin' }, { value: 'colaborador', label: 'Colaborador de un cliente' }]} />
           </Field>
+          {teamForm.role === 'colaborador' && (
+            <Field label="¿Con qué cliente trabaja? *" full>
+              <Select value={teamForm.client} onChange={v => setTeamForm(f => ({ ...f, client: v }))} placeholder="Elegí un cliente…"
+                options={clientsList.map(c => ({ value: c.id, label: c.name }))} />
+              <p className="text-[10.5px] text-white/30 mt-1.5">Va a entrar con su propio usuario, pero solo va a ver el portal de este cliente — nada más.</p>
+            </Field>
+          )}
         </div>
         <div className="flex justify-end gap-2.5 mt-6">
           <button className="btn-ghost" onClick={() => setTeamOpen(false)}>Cancelar</button>

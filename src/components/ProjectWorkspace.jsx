@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, fmtByCurrency } from '../lib/api'
+import { list, createRec, updateRec, fmtByCurrency, notifyUser } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
 import ProjectFiles from './ProjectFiles'
 import TaskComments from './TaskComments'
+import { Select } from './ui'
 
 const STATUS_GLOW = { en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
 const STATUS_ORDER = ['pendiente', 'en_progreso', 'completada']
@@ -12,6 +13,12 @@ const STATUS_META = {
   pendiente: { label: 'Pendientes', color: '#A78BFA' },
   en_progreso: { label: 'En progreso', color: '#FBBF24' },
   completada: { label: 'Completadas', color: '#34D399' },
+}
+const PRIORITY_META = {
+  baja: { label: 'Baja', color: '#60A5FA' },
+  media: { label: 'Media', color: '#A78BFA' },
+  alta: { label: 'Alta', color: '#FBBF24' },
+  urgente: { label: 'Urgente', color: '#FB7185' },
 }
 
 function ProgressRing({ pct, glow, size = 118 }) {
@@ -33,20 +40,25 @@ function ProgressRing({ pct, glow, size = 118 }) {
 }
 
 /**
- * canManage: true para admin/equipo — habilita subir archivos, ver presupuesto y crear tareas nuevas.
+ * canManage: true para admin/equipo — habilita subir archivos y crear tareas nuevas.
+ * isAdmin: true solo para admin — habilita ver el presupuesto (ni equipo ni cliente lo ven).
  * clientName: nombre del cliente a mostrar (el admin ve varios clientes distintos).
  * onEdit: si se pasa, muestra un botón "Editar" que dispara esta función (abre el formulario completo).
  */
-export default function ProjectWorkspace({ project, onClose, canManage = false, clientName, onEdit, allowContribute = false }) {
+export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, allowContribute = false }) {
   const toast = useToast()
   const canAddTasks = canManage || allowContribute
   const canUploadFiles = canManage || allowContribute
   const TABS = [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']]
   const [tab, setTab] = useState('resumen')
   const [tasks, setTasks] = useState([])
+  const [teamOptions, setTeamOptions] = useState([])
   const [expandedTask, setExpandedTask] = useState(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskPriority, setNewTaskPriority] = useState('media')
+  const [newTaskAssignee, setNewTaskAssignee] = useState('')
   const [addingTask, setAddingTask] = useState(false)
+  const [taskCreatedFlash, setTaskCreatedFlash] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editForm, setEditForm] = useState({ title: '', description: '', status: 'pendiente' })
   const glow = STATUS_GLOW[project?.status] || '#8B5CF6'
@@ -56,16 +68,36 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
 
   useEffect(() => {
     if (!project) return
-    setTab('resumen'); setExpandedTask(null); setNewTaskTitle('')
+    setTab('resumen'); setExpandedTask(null); setNewTaskTitle(''); setNewTaskPriority('media')
+    setNewTaskAssignee(project.assigned_to || '')
     loadTasks()
+    if (canAddTasks) {
+      list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"') + '&sort=name').then(setTeamOptions).catch(() => setTeamOptions([]))
+    }
   }, [project?.id])
+
+  async function notifyAboutNewTask(assigneeId, taskTitle) {
+    try {
+      const admins = await list('users', '&filter=' + encodeURIComponent('role="admin"'))
+      const targets = new Set(admins.map(a => a.id))
+      if (assigneeId) targets.add(assigneeId)
+      await Promise.all([...targets].map(id => notifyUser(id, {
+        title: 'Nueva tarea creada', message: taskTitle, type: 'tarea', project: project.id, client: project.client || '',
+      })))
+    } catch { /* no bloquea la creación de la tarea */ }
+  }
 
   async function addTask() {
     if (!newTaskTitle.trim() || !project) return
     setAddingTask(true)
     try {
-      await createRec('tasks', { title: newTaskTitle.trim(), project: project.id, client: project.client || '', status: 'pendiente', priority: 'media', from_client: !canManage })
-      setNewTaskTitle(''); toast('✦ Tarea agregada'); loadTasks()
+      await createRec('tasks', {
+        title: newTaskTitle.trim(), project: project.id, client: project.client || '',
+        status: 'pendiente', priority: newTaskPriority, assigned_to: newTaskAssignee || '', from_client: !canManage,
+      })
+      notifyAboutNewTask(newTaskAssignee, newTaskTitle.trim())
+      setNewTaskTitle(''); setNewTaskPriority('media'); loadTasks()
+      setTaskCreatedFlash(true); setTimeout(() => setTaskCreatedFlash(false), 1700)
     } catch { toast('No se pudo crear la tarea.', true) } finally { setAddingTask(false) }
   }
 
@@ -117,7 +149,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                 <div className="flex gap-4 mt-2 text-[11.5px] text-white/40 flex-wrap">
                   {project.start_date && <span>Inicio: <b className="text-white/70">{project.start_date.slice(0, 10)}</b></span>}
                   {project.due_date && <span>Entrega: <b className="text-white/70">{project.due_date.slice(0, 10)}</b></span>}
-                  {canManage && project.budget != null && project.budget > 0 && (
+                  {isAdmin && project.budget != null && project.budget > 0 && (
                     <span>Presupuesto: <b className="text-white/70">{fmtByCurrency(project.budget, project.budget_currency)}</b></span>
                   )}
                 </div>
@@ -167,14 +199,54 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
               {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={canUploadFiles} projectName={project.name} />}
 
               {tab === 'tareas' && (
-                <div>
+                <div className="relative">
+                  {taskCreatedFlash && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none" style={{ background: 'rgba(5,5,8,.55)' }}>
+                      <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+                        className="flex flex-col items-center gap-3">
+                        <motion.div className="relative w-24 h-24 flex items-center justify-center rounded-full"
+                          style={{ background: `linear-gradient(135deg, ${glow}, #F472F0)`, boxShadow: `0 0 60px ${glow}` }}>
+                          {[0, 1].map(i => (
+                            <motion.span key={i} className="absolute inset-0 rounded-full" style={{ border: `2px solid ${glow}` }}
+                              initial={{ scale: 1, opacity: 0.7 }} animate={{ scale: 1.8, opacity: 0 }} transition={{ duration: 1.3, repeat: Infinity, delay: i * 0.4 }} />
+                          ))}
+                          <motion.svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <motion.path d="M5 13l4 4 10-11" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.45, delay: 0.15 }} />
+                          </motion.svg>
+                        </motion.div>
+                        <motion.span initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                          className="text-[15px] font-extrabold text-white">¡Tarea creada!</motion.span>
+                      </motion.div>
+                    </motion.div>
+                  )}
+
                   {canAddTasks && (
-                    <div className="flex gap-2 mb-4">
-                      <input className="field flex-1" placeholder="Nueva tarea para este proyecto…" value={newTaskTitle}
-                        onChange={e => setNewTaskTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} />
-                      <button onClick={addTask} disabled={addingTask || !newTaskTitle.trim()} className="btn-glass !px-3.5 disabled:opacity-40">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                      </button>
+                    <div className="flex flex-col gap-2 mb-5 p-3.5 rounded-2xl" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+                      <div className="flex gap-2">
+                        <input className="field flex-1" placeholder="Nueva tarea para este proyecto…" value={newTaskTitle}
+                          onChange={e => setNewTaskTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} />
+                        <button onClick={addTask} disabled={addingTask || !newTaskTitle.trim()} className="btn-glass !px-3.5 disabled:opacity-40 flex-shrink-0">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10.5px] text-white/35 uppercase font-bold tracking-wide">Prioridad</span>
+                        {Object.entries(PRIORITY_META).map(([k, v]) => (
+                          <button key={k} onClick={() => setNewTaskPriority(k)}
+                            className="text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors"
+                            style={newTaskPriority === k ? { background: `${v.color}22`, borderColor: v.color, color: v.color } : { borderColor: 'rgba(255,255,255,.12)', color: 'rgba(255,255,255,.4)' }}>
+                            {v.label}
+                          </button>
+                        ))}
+                      </div>
+                      {!!teamOptions.length && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10.5px] text-white/35 uppercase font-bold tracking-wide flex-shrink-0">Asignar a</span>
+                          <div className="flex-1"><Select value={newTaskAssignee} onChange={setNewTaskAssignee} placeholder="Sin asignar"
+                            options={teamOptions.map(u => ({ value: u.id, label: u.name || u.email }))} /></div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -232,6 +304,11 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                               className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-white/[.03] transition-colors">
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: STATUS_META[t.status || 'pendiente'].color }} />
                               <span className={`flex-1 min-w-0 text-[13px] truncate ${t.status === 'completada' ? 'line-through text-white/40' : ''}`}>{t.title}</span>
+                              {t.priority && t.priority !== 'media' && (
+                                <span className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0" style={{ color: PRIORITY_META[t.priority]?.color, background: `${PRIORITY_META[t.priority]?.color}18` }}>
+                                  {PRIORITY_META[t.priority]?.label}
+                                </span>
+                              )}
                               <svg className={`w-3.5 h-3.5 text-white/30 flex-shrink-0 transition-transform ${expandedTask === t.id ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
                             </button>
                             {expandedTask === t.id && (

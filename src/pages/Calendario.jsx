@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, fmtARS } from '../lib/api'
 import { Pill } from '../components/ui'
@@ -15,6 +16,8 @@ const RECURRING_TYPES = { mensual: true, trimestral: true, anual: true }
 function toKey(d) { return d.toISOString().slice(0, 10) }
 
 export default function Calendario() {
+  const { me } = useOutletContext()
+  const isAdmin = me.role === 'admin'
   const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); return d })
   const [projects, setProjects] = useState([])
   const [invoices, setInvoices] = useState([])
@@ -24,7 +27,9 @@ export default function Calendario() {
   useEffect(() => {
     Promise.all([
       list('projects', '&expand=client,service').catch(() => []),
-      list('transactions', '&filter=' + encodeURIComponent('type="ingreso" && (status="pendiente" || status="vencido")') + '&expand=client').catch(() => []),
+      isAdmin
+        ? list('transactions', '&filter=' + encodeURIComponent('type="ingreso" && (status="pendiente" || status="vencido")') + '&expand=client').catch(() => [])
+        : Promise.resolve([]),
     ]).then(([p, t]) => { setProjects(p); setInvoices(t) }).finally(() => setLoading(false))
   }, [])
 
@@ -112,7 +117,7 @@ export default function Calendario() {
           </div>
 
           <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/[.06] flex-wrap">
-            {Object.entries(TYPE_META).map(([k, v]) => (
+            {Object.entries(TYPE_META).filter(([k]) => isAdmin || k !== 'factura').map(([k, v]) => (
               <div key={k} className="flex items-center gap-1.5 text-[10.5px] text-white/40">
                 <span className={`w-2 h-2 rounded-full ${v.dot}`} /> {v.label}
               </div>

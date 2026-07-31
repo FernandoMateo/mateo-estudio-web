@@ -19,7 +19,7 @@ export default function AppLayout() {
 
   // Reviso vencimientos recurrentes próximos (≤2 días) y aviso al cliente una sola vez por ciclo.
   useEffect(() => {
-    if (!auth?.token || auth?.record?.role === 'cliente') return
+    if (!auth?.token || auth?.record?.role !== 'admin') return
     list('projects', '&expand=client,service&filter=' + encodeURIComponent('next_renewal_date != "" && renewal_alerted = false'))
       .then(projects => {
         const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -42,8 +42,15 @@ export default function AppLayout() {
   }, [])
 
   if (!auth?.token || !auth?.record) { nav('/'); return null }
-  if (auth.record.role === 'cliente') { nav('/portal'); return null }
+  if (auth.record.role === 'cliente' || auth.record.role === 'colaborador') { nav('/portal'); return null }
   const me = auth.record
+
+  // "equipo" solo puede ver Proyectos, Tareas y Calendario — si entra por URL directa a otro módulo, lo mandamos de vuelta.
+  const EQUIPO_ALLOWED = ['/app/proyectos', '/app/tareas', '/app/calendario', '/app/notificaciones']
+  if (me.role === 'equipo' && !EQUIPO_ALLOWED.some(p => loc.pathname.startsWith(p))) {
+    nav('/app/proyectos'); return null
+  }
+
   const firstName = (me.name || me.email || '').split(' ')[0].split('@')[0]
   const now = new Date()
   const dateline = `${DAYS[now.getDay()][0].toUpperCase()}${DAYS[now.getDay()].slice(1)}, ${now.getDate()} de ${MONTHS[now.getMonth()]} de ${now.getFullYear()}`

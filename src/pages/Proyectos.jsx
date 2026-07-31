@@ -13,7 +13,7 @@ const BILLING_RECURRING = { mensual: true, trimestral: true, anual: true }
 const PHASE_OPTIONS = Object.entries(PHASES).map(([k, v]) => ({ value: k, label: v }))
 const emptyForm = {
   name: '', client: '', service: '', status: 'propuesta', phase: 'descubrimiento', description: '',
-  start_date: '', due_date: '', budget: '', budget_currency: 'ARS', next_renewal_date: '',
+  start_date: '', due_date: '', budget: '', budget_currency: 'ARS', next_renewal_date: '', assigned_to: '',
 }
 
 function ProjIcon() {
@@ -37,15 +37,17 @@ export default function Proyectos() {
   const [dir, setDir] = useState(1)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(emptyForm)
+  const [team, setTeam] = useState([])
   const [saving, setSaving] = useState(false)
   const [changingPhaseId, setChangingPhaseId] = useState(null)
   const [workspaceProject, setWorkspaceProject] = useState(null)
 
-  const load = () => list('projects', '&sort=-created&expand=client,service').then(setProjects).catch(() => toast('No se pudieron cargar los proyectos.', true))
+  const load = () => list('projects', '&sort=-created&expand=client,service,assigned_to').then(setProjects).catch(() => toast('No se pudieron cargar los proyectos.', true))
   useEffect(() => {
     load()
     list('clients', '&sort=name').then(setClients).catch(() => {})
     list('services', '&sort=name&filter=' + encodeURIComponent('active=true')).then(setServices).catch(() => {})
+    if (isAdmin) list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"') + '&sort=name').then(setTeam).catch(() => {})
   }, [])
 
   const clientName = p => p.expand?.client?.name || ''
@@ -64,7 +66,7 @@ export default function Proyectos() {
     setForm({
       ...emptyForm, ...p, start_date: p.start_date?.slice(0, 10) || '', due_date: p.due_date?.slice(0, 10) || '',
       budget: p.budget || '', budget_currency: p.budget_currency || 'ARS',
-      service: p.service || '', next_renewal_date: p.next_renewal_date?.slice(0, 10) || '',
+      service: p.service || '', next_renewal_date: p.next_renewal_date?.slice(0, 10) || '', assigned_to: p.assigned_to || '',
     })
     setStep(0); setOpen(true)
   }
@@ -89,7 +91,7 @@ export default function Proyectos() {
     setSaving(true)
     const body = buildBody(form.phase, {
       name: form.name.trim(), client: form.client, service: form.service, status: form.status,
-      description: form.description.trim(),
+      description: form.description.trim(), assigned_to: form.assigned_to || '',
       start_date: form.start_date ? form.start_date + ' 00:00:00' : '',
       due_date: form.due_date ? form.due_date + ' 00:00:00' : '',
       next_renewal_date: isRecurring && form.next_renewal_date ? form.next_renewal_date + ' 00:00:00' : '',
@@ -159,7 +161,7 @@ export default function Proyectos() {
 
                 <div className="text-[14.5px] font-bold leading-snug mb-1">{p.name}</div>
                 <div className="text-[11.5px] text-white/40 mb-3">
-                  {[clientName(p), p.expand?.service?.name].filter(Boolean).join(' · ') || 'Sin cliente asignado'}
+                  {[clientName(p), p.expand?.service?.name, isAdmin && p.expand?.assigned_to && `👤 ${p.expand.assigned_to.name || p.expand.assigned_to.email}`].filter(Boolean).join(' · ') || 'Sin cliente asignado'}
                 </div>
 
                 <div className="mb-3">
@@ -200,7 +202,7 @@ export default function Proyectos() {
         </div>
       )}
 
-      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} canManage={canManage}
+      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} canManage={canManage} isAdmin={isAdmin}
         clientName={workspaceProject ? clientName(workspaceProject) : ''}
         onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }} />
 
@@ -222,6 +224,13 @@ export default function Proyectos() {
                     <Select value={form.service} onChange={v => set('service', v)} placeholder="¿Qué servicio es? (opcional)"
                       options={services.map(s => ({ value: s.id, label: s.name + (BILLING_RECURRING[s.billing_type] ? ' · recurrente' : '') }))} />
                   </Field>
+                  {isAdmin && (
+                    <Field label="Asignar a" full>
+                      <Select value={form.assigned_to} onChange={v => set('assigned_to', v)} placeholder="Sin asignar todavía…"
+                        options={team.map(u => ({ value: u.id, label: `${u.name || u.email}${u.role === 'admin' ? ' · admin' : ''}` }))} />
+                      <p className="text-[10.5px] text-white/30 mt-1.5">Esa persona va a ser la única del equipo que vea este proyecto.</p>
+                    </Field>
+                  )}
                   <Field label="Estado">
                     <Select value={form.status} onChange={v => set('status', v)}
                       options={[
