@@ -1,0 +1,47 @@
+[
+  {
+    "id": "pbc_contentplans1",
+    "name": "content_plans",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id || project.client.collaborator = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id || project.client.collaborator = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_cp_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_projects_0001", "hidden": false, "id": "rel_cp_project", "maxSelect": 1, "minSelect": 0, "name": "project", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_cp_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "date_cp_start", "max": "", "min": "", "name": "start_date", "presentable": false, "required": true, "system": false, "type": "date" },
+      { "hidden": false, "id": "auto_cp_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_cp_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_contentposts1",
+    "name": "content_posts",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || plan.project.client.user = @request.auth.id || plan.project.client.collaborator = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || plan.project.client.user = @request.auth.id || plan.project.client.collaborator = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || plan.project.client.user = @request.auth.id || plan.project.client.collaborator = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_po_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_contentplans1", "hidden": false, "id": "rel_po_plan", "maxSelect": 1, "minSelect": 0, "name": "plan", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "num_po_day", "max": 6, "min": 0, "name": "day_index", "onlyInt": true, "presentable": false, "required": true, "system": false, "type": "number" },
+      { "hidden": false, "id": "text_po_title", "max": 0, "min": 0, "name": "title", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_po_copy", "max": 0, "min": 0, "name": "copy", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_po_hashtags", "max": 0, "min": 0, "name": "hashtags", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "file_po_image", "maxSelect": 1, "maxSize": 20971520, "mimeTypes": ["image/jpeg", "image/png", "image/webp", "image/gif"], "name": "image", "presentable": false, "protected": false, "required": false, "system": false, "thumbs": ["400x400"], "type": "file" },
+      { "hidden": false, "id": "sel_po_status", "maxSelect": 1, "name": "status", "presentable": false, "required": false, "system": false, "type": "select", "values": ["borrador", "enviado", "aprobado", "rechazado"] },
+      { "hidden": false, "id": "text_po_reason", "max": 0, "min": 0, "name": "rejection_reason", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "auto_po_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_po_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]

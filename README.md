@@ -817,3 +817,32 @@ Actualicé el componente `Logo` para que apunte a `public/img/logo.png` en vez d
 **Ruta correcta**: `public/img/logo.png`
 
 Si tu carpeta `img` quedó en otro lugar, simplemente movela para que quede dentro de `public/`. El resto (que se vea en toda la app, que no se quede pegada la versión vieja en caché) ya está resuelto de antes y sigue funcionando igual.
+
+---
+
+## Planificador semanal de contenido (para proyectos de Manejo de Redes)
+
+### Instalación
+
+Importá **`pb-schema-planificador-redes.json`** (Merge). Crea 2 colecciones nuevas: `content_plans` (las tarjetas de semana) y `content_posts` (cada publicación).
+
+### Cómo se activa
+
+La pestaña **"Planificador"** aparece automáticamente dentro de un proyecto cuando el **servicio vinculado** a ese proyecto tiene la palabra "red" en su nombre o categoría (por ejemplo "Manejo de Redes Sociales", "Redes"). Si tenés un servicio así en tu catálogo y lo asignás al proyecto, la pestaña aparece sola — no hace falta nada más.
+
+*Si tu servicio se llama distinto y la pestaña no aparece, decime el nombre exacto y ajusto la detección.*
+
+### Cómo funciona
+
+**Vos (admin/equipo):**
+1. Adentro del proyecto → pestaña Planificador → "Nueva semana": le ponés un nombre y elegís el primer día — se arma la tarjeta con los 7 días.
+2. Tocás cualquier día vacío para cargar una publicación: **título, copy, hashtags, imagen con vista previa antes de subir**.
+3. Podés guardarla como borrador, o mandarla directo con **"Enviar para aprobación"**.
+
+**El cliente, en su Portal:**
+- Ve la misma tarjeta semanal. Los días con contenido muestran la miniatura y el estado (esperando aprobación / aprobado / rechazado).
+- Al tocar una publicación que le mandaste, le aparecen los botones **Aprobar / Rechazar**.
+- Si rechaza, se abre un cuadro pidiendo el motivo — no puede rechazar sin explicar por qué.
+- Esa publicación rechazada queda con el motivo bien visible; vos la editás y volvés a mandarla con el mismo botón "Enviar para aprobación" cuando esté lista.
+
+Como siempre, te avisamos por notificación cuando el cliente aprueba o rechaza algo.

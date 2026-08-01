@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
 import ProjectFiles from './ProjectFiles'
 import TaskComments from './TaskComments'
+import ContentPlanner from './ContentPlanner'
 import { Select } from './ui'
 
 const STATUS_GLOW = { en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
@@ -49,7 +50,8 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
   const toast = useToast()
   const canAddTasks = canManage || allowContribute
   const canUploadFiles = canManage || allowContribute
-  const TABS = [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas']]
+  const isSocialProject = /red/i.test(project?.expand?.service?.name || '') || /red/i.test(project?.expand?.service?.category || '')
+  const TABS = [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas'], ...(isSocialProject ? [['planificador', 'Planificador']] : [])]
   const [tab, setTab] = useState('resumen')
   const [tasks, setTasks] = useState([])
   const [teamOptions, setTeamOptions] = useState([])
@@ -197,6 +199,8 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
               )}
 
               {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={canUploadFiles} projectName={project.name} />}
+
+              {tab === 'planificador' && <ContentPlanner projectId={project.id} canManage={canManage} />}
 
               {tab === 'tareas' && (
                 <div className="relative">
