@@ -200,7 +200,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
 
               {tab === 'archivos' && <ProjectFiles projectId={project.id} canManage={canUploadFiles} projectName={project.name} />}
 
-              {tab === 'planificador' && <ContentPlanner projectId={project.id} canManage={canManage} />}
+              {tab === 'planificador' && <ContentPlanner projectId={project.id} clientId={project.client} canManage={canManage} />}
 
               {tab === 'tareas' && (
                 <div className="relative">

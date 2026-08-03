@@ -25,7 +25,7 @@ const emptyPostForm = { title: '', copy: '', hashtags: '' }
 
 /** canManage=true (admin/equipo): crea semanas y publicaciones, las manda a aprobar.
  *  canManage=false (cliente/colaborador): solo aprueba o rechaza lo que ya le enviaron. */
-export default function ContentPlanner({ projectId, canManage }) {
+export default function ContentPlanner({ projectId, clientId, canManage }) {
   const toast = useToast()
   const [plans, setPlans] = useState([])
   const [posts, setPosts] = useState([])
@@ -61,12 +61,18 @@ export default function ContentPlanner({ projectId, canManage }) {
   function openNewPlan() { setPlanForm({ name: '', start_date: '' }); setPlanOpen(true) }
   async function savePlan() {
     if (!planForm.name.trim() || !planForm.start_date) { toast('Ponele un nombre y elegí el primer día de la semana.', true); return }
+    if (!clientId) { toast('No se pudo identificar el cliente de este proyecto — revisá que el proyecto tenga un cliente asignado.', true); return }
     setPlanSaving(true)
     try {
-      await createRec('content_plans', { project: projectId, name: planForm.name.trim(), start_date: planForm.start_date + ' 00:00:00' })
+      await createRec('content_plans', { project: projectId, client: clientId, name: planForm.name.trim(), start_date: planForm.start_date + ' 00:00:00' })
       logActivity({ action: 'crear', entity: 'planificación', entity_name: planForm.name.trim() })
       setPlanOpen(false); toast('✦ Semana creada'); load()
-    } catch { toast('No se pudo crear la semana.', true) } finally { setPlanSaving(false) }
+    } catch (e) {
+      const fieldErrors = e?.data?.data
+      const firstMsg = fieldErrors && Object.values(fieldErrors)[0]?.message
+      console.error('[Planificador] Error al crear la semana:', e?.data || e)
+      toast(firstMsg ? `No se pudo crear: ${firstMsg}` : 'No se pudo crear la semana.', true)
+    } finally { setPlanSaving(false) }
   }
   async function delPlan(plan) {
     if (!confirm(`¿Eliminar "${plan.name}" y todas sus publicaciones?`)) return

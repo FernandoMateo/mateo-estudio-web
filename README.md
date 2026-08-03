@@ -846,3 +846,26 @@ La pestaña **"Planificador"** aparece automáticamente dentro de un proyecto cu
 - Esa publicación rechazada queda con el motivo bien visible; vos la editás y volvés a mandarla con el mismo botón "Enviar para aprobación" cuando esté lista.
 
 Como siempre, te avisamos por notificación cuando el cliente aprueba o rechaza algo.
+
+---
+
+## Corrección: planificador semanal no dejaba crear (400) + bug real en el Service Worker
+
+### ⚠️ Hay que reimportar el esquema del planificador
+
+Este archivo **reemplaza por completo** el `pb-schema-planificador-redes.json` de antes (incluso la versión corregida sin `collaborator`). Importalo de nuevo con Merge — va a pedir confirmar el borrado de las reglas viejas de `content_plans`/`content_posts`, es esperado.
+
+### Causa real del error al crear una semana
+
+Las reglas de permisos que armé encadenaban demasiados saltos de relación (`publicación → semana → proyecto → cliente → usuario`, 4 niveles) — PocketBase no lo tolera bien y devuelve error 400 en vez de simplemente permitir o denegar. Lo solucioné agregando el **cliente directo** en cada semana (en vez de tener que "subir" por el proyecto para encontrarlo) — el mismo patrón de 2 saltos que ya usamos con éxito en el resto de la app (cotizaciones, tareas, etc.).
+
+### Bug real encontrado en el Service Worker
+
+Cuando la red fallaba y no había nada guardado en caché todavía para ese pedido en particular, el Service Worker devolvía "nada" en vez de una respuesta válida — eso es lo que decía el error "Failed to convert value to Response", y podía dejar la pestaña sin poder cargar nada más. Ya está corregido: ahora siempre devuelve algo válido, haya red o no.
+
+### Para aplicar
+
+1. Importá el `pb-schema-planificador-redes.json` de este mensaje (Merge, confirmando el reemplazo de reglas)
+2. `npm install && npm run build`
+3. Desplegar como siempre
+4. El paso de siempre: cerrá del todo la app una vez y volvela a abrir, para que el Service Worker corregido tome control

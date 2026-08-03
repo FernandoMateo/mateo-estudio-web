@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'mateo-shell-v2'
+const SHELL_CACHE = 'mateo-shell-v3'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -34,6 +34,12 @@ self.addEventListener('fetch', (event) => {
         }
         return res
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cached = await caches.match(event.request)
+        if (cached) return cached
+        // Sin red y sin nada guardado todavía: devolvemos una respuesta válida igual,
+        // para que el navegador nunca reciba "undefined" (eso rompía la pestaña).
+        return new Response('', { status: 503, statusText: 'Sin conexión' })
+      })
   )
 })
