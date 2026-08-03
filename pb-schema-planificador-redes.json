@@ -70,7 +70,9 @@
         "presentable": false,
         "required": true,
         "system": false,
-        "type": "date"
+        "type": "date",
+        "max": "",
+        "min": ""
       },
       {
         "hidden": false,
