@@ -1,0 +1,264 @@
+[
+  {
+    "id": "pbc_contentplans1",
+    "name": "content_plans",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      {
+        "hidden": false,
+        "id": "text_cp_id",
+        "name": "id",
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "text",
+        "max": 15,
+        "min": 15,
+        "pattern": "^[a-z0-9]+$",
+        "primaryKey": true,
+        "autogeneratePattern": "[a-z0-9]{15}"
+      },
+      {
+        "hidden": false,
+        "id": "rel_cp_project",
+        "name": "project",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": true,
+        "collectionId": "pbc_projects_0001",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "rel_cp_client",
+        "name": "client",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": false,
+        "collectionId": "pbc_clients_00001",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "text_cp_name",
+        "name": "name",
+        "presentable": true,
+        "required": true,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "date_cp_start",
+        "name": "start_date",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "auto_cp_created",
+        "name": "created",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "hidden": false,
+        "id": "auto_cp_updated",
+        "name": "updated",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_contentposts1",
+    "name": "content_posts",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || plan.client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || plan.client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || plan.client.user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      {
+        "hidden": false,
+        "id": "text_po_id",
+        "name": "id",
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "text",
+        "max": 15,
+        "min": 15,
+        "pattern": "^[a-z0-9]+$",
+        "primaryKey": true,
+        "autogeneratePattern": "[a-z0-9]{15}"
+      },
+      {
+        "hidden": false,
+        "id": "rel_po_plan",
+        "name": "plan",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": true,
+        "collectionId": "pbc_contentplans1",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "num_po_day",
+        "name": "day_index",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number",
+        "max": 6,
+        "min": 0,
+        "onlyInt": true
+      },
+      {
+        "hidden": false,
+        "id": "text_po_title",
+        "name": "title",
+        "presentable": true,
+        "required": true,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_po_copy",
+        "name": "copy",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_po_hashtags",
+        "name": "hashtags",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "file_po_image",
+        "name": "image",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "file",
+        "maxSelect": 1,
+        "maxSize": 20971520,
+        "mimeTypes": [
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "image/gif"
+        ],
+        "protected": false,
+        "thumbs": [
+          "400x400"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "sel_po_status",
+        "name": "status",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "maxSelect": 1,
+        "values": [
+          "borrador",
+          "enviado",
+          "aprobado",
+          "rechazado"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "text_po_reason",
+        "name": "rejection_reason",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "auto_po_created",
+        "name": "created",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "hidden": false,
+        "id": "auto_po_updated",
+        "name": "updated",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": []
+  }
+]

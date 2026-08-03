@@ -1,0 +1,79 @@
+[
+  {
+    "id": "pbc_quoteitems01",
+    "name": "quote_items",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_qi_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_clients_00001", "hidden": false, "id": "rel_qi_client", "maxSelect": 1, "minSelect": 0, "name": "client", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_qi_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_qi_type", "maxSelect": 1, "name": "type", "presentable": false, "required": false, "system": false, "type": "select", "values": ["material", "mano_obra", "otro"] },
+      { "hidden": false, "id": "text_qi_unit", "max": 0, "min": 0, "name": "unit", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "num_qi_cost", "max": null, "min": null, "name": "unit_cost", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_qi_curr", "maxSelect": 1, "name": "currency", "presentable": false, "required": false, "system": false, "type": "select", "values": ["ARS", "USD"] },
+      { "hidden": false, "id": "auto_qi_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_qi_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_quotes000001",
+    "name": "quotes",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_qt_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "hidden": false, "id": "sel_qt_issuer", "maxSelect": 1, "name": "issuer_type", "presentable": false, "required": true, "system": false, "type": "select", "values": ["estudio", "cliente"] },
+      { "cascadeDelete": true, "collectionId": "pbc_clients_00001", "hidden": false, "id": "rel_qt_client", "maxSelect": 1, "minSelect": 0, "name": "client", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_qt_title", "max": 0, "min": 0, "name": "title", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_qt_recname", "max": 0, "min": 0, "name": "recipient_name", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_qt_reccontact", "max": 0, "min": 0, "name": "recipient_contact", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_qt_curr", "maxSelect": 1, "name": "currency", "presentable": false, "required": false, "system": false, "type": "select", "values": ["ARS", "USD"] },
+      { "hidden": false, "id": "num_qt_fxrate", "max": null, "min": null, "name": "fx_rate", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_qt_margin", "max": 100, "min": 0, "name": "margin_pct", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_qt_subtotal", "max": null, "min": null, "name": "subtotal", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_qt_margamt", "max": null, "min": null, "name": "margin_amount", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_qt_total", "max": null, "min": null, "name": "total", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_qt_totalars", "max": null, "min": null, "name": "total_ars", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_qt_status", "maxSelect": 1, "name": "status", "presentable": false, "required": false, "system": false, "type": "select", "values": ["borrador", "enviado", "aprobado", "rechazado"] },
+      { "hidden": false, "id": "date_qt_valid", "max": "", "min": "", "name": "valid_until", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "text_qt_notes", "max": 0, "min": 0, "name": "notes", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "auto_qt_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_qt_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_quotelines001",
+    "name": "quote_lines",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || quote.client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || quote.client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || quote.client.user = @request.auth.id",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || quote.client.user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || quote.client.user = @request.auth.id",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_ql_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_quotes000001", "hidden": false, "id": "rel_ql_quote", "maxSelect": 1, "minSelect": 0, "name": "quote", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_ql_desc", "max": 0, "min": 0, "name": "description", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_ql_unit", "max": 0, "min": 0, "name": "unit", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "num_ql_qty", "max": null, "min": null, "name": "quantity", "onlyInt": false, "presentable": false, "required": true, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_ql_unitcost", "max": null, "min": null, "name": "unit_cost", "onlyInt": false, "presentable": false, "required": true, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_ql_total", "max": null, "min": null, "name": "line_total", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "auto_ql_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "pbc_projfiles001",
+    "name": "project_files",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || project.client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_pf_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_projects_0001", "hidden": false, "id": "rel_pf_project", "maxSelect": 1, "minSelect": 0, "name": "project", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_pf_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_pf_category", "maxSelect": 1, "name": "category", "presentable": false, "required": false, "system": false, "type": "select", "values": ["brief", "contrato", "entregable", "otro"] },
+      { "hidden": false, "id": "file_pf_file", "maxSelect": 1, "maxSize": 52428800, "mimeTypes": [], "name": "file", "presentable": false, "protected": false, "required": true, "system": false, "thumbs": [], "type": "file" },
+      { "cascadeDelete": false, "collectionId": "_pb_users_auth_", "hidden": false, "id": "rel_pf_uploadedby", "maxSelect": 1, "minSelect": 0, "name": "uploaded_by", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "auto_pf_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_activitylog01",
+    "name": "activity_log",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\"",
+    "viewRule": "@request.auth.role = \"admin\"",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_al_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": false, "collectionId": "_pb_users_auth_", "hidden": false, "id": "rel_al_user", "maxSelect": 1, "minSelect": 0, "name": "user", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "sel_al_action", "maxSelect": 1, "name": "action", "presentable": false, "required": false, "system": false, "type": "select", "values": ["crear", "actualizar", "eliminar"] },
+      { "hidden": false, "id": "text_al_entity", "max": 0, "min": 0, "name": "entity", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_al_entityname", "max": 0, "min": 0, "name": "entity_name", "pattern": "", "presentable": true, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_al_summary", "max": 0, "min": 0, "name": "summary", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "auto_al_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]
