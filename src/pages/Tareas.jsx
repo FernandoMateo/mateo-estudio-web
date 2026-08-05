@@ -29,7 +29,7 @@ function Check({ done, onClick }) {
     </button>
   )
 }
->>>>>>> 
+
 
 export default function Tareas() {
   const { me } = useOutletContext()
@@ -43,7 +43,7 @@ export default function Tareas() {
   const [assigneeFilter, setAssigneeFilter] = useState('todas')
 
   const [filter, setFilter] = useState('todas')
->>>>>>> 
+
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -62,7 +62,7 @@ export default function Tareas() {
     if (assigneeFilter !== 'todas' && t.assigned_to !== assigneeFilter) return false
 
     if (filter !== 'todas' && t.status !== filter) return false
->>>>>>> 
+
     const q = search.toLowerCase().trim()
     if (!q) return true
     const pn = t.expand?.project?.name || '', an = t.expand?.assigned_to?.name || t.expand?.assigned_to?.email || ''
@@ -96,7 +96,7 @@ export default function Tareas() {
     } catch { toast('No se pudo actualizar la tarea.', true) }
   }
 
->>>>>>> 
+
   async function save() {
     if (!form.title.trim()) { toast('El título de la tarea es obligatorio.', true); return }
     setSaving(true)
@@ -253,7 +253,7 @@ export default function Tareas() {
                   </div>
                 </div>
               </motion.div>
->>>>>>> 
+
             )
           })}
         </div>

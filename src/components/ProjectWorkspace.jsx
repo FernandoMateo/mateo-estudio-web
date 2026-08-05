@@ -50,7 +50,7 @@ function ProgressRing({ pct, glow, size = 118 }) {
 export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, onDelete, allowContribute = false }) {
 
 export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, allowContribute = false }) {
->>>>>>> 
+
   const toast = useToast()
   const canAddTasks = canManage || allowContribute
   const canUploadFiles = canManage || allowContribute
@@ -158,7 +158,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                   Editar
                 </button>
               )}
->>>>>>> 
+
             </div>
 
             <div className="flex items-start gap-5 flex-wrap sm:flex-nowrap mb-2">

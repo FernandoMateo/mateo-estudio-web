@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
->>>>>>> 
+
 
 export default function Usuarios() {
   const { me } = useOutletContext()
@@ -128,7 +128,7 @@ export default function Usuarios() {
       else msg = 'No se pudo crear la cuenta. Revisá los datos.'
 
       const msg = d.email?.message ? 'Ese correo ya tiene una cuenta.' : 'No se pudo crear la cuenta. Revisá los datos.'
->>>>>>> 
+
       toast(msg, true)
     } finally { setTeamSaving(false) }
   }
@@ -253,7 +253,7 @@ export default function Usuarios() {
                 </div>
 
                 <IconBtn onClick={() => delTeamMember(u)} danger title="Eliminar del equipo"><TrashIcon /></IconBtn>
->>>>>>> 
+
               )}
             </div>
           ))}

@@ -29,7 +29,7 @@ export default function Login() {
       nav((data.record?.role === 'cliente' || data.record?.role === 'colaborador') ? '/portal' : '/app')
 
       nav(data.record?.role === 'cliente' ? '/portal' : '/app')
->>>>>>> 
+
     } catch {
       setError('No se pudo conectar con el servidor. Verifica tu conexión.')
       setLoading(false)

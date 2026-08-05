@@ -225,7 +225,7 @@ export default function Proyectos() {
               </motion.div>
             )
           })}
->>>>>>> 
+
         </div>
       )}
 
@@ -236,7 +236,7 @@ export default function Proyectos() {
         onDelete={(p) => { setWorkspaceProject(null); del(p) }} />
 
         onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }} />
->>>>>>> 
+
 
       <Modal open={open} onClose={() => setOpen(false)}>
         <ModalHead title={editId ? 'Editar proyecto' : 'Nuevo proyecto'} onClose={() => setOpen(false)} />
