@@ -13,7 +13,7 @@ const COLUMNS = [
   { key: 'en_progreso', label: 'En progreso', color: '#FBBF24' },
   { key: 'completada', label: 'Completadas', color: '#34D399' },
 ]
-=======
+
 import { Modal, ModalHead, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, FilterTabs, Select } from '../components/ui'
 import TaskComments from '../components/TaskComments'
 
@@ -41,7 +41,7 @@ export default function Tareas() {
   const [search, setSearch] = useState('')
 
   const [assigneeFilter, setAssigneeFilter] = useState('todas')
-=======
+
   const [filter, setFilter] = useState('todas')
 >>>>>>> 
   const [open, setOpen] = useState(false)
@@ -60,7 +60,7 @@ export default function Tareas() {
   const filtered = tasks.filter(t => {
 
     if (assigneeFilter !== 'todas' && t.assigned_to !== assigneeFilter) return false
-=======
+
     if (filter !== 'todas' && t.status !== filter) return false
 >>>>>>> 
     const q = search.toLowerCase().trim()
@@ -86,7 +86,7 @@ export default function Tareas() {
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
 
-=======
+
   async function toggle(t) {
     const newStatus = t.status === 'completada' ? 'pendiente' : 'completada'
     try {
@@ -212,7 +212,7 @@ export default function Tareas() {
                   </div>
                 )}
               </div>
-=======
+
       <FilterTabs tabs={TABS} value={filter} onChange={setFilter} />
       {!tasks.length ? (
         <EmptyState title="Sin tareas todavía" text='Crea la primera con "Nueva tarea" y asígnale responsable, prioridad y fecha.' />

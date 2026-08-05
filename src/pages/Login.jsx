@@ -27,7 +27,7 @@ export default function Login() {
       setAuth({ token: data.token, record: data.record })
 
       nav((data.record?.role === 'cliente' || data.record?.role === 'colaborador') ? '/portal' : '/app')
-=======
+
       nav(data.record?.role === 'cliente' ? '/portal' : '/app')
 >>>>>>> 
     } catch {

@@ -48,7 +48,7 @@ function ProgressRing({ pct, glow, size = 118 }) {
  */
 
 export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, onDelete, allowContribute = false }) {
-=======
+
 export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, allowContribute = false }) {
 >>>>>>> 
   const toast = useToast()
@@ -151,7 +151,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                   </button>
                 )}
               </div>
-=======
+
               {canManage && onEdit && (
                 <button onClick={() => onEdit(project)} className="btn-ghost !py-1.5 !px-3 text-[12px]">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>

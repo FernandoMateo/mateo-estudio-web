@@ -171,7 +171,7 @@ export default function Proyectos() {
                 <ProjectCarousel3D projects={projs} onOpen={setWorkspaceProject} />
               </div>
             ))}
-=======
+
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(300px,100%),1fr))' }}>
           {filtered.map((p, i) => {
             const prog = PHASE_PROGRESS[p.phase] ?? Math.max(0, Math.min(100, Number(p.progress) || 0))
@@ -234,7 +234,7 @@ export default function Proyectos() {
 
         onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }}
         onDelete={(p) => { setWorkspaceProject(null); del(p) }} />
-=======
+
         onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }} />
 >>>>>>> 
 

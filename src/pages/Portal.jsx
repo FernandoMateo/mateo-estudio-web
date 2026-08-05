@@ -164,7 +164,7 @@ export default function Portal() {
     if (!auth?.token || !auth?.record) { nav('/'); return }
 
     if (auth.record.role !== 'cliente' && auth.record.role !== 'colaborador') { nav('/app'); return }
-=======
+
     if (auth.record.role !== 'cliente') { nav('/app'); return }
 >>>>>>> 
     loadAll()

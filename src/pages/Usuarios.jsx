@@ -5,7 +5,7 @@ import { list, createRec, updateRec, removeRec, PB_URL, logActivity } from '../l
 import { useToast } from '../context/ToastContext'
 
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
-=======
+
 import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 >>>>>>> 
 
@@ -126,7 +126,7 @@ export default function Usuarios() {
       else if (Object.keys(d).length) msg = `No se pudo crear: ${Object.values(d)[0]?.message}`
       else if (teamForm.role === 'colaborador') msg = 'No se pudo crear la cuenta. Si es la primera vez que creás un "Colaborador", revisá que hayas agregado ese valor al campo "role" en PocketBase (Collections → users → Fields → role).'
       else msg = 'No se pudo crear la cuenta. Revisá los datos.'
-=======
+
       const msg = d.email?.message ? 'Ese correo ya tiene una cuenta.' : 'No se pudo crear la cuenta. Revisá los datos.'
 >>>>>>> 
       toast(msg, true)
@@ -251,7 +251,7 @@ export default function Usuarios() {
                   <IconBtn onClick={() => openEditUser(u)} title="Editar"><EditIcon /></IconBtn>
                   <IconBtn onClick={() => delTeamMember(u)} danger title="Eliminar del equipo"><TrashIcon /></IconBtn>
                 </div>
-=======
+
                 <IconBtn onClick={() => delTeamMember(u)} danger title="Eliminar del equipo"><TrashIcon /></IconBtn>
 >>>>>>> 
               )}
