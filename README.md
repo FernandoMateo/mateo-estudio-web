@@ -870,7 +870,6 @@ Cuando la red fallaba y no había nada guardado en caché todavía para ese pedi
 3. Desplegar como siempre
 4. El paso de siempre: cerrá del todo la app una vez y volvela a abrir, para que el Service Worker corregido tome control
 
-
 ---
 
 ## Corrección: titileo infinito en el Portal (colaborador) + mejor diagnóstico al crear usuarios
@@ -920,4 +919,3 @@ Te recomendé esto porque con Proyectos ya asignados por persona, ver todo en un
 ### 3. Proyectos agrupados por cliente, con el mismo carrusel del Portal
 
 En el admin, los proyectos ahora se agrupan por cliente — cada uno con su propio carrusel 3D deslizable, igual al que ve el cliente en su Portal. Como el carrusel prioriza mostrar el proyecto bien grande al tocarlo, el cambio rápido de fase y los íconos de editar/eliminar que estaban en la tarjeta se movieron *adentro* del detalle del proyecto (botón "Eliminar" nuevo, al lado de "Editar").
-
