@@ -1,0 +1,29 @@
+[
+  {
+    "id": "pbc_services_0001",
+    "name": "services",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_sv_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "hidden": false, "id": "text_sv_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_sv_category", "max": 0, "min": 0, "name": "category", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "num_sv_price", "max": null, "min": null, "name": "price", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_sv_billing", "maxSelect": 1, "name": "billing_type", "presentable": false, "required": false, "system": false, "type": "select", "values": ["unico", "por_hora", "mensual", "trimestral", "anual"] },
+      { "hidden": false, "id": "text_sv_desc", "max": 0, "min": 0, "name": "description", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "bool_sv_active", "name": "active", "presentable": false, "required": false, "system": false, "type": "bool" },
+      { "hidden": false, "id": "sel_sv_curr", "maxSelect": 1, "name": "price_currency", "presentable": false, "required": false, "system": false, "type": "select", "values": ["ARS", "USD"] },
+      { "hidden": false, "id": "num_sv_pricefx", "max": null, "min": null, "name": "price_fx_rate", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_sv_pricears", "max": null, "min": null, "name": "price_ars", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "text_sv_icon", "max": 4, "min": 0, "name": "icon", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "auto_sv_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_sv_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]

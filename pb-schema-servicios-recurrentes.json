@@ -1,0 +1,57 @@
+[
+  {
+    "id": "pbc_services_0001",
+    "name": "services",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_sv_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "hidden": false, "id": "text_sv_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_sv_category", "max": 0, "min": 0, "name": "category", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_sv_billing", "maxSelect": 1, "name": "billing_type", "presentable": false, "required": false, "system": false, "type": "select", "values": ["unico", "mensual", "trimestral", "anual"] },
+      { "hidden": false, "id": "text_sv_desc", "max": 0, "min": 0, "name": "description", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "bool_sv_active", "name": "active", "presentable": false, "required": false, "system": false, "type": "bool" },
+      { "hidden": false, "id": "text_sv_icon", "max": 4, "min": 0, "name": "icon", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "auto_sv_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_sv_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_projects_0001",
+    "name": "projects",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_pr_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "hidden": false, "id": "text_pr_name", "max": 0, "min": 0, "name": "name", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "cascadeDelete": false, "collectionId": "pbc_clients_00001", "hidden": false, "id": "rel_pr_client", "maxSelect": 1, "minSelect": 0, "name": "client", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_pr_desc", "max": 0, "min": 0, "name": "description", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_pr_status", "maxSelect": 1, "name": "status", "presentable": false, "required": false, "system": false, "type": "select", "values": ["propuesta", "en_progreso", "pausado", "completado", "cancelado"] },
+      { "hidden": false, "id": "sel_pr_phase", "maxSelect": 1, "name": "phase", "presentable": false, "required": false, "system": false, "type": "select", "values": ["descubrimiento", "diseno", "desarrollo", "revision", "entrega"] },
+      { "hidden": false, "id": "date_pr_start", "max": "", "min": "", "name": "start_date", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "date_pr_due", "max": "", "min": "", "name": "due_date", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "num_pr_budget", "max": null, "min": null, "name": "budget", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_pr_progress", "max": 100, "min": 0, "name": "progress", "onlyInt": true, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_pr_budgetcur", "maxSelect": 1, "name": "budget_currency", "presentable": false, "required": false, "system": false, "type": "select", "values": ["ARS", "USD", "MXN"] },
+      { "hidden": false, "id": "num_pr_budgetfx", "max": null, "min": null, "name": "budget_fx_rate", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_pr_budgetars", "max": null, "min": null, "name": "budget_ars", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "cascadeDelete": false, "collectionId": "pbc_services_0001", "hidden": false, "id": "rel_pr_service", "maxSelect": 1, "minSelect": 0, "name": "service", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "date_pr_renewal", "max": "", "min": "", "name": "next_renewal_date", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "bool_pr_renewalalert", "name": "renewal_alerted", "presentable": false, "required": false, "system": false, "type": "bool" },
+      { "hidden": false, "id": "auto_pr_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_pr_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]
