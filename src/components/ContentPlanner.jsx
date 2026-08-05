@@ -23,6 +23,8 @@ function fmtShort(d) { return d ? d.toLocaleDateString('es-AR', { day: 'numeric'
 
 const emptyPostForm = { title: '', copy: '', hashtags: '' }
 
+/** canManage=true (admin/equipo): crea semanas y publicaciones, las manda a aprobar.
+ *  canManage=false (cliente/colaborador): solo aprueba o rechaza lo que ya le enviaron. */
 export default function ContentPlanner({ projectId, clientId, canManage }) {
   const toast = useToast()
   const [plans, setPlans] = useState([])
@@ -33,7 +35,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
   const [planForm, setPlanForm] = useState({ name: '', start_date: '' })
   const [planSaving, setPlanSaving] = useState(false)
 
-  const [postModal, setPostModal] = useState(null) 
+  const [postModal, setPostModal] = useState(null) // { planId, dayIndex, post }
   const [postForm, setPostForm] = useState(emptyPostForm)
   const [postImage, setPostImage] = useState(null)
   const [postImagePreview, setPostImagePreview] = useState('')
@@ -104,13 +106,9 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
       if (sendForApproval) fd.append('status', 'enviado')
       let saved
       if (postModal.post) {
-        // 🔥 Aseguramos que el día de la semana no se pierda en la actualización si faltaba
-        fd.append('day_index', postModal.dayIndex.toString())
         saved = await updateRec('content_posts', postModal.post.id, fd, true)
       } else {
-        fd.append('plan', postModal.planId); 
-        // 🔥 Blindamos el envío del número 0 como texto para que FormData no lo evapore
-        fd.append('day_index', postModal.dayIndex.toString())
+        fd.append('plan', postModal.planId); fd.append('day_index', postModal.dayIndex)
         if (!sendForApproval) fd.append('status', 'borrador')
         saved = await createRec('content_posts', fd, true)
       }
@@ -150,8 +148,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
     } catch { toast('No se pudo registrar tu decisión.', true) } finally { setPostSaving(false) }
   }
 
-  // 🔥 SOLUCIÓN: Convertimos p.day_index a Number() para evitar que el renderizado de la UI lo oculte
-  const postsByPlanDay = (planId, day) => posts.find(p => p.plan === planId && Number(p.day_index) === day)
+  const postsByPlanDay = (planId, day) => posts.find(p => p.plan === planId && p.day_index === day)
 
   if (loading) return <p className="text-[12.5px] text-white/35">Cargando planificador…</p>
 
