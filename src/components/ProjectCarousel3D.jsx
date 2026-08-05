@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const STATUS_GLOW = {
-  en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185',
-}
-
 /**
  * Carrusel "coverflow" en 3D: la tarjeta central queda de frente y grande,
  * las de al lado se inclinan en perspectiva y se atenúan. Tocar una tarjeta
  * lateral la trae al centro; tocar la central abre el proyecto.
  */
-export default function ProjectCarousel3D({ projects, onOpen }) {
+export default function ProjectCarousel3D({ projects, onOpen, accent = '#8B5CF6' }) {
+  const STATUS_GLOW = { en_progreso: accent, propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
   const [index, setIndex] = useState(0)
   if (!projects.length) return null
 

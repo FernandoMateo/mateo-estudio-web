@@ -8,7 +8,7 @@ import TaskComments from './TaskComments'
 import ContentPlanner from './ContentPlanner'
 import { Select } from './ui'
 
-const STATUS_GLOW = { en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
+const STATUS_GLOW_BASE = { propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
 const STATUS_ORDER = ['pendiente', 'en_progreso', 'completada']
 const STATUS_META = {
   pendiente: { label: 'Pendientes', color: '#A78BFA' },
@@ -46,7 +46,7 @@ function ProgressRing({ pct, glow, size = 118 }) {
  * clientName: nombre del cliente a mostrar (el admin ve varios clientes distintos).
  * onEdit: si se pasa, muestra un botón "Editar" que dispara esta función (abre el formulario completo).
  */
-export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, onDelete, allowContribute = false }) {
+export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, onDelete, allowContribute = false, accent = '#8B5CF6' }) {
   const toast = useToast()
   const canAddTasks = canManage || allowContribute
   const canUploadFiles = canManage || allowContribute
@@ -63,7 +63,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
   const [taskCreatedFlash, setTaskCreatedFlash] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editForm, setEditForm] = useState({ title: '', description: '', status: 'pendiente' })
-  const glow = STATUS_GLOW[project?.status] || '#8B5CF6'
+  const glow = project?.status === 'en_progreso' ? accent : (STATUS_GLOW_BASE[project?.status] || accent)
   const statusCounts = tasks.reduce((acc, t) => { const s = t.status || 'pendiente'; acc[s] = (acc[s] || 0) + 1; return acc }, {})
 
   const loadTasks = () => project && list('tasks', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created').then(setTasks).catch(() => setTasks([]))

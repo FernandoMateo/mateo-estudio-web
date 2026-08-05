@@ -120,3 +120,31 @@ select.field option { background: #0A0A10; color: #EDEBF6; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity: .04; mix-blend-mode: overlay;
 }
+
+/* ── Tema dinámico del Portal: el cliente elige su color, y estos reemplazan
+   al violeta "de marca" SOLO adentro del Portal — nunca en el admin. Los
+   colores de estado (verde/rojo/ámbar) quedan siempre iguales, por claridad. ── */
+.portal-page {
+  --pa: #8B5CF6;
+  --pa-l: #A78BFA;
+}
+.portal-page .btn-glass {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pa) 60%, transparent), color-mix(in srgb, var(--pa-l) 38%, transparent)) !important;
+  border-color: color-mix(in srgb, var(--pa-l) 75%, transparent) !important;
+}
+.portal-page .btn-glass:hover {
+  border-color: color-mix(in srgb, var(--pa-l) 95%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pa-l) 30%, transparent), 0 0 26px color-mix(in srgb, var(--pa) 55%, transparent), 0 4px 20px color-mix(in srgb, var(--pa) 30%, transparent) !important;
+}
+.portal-page .text-gradient {
+  background-image: linear-gradient(90deg, var(--pa-l), var(--pa)) !important;
+}
+.portal-page .text-violet-light { color: var(--pa-l) !important; }
+.portal-page .border-violet-light\/30,
+.portal-page .border-violet-light\/40,
+.portal-page .border-violet-light\/50 { border-color: color-mix(in srgb, var(--pa-l) 45%, transparent) !important; }
+.portal-page .bg-violet\/\[\.14\],
+.portal-page .bg-violet\/\[\.1\],
+.portal-page .bg-violet\/\[\.12\] { background: color-mix(in srgb, var(--pa) 14%, transparent) !important; }
+.portal-page .border-violet\/30,
+.portal-page .border-violet\/40 { border-color: color-mix(in srgb, var(--pa) 35%, transparent) !important; }

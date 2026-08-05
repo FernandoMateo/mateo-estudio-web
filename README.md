@@ -919,3 +919,19 @@ Te recomendé esto porque con Proyectos ya asignados por persona, ver todo en un
 ### 3. Proyectos agrupados por cliente, con el mismo carrusel del Portal
 
 En el admin, los proyectos ahora se agrupan por cliente — cada uno con su propio carrusel 3D deslizable, igual al que ve el cliente en su Portal. Como el carrusel prioriza mostrar el proyecto bien grande al tocarlo, el cambio rápido de fase y los íconos de editar/eliminar que estaban en la tarjeta se movieron *adentro* del detalle del proyecto (botón "Eliminar" nuevo, al lado de "Editar").
+
+---
+
+## Portal con color a elección del cliente, y bienvenida con recorrido
+
+**Sin cambios de esquema** — ya tenías el campo `brand_color` en clientes desde hace rato, ahora sí se usa de verdad en todo el Portal.
+
+### Cómo decidí el alcance del color
+
+El violeta "de identidad" (botones principales, degradés, la pestaña activa, el brillo de fondo) se reemplaza por el color que elija el cliente. **Los colores de estado quedan siempre iguales** — verde para aprobado, rojo para rechazado, ámbar para pendiente — sin importar qué color elija, porque si no perderían su significado (imaginate que el cliente elige rojo: "rechazado" ya no se distinguiría de su propio color de marca). Esto aplica **solo al Portal** — el panel del admin sigue siendo violeta siempre, sin excepción.
+
+### Primer ingreso: bienvenida + recorrido + elegir color
+
+La primera vez que un cliente entra a su portal (técnicamente: mientras no tenga un color guardado todavía), se le abre automáticamente una bienvenida con 3 pantallas cortas explicando qué puede hacer — proyectos, cotizaciones, facturas — y al final le preguntamos **"¿De qué color te gustaría tu portal?"** con 8 colores predefinidos + la opción de elegir uno personalizado. Apenas confirma, se guarda y el Portal entero cambia de color al instante, sin recargar.
+
+Si en algún momento quiere cambiarlo, ya podía hacerlo desde siempre en **Mis datos** — eso no cambió, sigue funcionando igual.
