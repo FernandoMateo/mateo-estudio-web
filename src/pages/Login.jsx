@@ -25,7 +25,11 @@ export default function Login() {
       const data = await res.json()
       if (!res.ok) { setError('Correo o contraseña incorrectos. Revisa tus datos e inténtalo de nuevo.'); setLoading(false); return }
       setAuth({ token: data.token, record: data.record })
+
       nav((data.record?.role === 'cliente' || data.record?.role === 'colaborador') ? '/portal' : '/app')
+=======
+      nav(data.record?.role === 'cliente' ? '/portal' : '/app')
+>>>>>>> 
     } catch {
       setError('No se pudo conectar con el servidor. Verifica tu conexión.')
       setLoading(false)

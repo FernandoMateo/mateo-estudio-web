@@ -162,7 +162,11 @@ export default function Portal() {
 
   useEffect(() => {
     if (!auth?.token || !auth?.record) { nav('/'); return }
+
     if (auth.record.role !== 'cliente' && auth.record.role !== 'colaborador') { nav('/app'); return }
+=======
+    if (auth.record.role !== 'cliente') { nav('/app'); return }
+>>>>>>> 
     loadAll()
   }, [])
 
