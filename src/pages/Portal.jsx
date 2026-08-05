@@ -16,6 +16,7 @@ import InstallPrompt from '../components/InstallPrompt'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
+import WelcomeTour from '../components/WelcomeTour'
 import Logo from '../components/Logo'
 import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import ProjectWorkspace from '../components/ProjectWorkspace'
@@ -31,11 +32,11 @@ const TABS = [
 ]
 
 /* ── Fondo aurora intensificado, exclusivo del portal ── */
-function PortalAurora() {
+function PortalAurora({ accent = '#8B5CF6' }) {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
       <div className="absolute w-[70vw] h-[70vw] rounded-full blur-[130px] animate-aurora"
-        style={{ top: '-20%', left: '-15%', background: 'radial-gradient(circle, rgba(139,92,246,.4), transparent 65%)' }} />
+        style={{ top: '-20%', left: '-15%', background: `radial-gradient(circle, ${accent}66, transparent 65%)` }} />
       <div className="absolute w-[55vw] h-[55vw] rounded-full blur-[140px] animate-aurora-2"
         style={{ bottom: '-25%', right: '-12%', background: 'radial-gradient(circle, rgba(244,114,240,.22), transparent 65%)' }} />
       <div className="absolute w-[45vw] h-[45vw] rounded-full blur-[120px] animate-aurora"
@@ -43,6 +44,16 @@ function PortalAurora() {
       <div className="absolute inset-0 grain-overlay opacity-[.05]" />
     </div>
   )
+}
+
+/* ── Aclara un color hex un % dado (para armar el degradé del color elegido) ── */
+function lightenHex(hex, pct) {
+  const n = parseInt(hex.slice(1), 16)
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+  r = Math.round(r + (255 - r) * (pct / 100))
+  g = Math.round(g + (255 - g) * (pct / 100))
+  b = Math.round(b + (255 - b) * (pct / 100))
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
 }
 
 /* ── Anillo de progreso con animación de carga ── */
@@ -133,6 +144,7 @@ export default function Portal() {
   const [dataForm, setDataForm] = useState({ contact_name: '', email: '', phone: '', website: '', instagram: '', facebook: '' })
   const [dataSaving, setDataSaving] = useState(false)
   const [brandColor, setBrandColor] = useState('#8B5CF6')
+  const [showWelcome, setShowWelcome] = useState(false)
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState('')
 
@@ -162,7 +174,7 @@ export default function Portal() {
 
   useEffect(() => {
     if (!auth?.token || !auth?.record) { nav('/'); return }
-    if (auth.record.role !== 'cliente') { nav('/app'); return }
+    if (auth.record.role !== 'cliente' && auth.record.role !== 'colaborador') { nav('/app'); return }
     loadAll()
   }, [])
 
@@ -173,6 +185,7 @@ export default function Portal() {
       const mine = cs[0] || null
       setClient(mine)
       if (mine) {
+        if (!mine.brand_color) setShowWelcome(true)
         setDataForm({
           contact_name: mine.contact_name || '', email: mine.email || '', phone: mine.phone || '',
           website: mine.website || '', instagram: mine.instagram || '', facebook: mine.facebook || '',
@@ -387,9 +400,28 @@ export default function Portal() {
     )
   }
 
+  if (!client) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 text-center">
+        <PortalAurora />
+        <div className="max-w-[340px]">
+          <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(251,113,133,.12)', border: '1px solid rgba(251,113,133,.35)' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FB7185" strokeWidth="1.8"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>
+          </div>
+          <h1 className="text-[16px] font-bold mb-2">Tu cuenta no tiene un cliente vinculado</h1>
+          <p className="text-[13px] text-white/45 leading-relaxed mb-5">Esto puede pasar si tu acceso todavía no quedó bien configurado. Avisale a tu equipo de Mateo Estudio para que lo revisen.</p>
+          <button onClick={() => { clearAuth(); nav('/') }} className="btn-ghost">Salir</button>
+        </div>
+      </div>
+    )
+  }
+
+  const accent = (client?.brand_color && /^#[0-9a-f]{6}$/i.test(client.brand_color)) ? client.brand_color : '#8B5CF6'
+  const accentLight = lightenHex(accent, 22)
+
   return (
-    <div className="min-h-screen relative">
-      <PortalAurora />
+    <div className="min-h-screen relative portal-page" style={{ '--pa': accent, '--pa-l': accentLight }}>
+      <PortalAurora accent={accent} />
 
       {/* ── Encabezado ── */}
       <header className="max-w-[1080px] mx-auto px-4 md:px-8 pt-7 pb-2">
@@ -425,7 +457,7 @@ export default function Portal() {
                 ${tab === key ? 'text-white' : 'text-white/45 hover:text-white/80'}`}>
               {tab === key && (
                 <motion.span layoutId="portal-tab" transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-                  className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-violet-dark to-violet-light shadow-[0_0_18px_rgba(139,92,246,.55)]" />
+                  className="absolute inset-0 -z-10 rounded-full" style={{ background: `linear-gradient(90deg, ${accent}, ${accentLight})`, boxShadow: `0 0 18px ${accent}90` }} />
               )}
               {label}
               {key === 'facturas' && pendingInvoices.length > 0 && (
@@ -476,7 +508,7 @@ export default function Portal() {
                       <p className="text-[12.5px] text-white/40 mt-1.5">En cuanto arranquemos, vas a verlo acá con su avance en tiempo real.</p>
                     </div>
                   ) : (
-                    <ProjectCarousel3D projects={projects} onOpen={setWorkspaceProject} />
+                    <ProjectCarousel3D projects={projects} onOpen={setWorkspaceProject} accent={accent} />
                   )}
                 </div>
 
@@ -909,7 +941,7 @@ export default function Portal() {
       <CatalogViewer open={catalogViewOpen} onClose={() => setCatalogViewOpen(false)} items={catalogItems} client={client} autoPrint={catalogAutoPrint} />
 
       {/* ── Detalle individual de un proyecto: pantalla completa con pestañas ── */}
-      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} allowContribute />
+      <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} allowContribute accent={accent} />
 
       {/* ── Detalle de una tarea, con comentarios ── */}
       <Modal open={!!viewingTask} onClose={() => setViewingTask(null)}>
@@ -956,6 +988,13 @@ export default function Portal() {
           </motion.button>
         </div>
       </Modal>
+
+      {showWelcome && client && (
+        <WelcomeTour client={client} onDone={(color) => {
+          setClient(c => ({ ...c, brand_color: color })); setBrandColor(color); setShowWelcome(false)
+        }} />
+      )}
+
       <InstallPrompt />
     </div>
   )

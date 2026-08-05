@@ -869,3 +869,69 @@ Cuando la red fallaba y no había nada guardado en caché todavía para ese pedi
 2. `npm install && npm run build`
 3. Desplegar como siempre
 4. El paso de siempre: cerrá del todo la app una vez y volvela a abrir, para que el Service Worker corregido tome control
+
+---
+
+## Corrección: titileo infinito en el Portal (colaborador) + mejor diagnóstico al crear usuarios
+
+**Sin cambios de esquema** — solo código.
+
+### El titileo — causa real encontrada
+
+Era un bug mío al agregar el rol "Colaborador": lo dejé bien resuelto en `AppLayout` (mandaba a colaborador de `/app` hacia `/portal`), pero me olvidé de dos lugares más:
+- `Login.jsx` seguía mandando a cualquiera que no fuera exactamente "cliente" hacia `/app` — incluido colaborador.
+- `Portal.jsx` seguía rechazando a cualquiera que no fuera exactamente "cliente" y lo mandaba de vuelta a `/app`.
+
+Resultado: colaborador entraba, `/app` lo mandaba a `/portal`, `/portal` lo mandaba de vuelta a `/app`, y así sin parar — de ahí el titileo, era literalmente la pantalla rebotando entre dos rutas todo el tiempo. Ya corregido en los tres lugares.
+
+### El error al crear el usuario
+
+No pude confirmar la causa exacta porque el error que me pasaste venía vacío (`"data":{}`), sin detalle del campo. Mejoré el mensaje para que la próxima vez sea específico. Mientras tanto, la causa más probable si estabas creando un **Colaborador**: falta el paso manual de agregar ese valor al campo `role` en PocketBase.
+
+**Revisá este paso** (no se puede hacer por import, es la colección de autenticación):
+1. PocketBase → Collections → **users** → Fields
+2. Abrí el campo **`role`**
+3. En "Select values", confirmá que esté la línea **`colaborador`** (si no está, agregala)
+4. Guardá
+
+Si ya lo tenías hecho y el error sigue, mandame el mensaje nuevo (ahora bien específico) y lo resuelvo directo.
+
+### Para aplicar
+
+1. `npm install && npm run build`
+2. Desplegar como siempre
+3. Cerrá y volvé a abrir la app una vez
+
+---
+
+## Control total de usuarios, tablero Kanban de tareas, y proyectos agrupados por cliente
+
+**Sin cambios de esquema** — solo código.
+
+### 1. Control total sobre usuarios
+
+En Usuarios → cada persona del equipo ahora tiene 3 acciones: **cambiar contraseña** (al instante, sin pedirle la anterior), **editar** (nombre, correo, rol — y si lo cambiás a Colaborador, a qué cliente accede), y **eliminar** (ya existía). Si cambiás el cliente de un colaborador, lo desvincula del anterior automáticamente.
+
+### 2. Tareas: pasé de lista a tablero Kanban
+
+Te recomendé esto porque con Proyectos ya asignados por persona, ver todo en una lista larga se vuelve difícil de organizar de un vistazo. Ahora son **3 columnas** (Pendientes / En progreso / Completadas) — cada tarjeta se mueve entre columnas con las flechitas ◀▶, sin necesidad de abrir nada. Arriba, un filtro por persona asignada para que cada uno (o vos) pueda ver solo lo suyo. En mobile, las columnas se apilan en vertical.
+
+### 3. Proyectos agrupados por cliente, con el mismo carrusel del Portal
+
+En el admin, los proyectos ahora se agrupan por cliente — cada uno con su propio carrusel 3D deslizable, igual al que ve el cliente en su Portal. Como el carrusel prioriza mostrar el proyecto bien grande al tocarlo, el cambio rápido de fase y los íconos de editar/eliminar que estaban en la tarjeta se movieron *adentro* del detalle del proyecto (botón "Eliminar" nuevo, al lado de "Editar").
+
+---
+
+## Portal con color a elección del cliente, y bienvenida con recorrido
+
+**Sin cambios de esquema** — ya tenías el campo `brand_color` en clientes desde hace rato, ahora sí se usa de verdad en todo el Portal.
+
+### Cómo decidí el alcance del color
+
+El violeta "de identidad" (botones principales, degradés, la pestaña activa, el brillo de fondo) se reemplaza por el color que elija el cliente. **Los colores de estado quedan siempre iguales** — verde para aprobado, rojo para rechazado, ámbar para pendiente — sin importar qué color elija, porque si no perderían su significado (imaginate que el cliente elige rojo: "rechazado" ya no se distinguiría de su propio color de marca). Esto aplica **solo al Portal** — el panel del admin sigue siendo violeta siempre, sin excepción.
+
+### Primer ingreso: bienvenida + recorrido + elegir color
+
+La primera vez que un cliente entra a su portal (técnicamente: mientras no tenga un color guardado todavía), se le abre automáticamente una bienvenida con 3 pantallas cortas explicando qué puede hacer — proyectos, cotizaciones, facturas — y al final le preguntamos **"¿De qué color te gustaría tu portal?"** con 8 colores predefinidos + la opción de elegir uno personalizado. Apenas confirma, se guarda y el Portal entero cambia de color al instante, sin recargar.
+
+Si en algún momento quiere cambiarlo, ya podía hacerlo desde siempre en **Mis datos** — eso no cambió, sigue funcionando igual.

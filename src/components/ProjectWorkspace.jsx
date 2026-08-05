@@ -8,7 +8,7 @@ import TaskComments from './TaskComments'
 import ContentPlanner from './ContentPlanner'
 import { Select } from './ui'
 
-const STATUS_GLOW = { en_progreso: '#8B5CF6', propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
+const STATUS_GLOW_BASE = { propuesta: '#60A5FA', pausado: '#FBBF24', completado: '#34D399', cancelado: '#FB7185' }
 const STATUS_ORDER = ['pendiente', 'en_progreso', 'completada']
 const STATUS_META = {
   pendiente: { label: 'Pendientes', color: '#A78BFA' },
@@ -46,7 +46,7 @@ function ProgressRing({ pct, glow, size = 118 }) {
  * clientName: nombre del cliente a mostrar (el admin ve varios clientes distintos).
  * onEdit: si se pasa, muestra un botón "Editar" que dispara esta función (abre el formulario completo).
  */
-export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, allowContribute = false }) {
+export default function ProjectWorkspace({ project, onClose, canManage = false, isAdmin = false, clientName, onEdit, onDelete, allowContribute = false, accent = '#8B5CF6' }) {
   const toast = useToast()
   const canAddTasks = canManage || allowContribute
   const canUploadFiles = canManage || allowContribute
@@ -63,7 +63,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
   const [taskCreatedFlash, setTaskCreatedFlash] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editForm, setEditForm] = useState({ title: '', description: '', status: 'pendiente' })
-  const glow = STATUS_GLOW[project?.status] || '#8B5CF6'
+  const glow = project?.status === 'en_progreso' ? accent : (STATUS_GLOW_BASE[project?.status] || accent)
   const statusCounts = tasks.reduce((acc, t) => { const s = t.status || 'pendiente'; acc[s] = (acc[s] || 0) + 1; return acc }, {})
 
   const loadTasks = () => project && list('tasks', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created').then(setTasks).catch(() => setTasks([]))
@@ -132,12 +132,20 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                 Volver
               </button>
-              {canManage && onEdit && (
-                <button onClick={() => onEdit(project)} className="btn-ghost !py-1.5 !px-3 text-[12px]">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-                  Editar
-                </button>
-              )}
+              <div className="flex gap-2">
+                {isAdmin && onDelete && (
+                  <button onClick={() => onDelete(project)} className="btn-ghost !py-1.5 !px-3 text-[12px] hover:!text-coral hover:!border-coral/40">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" /></svg>
+                    Eliminar
+                  </button>
+                )}
+                {canManage && onEdit && (
+                  <button onClick={() => onEdit(project)} className="btn-ghost !py-1.5 !px-3 text-[12px]">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                    Editar
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-start gap-5 flex-wrap sm:flex-nowrap mb-2">

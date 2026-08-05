@@ -6,6 +6,7 @@ import { PHASES, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
 import ProjectWorkspace from '../components/ProjectWorkspace'
+import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import { useFx, toArs } from '../context/FxContext'
 
 const STEPS = ['Básicos', 'Plan']
@@ -146,65 +147,34 @@ export default function Proyectos() {
       ) : !filtered.length ? (
         <p className="text-[12.5px] text-white/35 px-1">Sin resultados para "{search}".</p>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(300px,100%),1fr))' }}>
-          {filtered.map((p, i) => {
-            const prog = PHASE_PROGRESS[p.phase] ?? Math.max(0, Math.min(100, Number(p.progress) || 0))
-            const svcRecurring = BILLING_RECURRING[p.expand?.service?.billing_type]
-            const changingHere = changingPhaseId === p.id
-            return (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.3) }}
-                whileHover={{ y: -3 }} className="card !p-4 cursor-pointer flex flex-col" onClick={() => setWorkspaceProject(p)}>
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <ProjIcon />
-                  <Pill value={p.status || 'propuesta'} />
-                </div>
-
-                <div className="text-[14.5px] font-bold leading-snug mb-1">{p.name}</div>
-                <div className="text-[11.5px] text-white/40 mb-3">
-                  {[clientName(p), p.expand?.service?.name, isAdmin && p.expand?.assigned_to && `👤 ${p.expand.assigned_to.name || p.expand.assigned_to.email}`].filter(Boolean).join(' · ') || 'Sin cliente asignado'}
-                </div>
-
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-[10.5px] text-white/40 mb-1.5">
-                    <span>Progreso</span><span className="font-bold text-violet-light">{prog}%</span>
+        <div className="flex flex-col gap-8">
+          {Object.entries(
+            filtered.reduce((acc, p) => {
+              const key = p.client || '__sin_cliente__'
+              ;(acc[key] = acc[key] || []).push(p)
+              return acc
+            }, {})
+          )
+            .sort(([, a], [, b]) => (clientName(a[0]) || '').localeCompare(clientName(b[0]) || ''))
+            .map(([clientId, projs]) => (
+              <div key={clientId}>
+                <div className="flex items-center gap-2.5 mb-4 px-1">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet/[.12] border border-violet-light/25 flex-shrink-0">
+                    <svg className="w-[15px] h-[15px] text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                   </div>
-                  <div className="h-1.5 rounded-full bg-white/[.07] overflow-hidden">
-                    <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet-light to-neon-pink shadow-[0_0_10px_rgba(139,92,246,.6)]"
-                      initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 0.7, delay: 0.1 }} />
-                  </div>
+                  <h3 className="text-[14.5px] font-bold">{clientName(projs[0]) || 'Sin cliente asignado'}</h3>
+                  <span className="text-[10.5px] font-semibold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2 py-0.5">{projs.length}</span>
                 </div>
-
-                {(svcRecurring ? p.next_renewal_date : p.due_date) && (
-                  <div className="text-[10.5px] text-white/35 mb-3">
-                    {svcRecurring ? `Vence: ${p.next_renewal_date.slice(0, 10)}` : `Entrega: ${p.due_date.slice(0, 10)}`}
-                  </div>
-                )}
-
-                <div className="mt-auto pt-3 border-t border-white/[.06] flex items-center gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
-                  {canManage && (
-                    changingHere ? (
-                      <div className="w-[150px]"><Select value={p.phase} onChange={v => quickChangePhase(p, v)} options={PHASE_OPTIONS} /></div>
-                    ) : (
-                      <button onClick={() => setChangingPhaseId(p.id)}
-                        className="text-[11px] font-semibold text-violet-light bg-violet/[.1] border border-violet/30 rounded-lg px-2.5 py-1.5 hover:bg-violet/[.18] transition-colors whitespace-nowrap">
-                        {PHASES[p.phase] || 'Fase'} <span className="text-white/30">✎</span>
-                      </button>
-                    )
-                  )}
-                  <div className="flex gap-1.5 flex-shrink-0 ml-auto">
-                    <IconBtn onClick={() => openEdit(p)} title="Editar"><EditIcon /></IconBtn>
-                    {isAdmin && <IconBtn onClick={() => del(p)} danger title="Eliminar"><TrashIcon /></IconBtn>}
-                  </div>
-                </div>
-              </motion.div>
-            )
-          })}
+                <ProjectCarousel3D projects={projs} onOpen={setWorkspaceProject} />
+              </div>
+            ))}
         </div>
       )}
 
       <ProjectWorkspace project={workspaceProject} onClose={() => setWorkspaceProject(null)} canManage={canManage} isAdmin={isAdmin}
         clientName={workspaceProject ? clientName(workspaceProject) : ''}
-        onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }} />
+        onEdit={(p) => { setWorkspaceProject(null); openEdit(p) }}
+        onDelete={(p) => { setWorkspaceProject(null); del(p) }} />
 
       <Modal open={open} onClose={() => setOpen(false)}>
         <ModalHead title={editId ? 'Editar proyecto' : 'Nuevo proyecto'} onClose={() => setOpen(false)} />

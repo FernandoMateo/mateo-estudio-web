@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, PB_URL, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
-import { Modal, ModalHead, Field, Pill, Select, IconBtn, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
+import { Modal, ModalHead, Field, Pill, Select, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState } from '../components/ui'
 
 export default function Usuarios() {
   const { me } = useOutletContext()
@@ -24,6 +24,14 @@ export default function Usuarios() {
 
   const [teamOpen, setTeamOpen] = useState(false)
   const [teamForm, setTeamForm] = useState({ name: '', email: '', password: '', role: 'equipo', client: '' })
+  const [editUserOpen, setEditUserOpen] = useState(false)
+  const [editUserId, setEditUserId] = useState(null)
+  const [editUserForm, setEditUserForm] = useState({ name: '', email: '', role: 'equipo', client: '' })
+  const [editUserSaving, setEditUserSaving] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
+  const [pwUserId, setPwUserId] = useState(null)
+  const [pwValue, setPwValue] = useState('')
+  const [pwSaving, setPwSaving] = useState(false)
   const [teamSaving, setTeamSaving] = useState(false)
 
   const load = () => {
@@ -104,7 +112,13 @@ export default function Usuarios() {
       load()
     } catch (e) {
       const d = e?.data?.data || {}
-      const msg = d.email?.message ? 'Ese correo ya tiene una cuenta.' : 'No se pudo crear la cuenta. Revisá los datos.'
+      console.error('[Usuarios] Error al crear la cuenta:', e?.data || e)
+      let msg
+      if (d.email?.message) msg = 'Ese correo ya tiene una cuenta.'
+      else if (d.role?.message) msg = 'El rol elegido no está habilitado todavía en la base — revisá el paso manual del campo "role".'
+      else if (Object.keys(d).length) msg = `No se pudo crear: ${Object.values(d)[0]?.message}`
+      else if (teamForm.role === 'colaborador') msg = 'No se pudo crear la cuenta. Si es la primera vez que creás un "Colaborador", revisá que hayas agregado ese valor al campo "role" en PocketBase (Collections → users → Fields → role).'
+      else msg = 'No se pudo crear la cuenta. Revisá los datos.'
       toast(msg, true)
     } finally { setTeamSaving(false) }
   }
@@ -118,6 +132,40 @@ export default function Usuarios() {
       toast('Cuenta eliminada ✓'); load()
     }
     catch { toast('No se pudo eliminar.', true) }
+  }
+
+  function openEditUser(u) {
+    const linkedClient = clientsList.find(c => c.collaborator === u.id)
+    setEditUserId(u.id)
+    setEditUserForm({ name: u.name || '', email: u.email || '', role: u.role || 'equipo', client: linkedClient?.id || '' })
+    setEditUserOpen(true)
+  }
+  async function saveEditUser() {
+    if (!editUserForm.name.trim() || !editUserForm.email.trim()) { toast('Completá nombre y correo.', true); return }
+    if (editUserForm.role === 'colaborador' && !editUserForm.client) { toast('Elegí a qué cliente va a acceder.', true); return }
+    setEditUserSaving(true)
+    try {
+      await updateRec('users', editUserId, { name: editUserForm.name.trim(), email: editUserForm.email.trim(), role: editUserForm.role })
+      // Si cambió a colaborador (o cambió de cliente), lo desvinculamos de cualquier cliente anterior y lo linkeamos al nuevo.
+      const prevClient = clientsList.find(c => c.collaborator === editUserId)
+      if (prevClient && prevClient.id !== editUserForm.client) await updateRec('clients', prevClient.id, { collaborator: '' })
+      if (editUserForm.role === 'colaborador' && editUserForm.client) await updateRec('clients', editUserForm.client, { collaborator: editUserId })
+      logActivity({ action: 'actualizar', entity: 'usuario', entity_name: editUserForm.name.trim() })
+      toast('Usuario actualizado ✓'); setEditUserOpen(false); load()
+    } catch (e) {
+      const d = e?.data?.data || {}
+      toast(d.email?.message ? 'Ese correo ya lo usa otra cuenta.' : 'No se pudo guardar.', true)
+    } finally { setEditUserSaving(false) }
+  }
+
+  function openChangePassword(u) { setPwUserId(u.id); setPwValue(''); setPwOpen(true) }
+  async function saveChangePassword() {
+    if (!pwValue || pwValue.length < 8) { toast('La contraseña debe tener al menos 8 caracteres.', true); return }
+    setPwSaving(true)
+    try {
+      await updateRec('users', pwUserId, { password: pwValue, passwordConfirm: pwValue })
+      toast('Contraseña actualizada ✓'); setPwOpen(false)
+    } catch { toast('No se pudo cambiar la contraseña.', true) } finally { setPwSaving(false) }
   }
 
   return (
@@ -183,7 +231,13 @@ export default function Usuarios() {
                 <div className="text-[10.5px] text-violet-light/70 capitalize font-semibold">{u.role}</div>
               </div>
               {isAdmin && u.id !== me.id && (
-                <IconBtn onClick={() => delTeamMember(u)} danger title="Eliminar del equipo"><TrashIcon /></IconBtn>
+                <div className="flex gap-1 flex-shrink-0">
+                  <IconBtn onClick={() => openChangePassword(u)} title="Cambiar contraseña">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                  </IconBtn>
+                  <IconBtn onClick={() => openEditUser(u)} title="Editar"><EditIcon /></IconBtn>
+                  <IconBtn onClick={() => delTeamMember(u)} danger title="Eliminar del equipo"><TrashIcon /></IconBtn>
+                </div>
               )}
             </div>
           ))}
@@ -258,6 +312,42 @@ export default function Usuarios() {
           <button className="btn-ghost" onClick={() => setTeamOpen(false)}>Cancelar</button>
           <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={teamSaving} onClick={createTeamMember}>
             {teamSaving ? 'Creando…' : 'Crear cuenta ✦'}
+          </motion.button>
+        </div>
+      </Modal>
+
+      <Modal open={editUserOpen} onClose={() => setEditUserOpen(false)}>
+        <ModalHead title="Editar usuario" onClose={() => setEditUserOpen(false)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <Field label="Nombre *"><input className="field" value={editUserForm.name} onChange={e => setEditUserForm(f => ({ ...f, name: e.target.value }))} /></Field>
+          <Field label="Correo *"><input type="email" className="field" value={editUserForm.email} onChange={e => setEditUserForm(f => ({ ...f, email: e.target.value }))} /></Field>
+          <Field label="Rol" full>
+            <Select value={editUserForm.role} onChange={v => setEditUserForm(f => ({ ...f, role: v }))}
+              options={[{ value: 'equipo', label: 'Equipo' }, { value: 'admin', label: 'Admin' }, { value: 'colaborador', label: 'Colaborador de un cliente' }]} />
+          </Field>
+          {editUserForm.role === 'colaborador' && (
+            <Field label="¿Con qué cliente trabaja? *" full>
+              <Select value={editUserForm.client} onChange={v => setEditUserForm(f => ({ ...f, client: v }))} placeholder="Elegí un cliente…"
+                options={clientsList.map(c => ({ value: c.id, label: c.name }))} />
+            </Field>
+          )}
+        </div>
+        <div className="flex justify-end gap-2.5 mt-6">
+          <button className="btn-ghost" onClick={() => setEditUserOpen(false)}>Cancelar</button>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={editUserSaving} onClick={saveEditUser}>
+            {editUserSaving ? 'Guardando…' : 'Guardar cambios'}
+          </motion.button>
+        </div>
+      </Modal>
+
+      <Modal open={pwOpen} onClose={() => setPwOpen(false)}>
+        <ModalHead title="Cambiar contraseña" onClose={() => setPwOpen(false)} />
+        <p className="text-[12px] text-white/35 -mt-2 mb-4">Se cambia al instante — la persona va a tener que usar esta contraseña nueva la próxima vez que entre.</p>
+        <Field label="Contraseña nueva *"><input type="text" className="field" value={pwValue} onChange={e => setPwValue(e.target.value)} placeholder="Mínimo 8 caracteres" /></Field>
+        <div className="flex justify-end gap-2.5 mt-6">
+          <button className="btn-ghost" onClick={() => setPwOpen(false)}>Cancelar</button>
+          <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={pwSaving} onClick={saveChangePassword}>
+            {pwSaving ? 'Guardando…' : 'Cambiar contraseña'}
           </motion.button>
         </div>
       </Modal>
