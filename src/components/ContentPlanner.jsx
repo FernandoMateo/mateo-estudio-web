@@ -46,7 +46,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
 
   const load = () => {
     setLoading(true)
-    list('content_plans', '&filter=' + encodeURIComponent(`project="${projectId}"`) + '&sort=-start_date')
+    list('content_plans', '&filter=' + encodeURIComponent(`project="${projectId}"`) + '&sort=-start_date&expand=client')
       .then(async ps => {
         setPlans(ps)
         if (!ps.length) { setPosts([]); return }
@@ -185,6 +185,13 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
                   </button>
                 )}
               </div>
+
+              {canManage && !plan.client && (
+                <div className="flex items-center gap-2 mb-3.5 px-3 py-2 rounded-lg text-[11.5px] text-[#FCA5A5]" style={{ background: 'rgba(251,113,133,.08)', border: '1px solid rgba(251,113,133,.3)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="flex-shrink-0"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>
+                  Esta semana no tiene cliente vinculado — el cliente no la va a ver en su Portal. Borrala y creá una nueva.
+                </div>
+              )}
 
               <div className="flex gap-2.5 overflow-x-auto pb-1" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
                 {DAY_LABELS.map((label, i) => {
