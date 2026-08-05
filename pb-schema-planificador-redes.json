@@ -142,7 +142,7 @@
         "id": "num_po_day",
         "name": "day_index",
         "presentable": false,
-        "required": true,
+        "required": false,
         "system": false,
         "type": "number",
         "max": 6,
@@ -198,12 +198,7 @@
         "type": "file",
         "maxSelect": 1,
         "maxSize": 20971520,
-        "mimeTypes": [
-          "image/jpeg",
-          "image/png",
-          "image/webp",
-          "image/gif"
-        ],
+        "mimeTypes": [],
         "protected": false,
         "thumbs": [
           "400x400"

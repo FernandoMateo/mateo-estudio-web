@@ -118,7 +118,12 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
       }
       toast(sendForApproval ? '✦ Enviada para aprobación' : 'Guardado ✓')
       setPostModal(null); load()
-    } catch { toast('No se pudo guardar la publicación.', true) } finally { setPostSaving(false) }
+    } catch (e) {
+      const fieldErrors = e?.data?.data
+      const firstMsg = fieldErrors && Object.values(fieldErrors)[0]?.message
+      console.error('[Planificador] Error al guardar la publicación:', e?.data || e)
+      toast(firstMsg ? `No se pudo guardar: ${firstMsg}` : 'No se pudo guardar la publicación.', true)
+    } finally { setPostSaving(false) }
   }
 
   async function delPost() {
