@@ -400,7 +400,7 @@ export default function Portal() {
     )
   }
 
-<<<<<<< HEAD
+
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 text-center">
@@ -417,8 +417,6 @@ export default function Portal() {
     )
   }
 
-=======
->>>>>>> 6f263d3cc17d7f2ee30fb7e2475a0303f7a5176e
   const accent = (client?.brand_color && /^#[0-9a-f]{6}$/i.test(client.brand_color)) ? client.brand_color : '#8B5CF6'
   const accentLight = lightenHex(accent, 22)
 
