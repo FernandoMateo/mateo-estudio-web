@@ -51,7 +51,7 @@ export default function ProjectFiles({ projectId, canManage, projectName }) {
       fd.append('file', f)
       if (me?.id) fd.append('uploaded_by', me.id)
       await createRec('project_files', fd, true)
-      logActivity({ action: 'crear', entity: 'archivo', entity_name: name.trim() || f.name, summary: projectName ? `en el proyecto "${projectName}"` : '' })
+      logActivity({ action: 'crear', entity: 'archivo', entity_name: name.trim() || f.name, summary: projectName ? `en el proyecto "${projectName}"` : '', project: projectId })
       setName(''); toast('✦ Archivo subido'); load()
     } catch { toast('No se pudo subir el archivo.', true) }
     finally { setUploading(false); if (inputRef.current) inputRef.current.value = '' }

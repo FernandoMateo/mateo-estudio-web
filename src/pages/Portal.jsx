@@ -400,7 +400,6 @@ export default function Portal() {
     )
   }
 
-
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 text-center">

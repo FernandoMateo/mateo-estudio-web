@@ -111,9 +111,10 @@ export default function Proyectos() {
       body.budget_ars = bArs
     }
     try {
+      let pid = editId
       if (editId) await updateRec('projects', editId, body)
-      else await createRec('projects', body)
-      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'proyecto', entity_name: form.name.trim() })
+      else { const created = await createRec('projects', body); pid = created.id }
+      logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'proyecto', entity_name: form.name.trim(), project: pid })
       setOpen(false); toast(editId ? 'Proyecto actualizado ✓' : '✦ Proyecto creado con éxito'); load()
     } catch { toast('No se pudo guardar el proyecto.', true) } finally { setSaving(false) }
   }
@@ -124,7 +125,7 @@ export default function Proyectos() {
     setChangingPhaseId(null)
     try {
       await updateRec('projects', p.id, buildBody(phase))
-      logActivity({ action: 'actualizar', entity: 'proyecto', entity_name: p.name, summary: `cambió la fase a ${PHASES[phase]}` })
+      logActivity({ action: 'actualizar', entity: 'proyecto', entity_name: p.name, summary: `cambió la fase a ${PHASES[phase]}`, project: p.id })
     }
     catch { toast('No se pudo actualizar la fase.', true); load() }
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, fmtByCurrency, notifyUser } from '../lib/api'
+import { list, createRec, updateRec, fmtByCurrency, notifyUser, logActivity } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
 import ProjectFiles from './ProjectFiles'
@@ -54,6 +54,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
   const TABS = [['resumen', 'Resumen'], ['archivos', 'Archivos'], ['tareas', 'Tareas'], ...(isSocialProject ? [['planificador', 'Planificador']] : [])]
   const [tab, setTab] = useState('resumen')
   const [tasks, setTasks] = useState([])
+  const [activity, setActivity] = useState([])
   const [teamOptions, setTeamOptions] = useState([])
   const [expandedTask, setExpandedTask] = useState(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -73,6 +74,9 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
     setTab('resumen'); setExpandedTask(null); setNewTaskTitle(''); setNewTaskPriority('media')
     setNewTaskAssignee(project.assigned_to || '')
     loadTasks()
+    if (canManage) {
+      list('activity_log', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created&expand=user').then(setActivity).catch(() => setActivity([]))
+    }
     if (canAddTasks) {
       list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"') + '&sort=name').then(setTeamOptions).catch(() => setTeamOptions([]))
     }
@@ -98,6 +102,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
         status: 'pendiente', priority: newTaskPriority, assigned_to: newTaskAssignee || '', from_client: !canManage,
       })
       notifyAboutNewTask(newTaskAssignee, newTaskTitle.trim())
+      logActivity({ action: 'crear', entity: 'tarea', entity_name: newTaskTitle.trim(), project: project.id })
       setNewTaskTitle(''); setNewTaskPriority('media'); loadTasks()
       setTaskCreatedFlash(true); setTimeout(() => setTaskCreatedFlash(false), 1700)
     } catch { toast('No se pudo crear la tarea.', true) } finally { setAddingTask(false) }
@@ -112,6 +117,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
     if (!editForm.title.trim()) { toast('El título no puede quedar vacío.', true); return }
     try {
       await updateRec('tasks', taskId, { title: editForm.title.trim(), description: editForm.description.trim(), status: editForm.status })
+      logActivity({ action: 'actualizar', entity: 'tarea', entity_name: editForm.title.trim(), project: project.id })
       setEditingTaskId(null); toast('Tarea actualizada ✓'); loadTasks()
     } catch { toast('No se pudieron guardar los cambios.', true) }
   }
@@ -203,6 +209,36 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
                       )
                     })}
                   </div>
+
+                  {canManage && (
+                    <div className="mt-7 pt-6 border-t border-white/[.06]">
+                      <div className="text-[10.5px] uppercase font-bold tracking-[.1em] text-white/35 mb-4">Historial del proyecto</div>
+                      {!activity.length ? (
+                        <p className="text-[12px] text-white/30">Todavía no hay actividad registrada acá.</p>
+                      ) : (
+                        <div className="relative pl-5">
+                          <div className="absolute left-[5px] top-1 bottom-1 w-px bg-white/[.08]" />
+                          <div className="flex flex-col gap-4">
+                            {activity.map(a => {
+                              const who = a.expand?.user?.name || a.expand?.user?.email || 'Alguien'
+                              const verb = a.action === 'crear' ? 'creó' : a.action === 'eliminar' ? 'eliminó' : 'actualizó'
+                              return (
+                                <div key={a.id} className="relative">
+                                  <span className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full" style={{ background: glow, boxShadow: `0 0 6px ${glow}` }} />
+                                  <div className="text-[12.5px]">
+                                    <span className="font-semibold">{who}</span> <span className="text-white/45">{verb} {a.entity}</span>
+                                    {a.entity_name && <span className="font-medium"> "{a.entity_name}"</span>}
+                                    {a.summary && <span className="text-white/35"> — {a.summary}</span>}
+                                  </div>
+                                  <div className="text-[10.5px] text-white/30 mt-0.5">{new Date(a.created).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { list, createRec, updateRec, removeRec, fileUrl, logActivity, notifyTeam } from '../lib/api'
+import { list, createRec, updateRec, removeRec, fileUrl, logActivity, notifyTeam, notifyUser, getAuth } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field } from './ui'
+import PostComments from './PostComments'
 
 const DAY_LABELS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const DAY_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -27,11 +28,15 @@ const emptyPostForm = { title: '', copy: '', hashtags: '' }
  *  canManage=false (cliente/colaborador): solo aprueba o rechaza lo que ya le enviaron. */
 export default function ContentPlanner({ projectId, clientId, canManage }) {
   const toast = useToast()
+  const me = getAuth()?.record
   const [plans, setPlans] = useState([])
   const [posts, setPosts] = useState([])
+  const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
+  const [planTab, setPlanTab] = useState('activas')
 
   const [planOpen, setPlanOpen] = useState(false)
+  const [editPlanId, setEditPlanId] = useState(null)
   const [planForm, setPlanForm] = useState({ name: '', start_date: '' })
   const [planSaving, setPlanSaving] = useState(false)
 
@@ -42,6 +47,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
   const [postSaving, setPostSaving] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [showComments, setShowComments] = useState(false)
   const fileInputRef = useRef(null)
 
   const load = () => {
@@ -56,23 +62,49 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
       .catch(() => toast('No se pudo cargar el planificador.', true))
       .finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [projectId])
+  useEffect(() => {
+    load()
+    if (canManage) list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"') + '&sort=name').then(setTeam).catch(() => {})
+  }, [projectId])
 
-  function openNewPlan() { setPlanForm({ name: '', start_date: '' }); setPlanOpen(true) }
+  function openNewPlan() { setEditPlanId(null); setPlanForm({ name: '', start_date: '' }); setPlanOpen(true) }
+  function openEditPlan(plan) {
+    setEditPlanId(plan.id)
+    setPlanForm({ name: plan.name, start_date: plan.start_date?.slice(0, 10) || '' })
+    setPlanOpen(true)
+  }
   async function savePlan() {
     if (!planForm.name.trim() || !planForm.start_date) { toast('Ponele un nombre y elegí el primer día de la semana.', true); return }
-    if (!clientId) { toast('No se pudo identificar el cliente de este proyecto — revisá que el proyecto tenga un cliente asignado.', true); return }
+    if (!editPlanId && !clientId) { toast('No se pudo identificar el cliente de este proyecto — revisá que el proyecto tenga un cliente asignado.', true); return }
     setPlanSaving(true)
     try {
-      await createRec('content_plans', { project: projectId, client: clientId, name: planForm.name.trim(), start_date: planForm.start_date + ' 00:00:00' })
-      logActivity({ action: 'crear', entity: 'planificación', entity_name: planForm.name.trim() })
-      setPlanOpen(false); toast('✦ Semana creada'); load()
+      if (editPlanId) {
+        await updateRec('content_plans', editPlanId, { name: planForm.name.trim(), start_date: planForm.start_date + ' 00:00:00' })
+        logActivity({ action: 'actualizar', entity: 'planificación', entity_name: planForm.name.trim(), project: projectId })
+        toast('Semana actualizada ✓')
+      } else {
+        await createRec('content_plans', { project: projectId, client: clientId, name: planForm.name.trim(), start_date: planForm.start_date + ' 00:00:00' })
+        logActivity({ action: 'crear', entity: 'planificación', entity_name: planForm.name.trim(), project: projectId })
+        toast('✦ Semana creada')
+      }
+      setPlanOpen(false); load()
     } catch (e) {
       const fieldErrors = e?.data?.data
       const firstMsg = fieldErrors && Object.values(fieldErrors)[0]?.message
-      console.error('[Planificador] Error al crear la semana:', e?.data || e)
-      toast(firstMsg ? `No se pudo crear: ${firstMsg}` : 'No se pudo crear la semana.', true)
+      console.error('[Planificador] Error al guardar la semana:', e?.data || e)
+      toast(firstMsg ? `No se pudo guardar: ${firstMsg}` : 'No se pudo guardar la semana.', true)
     } finally { setPlanSaving(false) }
+  }
+  async function completePlan(plan) {
+    try {
+      await updateRec('content_plans', plan.id, { archived: true })
+      logActivity({ action: 'actualizar', entity: 'planificación', entity_name: plan.name, summary: 'marcada como completada', project: projectId })
+      toast('✓ Semana movida a archivadas'); load()
+    } catch { toast('No se pudo completar la semana.', true) }
+  }
+  async function reopenPlan(plan) {
+    try { await updateRec('content_plans', plan.id, { archived: false }); toast('Semana reabierta ✓'); load() }
+    catch { toast('No se pudo reabrir la semana.', true) }
   }
   async function delPlan(plan) {
     if (!confirm(`¿Eliminar "${plan.name}" y todas sus publicaciones?`)) return
@@ -85,7 +117,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
   }
 
   function openDay(planId, dayIndex, post) {
-    setRejecting(false); setRejectReason('')
+    setRejecting(false); setRejectReason(''); setShowComments(false)
     setPostImage(null); setPostImagePreview(post?.image ? fileUrl('content_posts', post.id, post.image) : '')
     setPostForm(post ? { title: post.title || '', copy: post.copy || '', hashtags: post.hashtags || '' } : emptyPostForm)
     setPostModal({ planId, dayIndex, post: post || null })
@@ -113,7 +145,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
         saved = await createRec('content_posts', fd, true)
       }
       if (sendForApproval) {
-        logActivity({ action: 'actualizar', entity: 'publicación', entity_name: postForm.title.trim(), summary: 'enviada para aprobación' })
+        logActivity({ action: 'actualizar', entity: 'publicación', entity_name: postForm.title.trim(), summary: 'enviada para aprobación', project: projectId })
         notifyTeam({ title: 'Publicación enviada a aprobación', message: postForm.title.trim(), type: 'info' })
       }
       toast(sendForApproval ? '✦ Enviada para aprobación' : 'Guardado ✓')
@@ -143,34 +175,43 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
         title: `Publicación ${status === 'aprobado' ? 'aprobada' : 'rechazada'}`,
         message: status === 'rechazado' ? `Motivo: ${rejectReason.trim()}` : postModal.post.title, type: 'info',
       })
-      logActivity({ action: 'actualizar', entity: 'publicación', entity_name: postModal.post.title, summary: status === 'aprobado' ? 'el cliente la aprobó' : `rechazada: ${rejectReason.trim()}` })
+      logActivity({ action: 'actualizar', entity: 'publicación', entity_name: postModal.post.title, summary: status === 'aprobado' ? 'el cliente la aprobó' : `rechazada: ${rejectReason.trim()}`, project: projectId })
       toast(status === 'aprobado' ? '✓ Publicación aprobada' : 'Publicación rechazada'); setPostModal(null); load()
     } catch { toast('No se pudo registrar tu decisión.', true) } finally { setPostSaving(false) }
   }
 
   const postsByPlanDay = (planId, day) => posts.find(p => p.plan === planId && p.day_index === day)
+  const visiblePlans = plans.filter(p => planTab === 'archivadas' ? p.archived : !p.archived)
 
   if (loading) return <p className="text-[12.5px] text-white/35">Cargando planificador…</p>
 
   return (
     <div>
-      {canManage && (
-        <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex gap-1.5">
+          {[['activas', 'Activas'], ['archivadas', 'Archivadas']].map(([k, label]) => (
+            <button key={k} onClick={() => setPlanTab(k)}
+              className={`text-[12px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${planTab === k ? 'text-white bg-violet/[.2] border-violet-light/50' : 'text-white/40 border-white/10 hover:text-white/70'}`}>
+              {label} {k === 'archivadas' && plans.some(p => p.archived) ? `(${plans.filter(p => p.archived).length})` : ''}
+            </button>
+          ))}
+        </div>
+        {canManage && (
           <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" onClick={openNewPlan}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             Nueva semana
           </motion.button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {!plans.length ? (
+      {!visiblePlans.length ? (
         <div className="card text-center py-14">
-          <p className="text-[14px] font-semibold">Todavía no hay semanas planificadas</p>
-          <p className="text-[12.5px] text-white/40 mt-1.5">{canManage ? 'Creá la primera con "Nueva semana".' : 'Tu equipo de Mateo Estudio todavía no armó el contenido de esta semana.'}</p>
+          <p className="text-[14px] font-semibold">{planTab === 'archivadas' ? 'Sin semanas archivadas' : 'Todavía no hay semanas planificadas'}</p>
+          <p className="text-[12.5px] text-white/40 mt-1.5">{planTab === 'archivadas' ? 'Las semanas que marques como completadas van a aparecer acá.' : (canManage ? 'Creá la primera con "Nueva semana".' : 'Tu equipo de Mateo Estudio todavía no armó el contenido de esta semana.')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-5">
-          {plans.map(plan => (
+          {visiblePlans.map(plan => (
             <motion.div key={plan.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card !p-4">
               <div className="flex items-center justify-between gap-2 mb-3.5">
                 <div>
@@ -180,9 +221,23 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
                   </div>
                 </div>
                 {canManage && (
-                  <button onClick={() => delPlan(plan)} className="text-white/25 hover:text-coral transition-colors p-1.5 flex-shrink-0">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" /></svg>
-                  </button>
+                  <div className="flex gap-1 flex-shrink-0">
+                    {planTab === 'archivadas' ? (
+                      <button onClick={() => reopenPlan(plan)} title="Reabrir" className="text-white/30 hover:text-mint transition-colors p-1.5">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></svg>
+                      </button>
+                    ) : (
+                      <button onClick={() => completePlan(plan)} title="Completar semana" className="text-white/30 hover:text-mint transition-colors p-1.5">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                      </button>
+                    )}
+                    <button onClick={() => openEditPlan(plan)} title="Editar semana" className="text-white/30 hover:text-white transition-colors p-1.5">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                    </button>
+                    <button onClick={() => delPlan(plan)} className="text-white/25 hover:text-coral transition-colors p-1.5 flex-shrink-0">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" /></svg>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -240,7 +295,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
 
       {/* ── Modal: nueva semana ── */}
       <Modal open={planOpen} onClose={() => setPlanOpen(false)}>
-        <ModalHead title="Nueva semana" onClose={() => setPlanOpen(false)} />
+        <ModalHead title={editPlanId ? 'Editar semana' : 'Nueva semana'} onClose={() => setPlanOpen(false)} />
         <p className="text-[12px] text-white/35 -mt-2 mb-4">Elegí el lunes (o el primer día que uses) — a partir de esa fecha se arman los 7 días.</p>
         <div className="flex flex-col gap-3">
           <Field label="Nombre *"><input className="field" value={planForm.name} onChange={e => setPlanForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Semana del 4 al 10 de agosto" /></Field>
@@ -249,7 +304,7 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
         <div className="flex justify-end gap-2.5 mt-5">
           <button className="btn-ghost" onClick={() => setPlanOpen(false)}>Cancelar</button>
           <motion.button whileTap={{ scale: 0.97 }} className="btn-glass" disabled={planSaving} onClick={savePlan}>
-            {planSaving ? 'Creando…' : 'Crear semana ✦'}
+            {planSaving ? 'Guardando…' : (editPlanId ? 'Guardar cambios' : 'Crear semana ✦')}
           </motion.button>
         </div>
       </Modal>
@@ -261,7 +316,22 @@ export default function ContentPlanner({ projectId, clientId, canManage }) {
           const canDecide = !canManage && post && post.status === 'enviado'
           return (
             <>
-              <ModalHead title={`${DAY_LABELS[postModal.dayIndex]}${post ? '' : ' — nueva publicación'}`} onClose={() => setPostModal(null)} />
+              <div className="flex items-center justify-between gap-2 -mt-1 mb-4">
+                <ModalHead title={`${DAY_LABELS[postModal.dayIndex]}${post ? '' : ' — nueva publicación'}`} onClose={() => setPostModal(null)} />
+                {canManage && post && (
+                  <button onClick={() => setShowComments(s => !s)} title="Comentarios del equipo"
+                    className={`flex-shrink-0 -mt-4 relative w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${showComments ? 'text-violet-light bg-violet/[.18]' : 'text-white/40 hover:text-white hover:bg-white/[.06]'}`}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  </button>
+                )}
+              </div>
+
+              {showComments && canManage && post && (
+                <div className="mb-5 p-4 rounded-2xl" style={{ background: 'rgba(139,92,246,.05)', border: '1px solid rgba(139,92,246,.18)' }}>
+                  <div className="text-[10.5px] uppercase font-bold tracking-wide text-white/40 mb-3">Comentarios del equipo</div>
+                  <PostComments postId={post.id} team={team} postTitle={post.title} />
+                </div>
+              )}
 
               {canDecide && !rejecting && (
                 <div className="flex items-center gap-3 mb-5 justify-center flex-wrap rounded-2xl p-4" style={{ background: 'rgba(139,92,246,.06)', border: '1px solid rgba(139,92,246,.2)' }}>

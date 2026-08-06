@@ -935,3 +935,29 @@ El violeta "de identidad" (botones principales, degradés, la pestaña activa, e
 La primera vez que un cliente entra a su portal (técnicamente: mientras no tenga un color guardado todavía), se le abre automáticamente una bienvenida con 3 pantallas cortas explicando qué puede hacer — proyectos, cotizaciones, facturas — y al final le preguntamos **"¿De qué color te gustaría tu portal?"** con 8 colores predefinidos + la opción de elegir uno personalizado. Apenas confirma, se guarda y el Portal entero cambia de color al instante, sin recargar.
 
 Si en algún momento quiere cambiarlo, ya podía hacerlo desde siempre en **Mis datos** — eso no cambió, sigue funcionando igual.
+
+---
+
+## Editar semanas, comentarios con menciones, archivado, e historial por proyecto
+
+### Instalación
+
+Importá **`pb-schema-comentarios-archivado-historial.json`** (Merge). Crea la colección `post_comments`, agrega `archived` a `content_plans`, y agrega `project` a `activity_log`.
+
+**Importante**: como `activity_log` lo reconstruí de memoria (nunca me mandaste una captura de esa colección puntual), después de importar revisá que **Historial** siga funcionando normal — si ves algo raro ahí, avisame enseguida.
+
+### 1. Editar semanas del planificador
+
+El ícono de lápiz al lado del de basura en cada semana abre el mismo formulario de "Nueva semana" pero con los datos cargados — cambiás nombre o fecha y guardás.
+
+### 2. Comentarios del equipo con menciones
+
+Dentro de cualquier publicación ya guardada, un ícono de comentarios arriba a la derecha (al lado de la X) abre un panel donde el equipo puede coordinar — escribiendo `@` aparece la lista de compañeros para mencionar. Si mencionás a alguien, le llega una notificación aparte avisándole. Esto es exclusivo del equipo interno — el cliente no lo ve.
+
+### 3. Completar semana → Archivadas
+
+Cada semana activa tiene un ✓ para marcarla como completada — pasa a la pestaña **Archivadas** (con un botón para reabrirla si hace falta) y ya no aparece mezclada con las semanas en curso. El botón de eliminar sigue estando, aparte.
+
+### 4. Historial lineal en el Resumen del proyecto
+
+Al final de la pestaña Resumen de cualquier proyecto (solo para admin/equipo, no para el cliente) aparece una línea de tiempo con todo lo que pasó ahí: tareas creadas, archivos subidos, publicaciones enviadas/aprobadas/rechazadas, cambios de fase — cada una con quién la hizo y cuándo.

@@ -42,11 +42,11 @@ export const fmtByCurrency = (n, currency) => currency === 'USD' ? fmtUSD(n) : c
 export const fmtMoney = fmtARS
 
 /* ── Historial de cambios: registra quién hizo qué y cuándo ── */
-export async function logActivity({ action, entity, entity_name, summary = '' }) {
+export async function logActivity({ action, entity, entity_name, summary = '', project = '' }) {
   try {
     const me = getAuth()?.record
     if (!me) return
-    await createRec('activity_log', { user: me.id, action, entity, entity_name, summary })
+    await createRec('activity_log', { user: me.id, action, entity, entity_name, summary, project })
   } catch { /* nunca bloquea la acción principal */ }
 }
 export async function notifyUser(userId, { title, message = '', type = 'info', task = '', project = '', client = '' }) {
