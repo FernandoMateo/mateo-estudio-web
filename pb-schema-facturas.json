@@ -1,0 +1,56 @@
+[
+  {
+    "id": "pbc_invoices00001",
+    "name": "invoices",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id || client.collaborator = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || client.user = @request.auth.id || client.collaborator = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_iv_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": false, "collectionId": "pbc_clients_00001", "hidden": false, "id": "rel_iv_client", "maxSelect": 1, "minSelect": 0, "name": "client", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "cascadeDelete": false, "collectionId": "pbc_projects_0001", "hidden": false, "id": "rel_iv_project", "maxSelect": 1, "minSelect": 0, "name": "project", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_iv_number", "max": 0, "min": 0, "name": "number", "pattern": "", "presentable": true, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_iv_title", "max": 0, "min": 0, "name": "title", "pattern": "", "presentable": false, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "sel_iv_currency", "maxSelect": 1, "name": "currency", "presentable": false, "required": false, "system": false, "type": "select", "values": ["ARS", "USD", "MXN"] },
+      { "hidden": false, "id": "num_iv_fxrate", "max": null, "min": null, "name": "fx_rate", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_iv_subtotal", "max": null, "min": null, "name": "subtotal", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_iv_total", "max": null, "min": null, "name": "total", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_iv_totalars", "max": null, "min": null, "name": "total_ars", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "sel_iv_status", "maxSelect": 1, "name": "status", "presentable": false, "required": false, "system": false, "type": "select", "values": ["borrador", "enviada", "pagada", "vencida"] },
+      { "hidden": false, "id": "date_iv_issue", "max": "", "min": "", "name": "issue_date", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "date_iv_due", "max": "", "min": "", "name": "due_date", "presentable": false, "required": false, "system": false, "type": "date" },
+      { "hidden": false, "id": "text_iv_notes", "max": 0, "min": 0, "name": "notes", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "text_iv_extra", "max": 0, "min": 0, "name": "extra_fields", "pattern": "", "presentable": false, "primaryKey": false, "required": false, "system": false, "type": "text" },
+      { "hidden": false, "id": "bool_iv_recurring", "name": "recurring", "presentable": false, "required": false, "system": false, "type": "bool" },
+      { "cascadeDelete": false, "collectionId": "pbc_transact_0001", "hidden": false, "id": "rel_iv_transaction", "maxSelect": 1, "minSelect": 0, "name": "transaction", "presentable": false, "required": false, "system": false, "type": "relation" },
+      { "hidden": false, "id": "auto_iv_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" },
+      { "hidden": false, "id": "auto_iv_updated", "name": "updated", "onCreate": true, "onUpdate": true, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  },
+  {
+    "id": "pbc_invoicelines01",
+    "name": "invoice_lines",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || invoice.client.user = @request.auth.id || invoice.client.collaborator = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\" || invoice.client.user = @request.auth.id || invoice.client.collaborator = @request.auth.id",
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "updateRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "deleteRule": "@request.auth.role = \"admin\" || @request.auth.role = \"equipo\"",
+    "fields": [
+      { "autogeneratePattern": "[a-z0-9]{15}", "hidden": false, "id": "text_il_id", "max": 15, "min": 15, "name": "id", "pattern": "^[a-z0-9]+$", "presentable": false, "primaryKey": true, "required": true, "system": true, "type": "text" },
+      { "cascadeDelete": true, "collectionId": "pbc_invoices00001", "hidden": false, "id": "rel_il_invoice", "maxSelect": 1, "minSelect": 0, "name": "invoice", "presentable": false, "required": true, "system": false, "type": "relation" },
+      { "hidden": false, "id": "text_il_desc", "max": 0, "min": 0, "name": "description", "pattern": "", "presentable": true, "primaryKey": false, "required": true, "system": false, "type": "text" },
+      { "hidden": false, "id": "num_il_qty", "max": null, "min": null, "name": "quantity", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_il_price", "max": null, "min": null, "name": "unit_price", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "num_il_total", "max": null, "min": null, "name": "line_total", "onlyInt": false, "presentable": false, "required": false, "system": false, "type": "number" },
+      { "hidden": false, "id": "auto_il_created", "name": "created", "onCreate": true, "onUpdate": false, "presentable": false, "system": false, "type": "autodate" }
+    ],
+    "indexes": []
+  }
+]

@@ -17,6 +17,7 @@ import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
 import WelcomeTour from '../components/WelcomeTour'
+import InvoiceViewer from '../components/InvoiceViewer'
 import Logo from '../components/Logo'
 import ProjectCarousel3D from '../components/ProjectCarousel3D'
 import ProjectWorkspace from '../components/ProjectWorkspace'
@@ -132,6 +133,8 @@ export default function Portal() {
   const [projects, setProjects] = useState([])
   const [tasks, setTasks] = useState([])
   const [invoices, setInvoices] = useState([])
+  const [formalInvoices, setFormalInvoices] = useState([])
+  const [viewingInvoice, setViewingInvoice] = useState(null)
   const [creds, setCreds] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -193,7 +196,7 @@ export default function Portal() {
         if (/^#[0-9a-fA-F]{6}$/.test(mine.brand_color || '')) setBrandColor(mine.brand_color)
         if (mine.logo) setLogoPreview(fileUrl('clients', mine.id, mine.logo, '200x200'))
       }
-      const [ps, ts, txs, cds, myQ, recQ, items] = await Promise.all([
+      const [ps, ts, txs, cds, myQ, recQ, items, finv] = await Promise.all([
         list('projects', '&sort=-created&expand=service'),
         list('tasks', '&sort=-created&expand=project'),
         list('transactions', '&sort=-date&filter=' + encodeURIComponent('type="ingreso"')),
@@ -201,9 +204,10 @@ export default function Portal() {
         list('quotes', '&sort=-created&filter=' + encodeURIComponent('issuer_type="cliente"')),
         list('quotes', '&sort=-created&filter=' + encodeURIComponent('issuer_type="estudio"')),
         list('quote_items', '&sort=name'),
+        list('invoices', '&sort=-created&expand=project').catch(() => []),
       ])
       setProjects(ps); setTasks(ts); setInvoices(txs); setCreds(cds)
-      setMyQuotes(myQ); setReceivedQuotes(recQ); setCatalogItems(items)
+      setMyQuotes(myQ); setReceivedQuotes(recQ); setCatalogItems(items); setFormalInvoices(finv)
     } catch {
       toast('No se pudo cargar tu información. Recarga la página.', true)
     } finally { setLoading(false) }
@@ -775,7 +779,32 @@ export default function Portal() {
                 )}
 
                 <div className="card">
-                  <h3 className="text-[13.5px] font-bold mb-4">Historial de facturas</h3>
+                  <h3 className="text-[13.5px] font-bold mb-4">Tus facturas</h3>
+                  {!formalInvoices.length ? (
+                    <p className="text-[12.5px] text-white/35 py-6 text-center">Todavía no te emitimos ninguna factura formal.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      {formalInvoices.map((inv, i) => (
+                        <motion.div key={inv.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                          whileHover={{ y: -2 }} onClick={() => setViewingInvoice(inv)}
+                          className="flex items-center gap-3.5 rounded-2xl px-4 py-3.5 cursor-pointer" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.07)' }}>
+                          <div className="w-9 h-9 rounded-[10px] flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
+                            <svg className="w-4 h-4 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-semibold truncate">{inv.title}</div>
+                            <div className="text-[10.5px] text-white/35 mt-0.5">{(inv.issue_date || inv.created)?.slice(0, 10)}</div>
+                          </div>
+                          <span className="text-[13px] font-bold flex-shrink-0">{fmtByCurrency(inv.total, inv.currency)}</span>
+                          <Pill value={inv.status || 'borrador'} />
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h3 className="text-[13.5px] font-bold mb-4">Historial de movimientos</h3>
                   {!invoices.length ? (
                     <p className="text-[12.5px] text-white/35 py-6 text-center">Todavía no hay facturas emitidas.</p>
                   ) : (
@@ -994,6 +1023,8 @@ export default function Portal() {
           setClient(c => ({ ...c, brand_color: color })); setBrandColor(color); setShowWelcome(false)
         }} />
       )}
+
+      <InvoiceViewer open={!!viewingInvoice} onClose={() => setViewingInvoice(null)} invoice={viewingInvoice} clientName={client?.name} />
 
       <InstallPrompt />
     </div>

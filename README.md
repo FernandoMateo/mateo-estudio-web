@@ -961,3 +961,33 @@ Cada semana activa tiene un ✓ para marcarla como completada — pasa a la pest
 ### 4. Historial lineal en el Resumen del proyecto
 
 Al final de la pestaña Resumen de cualquier proyecto (solo para admin/equipo, no para el cliente) aparece una línea de tiempo con todo lo que pasó ahí: tareas creadas, archivos subidos, publicaciones enviadas/aprobadas/rechazadas, cambios de fase — cada una con quién la hizo y cuándo.
+
+---
+
+## Módulo de Facturas completo, generación automática mensual, y el bug de Finanzas
+
+### Instalación
+
+Importá **`pb-schema-facturas.json`** (Merge). Crea 2 colecciones nuevas: `invoices` y `invoice_lines`.
+
+### 1. El bug de Finanzas — corregido
+
+El selector de "Proyecto" al registrar una transacción ahora **filtra según el cliente elegido** — si no elegiste cliente todavía, te lo dice ("Elegí un cliente primero") en vez de mostrarte los proyectos de todo el mundo mezclados.
+
+### 2. Módulo de Facturas nuevo (separado de Finanzas)
+
+Nueva sección en el menú, **Facturas** (solo admin) — hasta ahora lo que veía el cliente eran directamente las transacciones sueltas de Finanzas; ahora es un documento propio, con estilo moderno igual al de las cotizaciones (degradé de marca, ítems como barras oscuras, total en píldora).
+
+- **Crear manualmente**: cliente, proyecto (opcional), ítems con cantidad y precio, y **campos personalizados** — le agregás el nombre que quieras y el valor (orden de compra, CUIT, referencia, lo que necesites), sin límite.
+- **Enviar al portal**: un botón aparte de "guardar borrador" — al enviarla, el cliente la ve en su Portal y le llega una notificación.
+- Queda **sincronizada con Finanzas automáticamente**: cada factura genera (y actualiza) su transacción correspondiente, así tus números de Finanzas nunca se desincronizan de lo que el cliente ve.
+
+### 3. Generación automática mensual para servicios recurrentes
+
+Mismo mecanismo honesto que ya usamos para gastos recurrentes y vencimientos (sin proceso corriendo solo en tu servidor): cuando abrís Facturas, se revisa si algún proyecto con servicio recurrente ya llegó a su fecha de vencimiento (`next_renewal_date`) — si es así, se genera sola la factura de ese mes/período, se le avisa al cliente, y la fecha se corre automáticamente al próximo período (mes, trimestre o año, según el servicio).
+
+**Sobre "desde el día que se creó la primera factura"**: el ancla es la fecha de vencimiento que ya tenía guardada el proyecto (`next_renewal_date`, el mismo campo que usa el Calendario) — si un proyecto recurrente todavía no tiene esa fecha cargada, no se le va a generar nada automático hasta que la cargues una vez desde Proyectos.
+
+### Sobre el "editor de formato" que pediste
+
+Te soy honesto con el alcance: no armé un editor visual de plantillas (eso sería un proyecto en sí mismo). Lo que sí tenés es **flexibilidad real por factura**: campos personalizados ilimitados, ítems libres, notas — cubre la gran mayoría de los casos sin necesitar tocar código. Si en algún momento necesitás cambiar el diseño visual de la plantilla en sí (colores, orden de las secciones), eso sí lo edito yo en el código cuando me digas qué querés cambiar.

@@ -8,6 +8,7 @@ import Clientes from './pages/Clientes'
 import Proyectos from './pages/Proyectos'
 import Tareas from './pages/Tareas'
 import Finanzas from './pages/Finanzas'
+import Facturas from './pages/Facturas'
 import Servicios from './pages/Servicios'
 import Cotizador from './pages/Cotizador'
 import Usuarios from './pages/Usuarios'
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="proyectos" element={<Proyectos />} />
               <Route path="tareas" element={<Tareas />} />
               <Route path="finanzas" element={<Finanzas />} />
+              <Route path="facturas" element={<Facturas />} />
               <Route path="servicios" element={<Servicios />} />
               <Route path="cotizador" element={<Cotizador />} />
               <Route path="usuarios" element={<Usuarios />} />

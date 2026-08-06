@@ -447,12 +447,12 @@ export default function Finanzas() {
               options={[{ value: 'transferencia', label: 'Transferencia' }, { value: 'efectivo', label: 'Efectivo' }, { value: 'tarjeta', label: 'Tarjeta' }, { value: 'otro', label: 'Otro' }]} />
           </Field>
           <Field label="Cliente">
-            <Select value={form.client} onChange={v => set('client', v)} placeholder="Sin cliente"
+            <Select value={form.client} onChange={v => { set('client', v); if (form.project && !projects.find(p => p.id === form.project && p.client === v)) set('project', '') }} placeholder="Sin cliente"
               options={clients.map(c => ({ value: c.id, label: c.name }))} />
           </Field>
           <Field label="Proyecto">
-            <Select value={form.project} onChange={v => set('project', v)} placeholder="Sin proyecto"
-              options={projects.map(p => ({ value: p.id, label: p.name }))} />
+            <Select value={form.project} onChange={v => set('project', v)} placeholder={form.client ? 'Sin proyecto' : 'Elegí un cliente primero'}
+              options={projects.filter(p => !form.client || p.client === form.client).map(p => ({ value: p.id, label: p.name }))} />
           </Field>
           {form.type === 'ingreso' && <Field label="Vence (si es factura por cobrar)" full><input type="date" className="field" value={form.due_date} onChange={e => set('due_date', e.target.value)} /></Field>}
           <Field label="Notas" full><textarea className="field min-h-[64px]" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Referencia, factura, detalles…" /></Field>
