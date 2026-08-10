@@ -13,6 +13,8 @@ import CatalogViewer from '../components/CatalogViewer'
 import NotificationsList from '../components/NotificationsList'
 import NotificationBell from '../components/NotificationBell'
 import InstallPrompt from '../components/InstallPrompt'
+import NotificationPermissionBanner from '../components/NotificationPermissionBanner'
+import { startNotificationPolling } from '../lib/pushNotifications'
 import ProjectFiles from '../components/ProjectFiles'
 import TaskComments from '../components/TaskComments'
 import ClientDocuments from '../components/ClientDocuments'
@@ -179,6 +181,7 @@ export default function Portal() {
     if (!auth?.token || !auth?.record) { nav('/'); return }
     if (auth.record.role !== 'cliente' && auth.record.role !== 'colaborador') { nav('/app'); return }
     loadAll()
+    return startNotificationPolling()
   }, [])
 
   async function loadAll() {
@@ -226,11 +229,20 @@ export default function Portal() {
       })
       .sort((a, b) => a.daysLeft - b.daysLeft)
   }, [projects])
-  const pendingInvoices = invoices.filter(i => i.status === 'pendiente' || i.status === 'vencido')
-  const overdueInvoices = invoices.filter(i => i.status === 'vencido')
-  const paidInvoices = invoices.filter(i => i.status === 'pagado')
-  const pendingTotalArs = pendingInvoices.reduce((a, i) => a + (Number(i.amount_ars ?? i.amount) || 0), 0)
-  const paidTotalArs = paidInvoices.reduce((a, i) => a + (Number(i.amount_ars ?? i.amount) || 0), 0)
+  const pendingInvoices = formalInvoices.filter(i => i.status === 'enviada' || i.status === 'vencida')
+  const overdueInvoices = formalInvoices.filter(i => {
+    if (i.status === 'vencida') return true
+    if (i.status !== 'enviada' || !i.due_date) return false
+    return new Date(i.due_date.slice(0, 10) + 'T00:00:00') < new Date(new Date().toDateString())
+  })
+  const dueSoonInvoices = formalInvoices.filter(i => {
+    if (i.status !== 'enviada' || !i.due_date || overdueInvoices.includes(i)) return false
+    const days = (new Date(i.due_date.slice(0, 10) + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000
+    return days >= 0 && days <= 3
+  })
+  const paidInvoices = formalInvoices.filter(i => i.status === 'pagada')
+  const pendingTotalArs = pendingInvoices.reduce((a, i) => a + (Number(i.total_ars) || 0), 0)
+  const paidTotalArs = paidInvoices.reduce((a, i) => a + (Number(i.total_ars) || 0), 0)
 
   /* ── Guardar solicitud al equipo ── */
   async function sendRequest() {
@@ -771,7 +783,9 @@ export default function Portal() {
                       <div className="text-[13.5px] font-bold">
                         {overdueInvoices.length > 0
                           ? `Tenés ${overdueInvoices.length} factura${overdueInvoices.length > 1 ? 's' : ''} vencida${overdueInvoices.length > 1 ? 's' : ''}`
-                          : `Tenés ${pendingInvoices.length} factura${pendingInvoices.length > 1 ? 's' : ''} pendiente${pendingInvoices.length > 1 ? 's' : ''}`}
+                          : dueSoonInvoices.length > 0
+                            ? `${dueSoonInvoices.length} factura${dueSoonInvoices.length > 1 ? 's' : ''} está${dueSoonInvoices.length > 1 ? 'n' : ''} a punto de vencer`
+                            : `Tenés ${pendingInvoices.length} factura${pendingInvoices.length > 1 ? 's' : ''} pendiente${pendingInvoices.length > 1 ? 's' : ''}`}
                       </div>
                       <div className="text-[12px] text-white/50 mt-0.5">Total a saldar: <b className="text-white/85">{fmtARS(pendingTotalArs)}</b></div>
                     </div>
@@ -784,21 +798,27 @@ export default function Portal() {
                     <p className="text-[12.5px] text-white/35 py-6 text-center">Todavía no te emitimos ninguna factura formal.</p>
                   ) : (
                     <div className="flex flex-col gap-2.5">
-                      {formalInvoices.map((inv, i) => (
-                        <motion.div key={inv.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                          whileHover={{ y: -2 }} onClick={() => setViewingInvoice(inv)}
-                          className="flex items-center gap-3.5 rounded-2xl px-4 py-3.5 cursor-pointer" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.07)' }}>
-                          <div className="w-9 h-9 rounded-[10px] flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
-                            <svg className="w-4 h-4 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[13px] font-semibold truncate">{inv.title}</div>
-                            <div className="text-[10.5px] text-white/35 mt-0.5">{(inv.issue_date || inv.created)?.slice(0, 10)}</div>
-                          </div>
-                          <span className="text-[13px] font-bold flex-shrink-0">{fmtByCurrency(inv.total, inv.currency)}</span>
-                          <Pill value={inv.status || 'borrador'} />
-                        </motion.div>
-                      ))}
+                      {formalInvoices.map((inv, i) => {
+                        const isOverdue = overdueInvoices.includes(inv)
+                        const isDueSoon = dueSoonInvoices.includes(inv)
+                        return (
+                          <motion.div key={inv.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                            whileHover={{ y: -2 }} onClick={() => setViewingInvoice(inv)}
+                            className="flex items-center gap-3.5 rounded-2xl px-4 py-3.5 cursor-pointer" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015))', border: `1px solid ${isOverdue ? 'rgba(251,113,133,.35)' : isDueSoon ? 'rgba(251,191,36,.35)' : 'rgba(255,255,255,.07)'}` }}>
+                            <div className="w-9 h-9 rounded-[10px] flex-shrink-0 flex items-center justify-center bg-violet/[.14] border border-violet-light/30">
+                              <svg className="w-4 h-4 text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-semibold truncate">{inv.title}</div>
+                              <div className="text-[10.5px] text-white/35 mt-0.5">{(inv.issue_date || inv.created)?.slice(0, 10)}{inv.due_date ? ` · vence ${inv.due_date.slice(0, 10)}` : ''}</div>
+                            </div>
+                            {isOverdue && <span className="pill text-coral bg-coral/[.1] border border-coral/30 flex-shrink-0">vencida</span>}
+                            {!isOverdue && isDueSoon && <span className="pill text-amber bg-amber/[.1] border border-amber/30 flex-shrink-0">vence pronto</span>}
+                            <span className="text-[13px] font-bold flex-shrink-0">{fmtByCurrency(inv.total, inv.currency)}</span>
+                            <Pill value={inv.status || 'borrador'} />
+                          </motion.div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -1027,6 +1047,7 @@ export default function Portal() {
       <InvoiceViewer open={!!viewingInvoice} onClose={() => setViewingInvoice(null)} invoice={viewingInvoice} clientName={client?.name} />
 
       <InstallPrompt />
+      <NotificationPermissionBanner />
     </div>
   )
 }

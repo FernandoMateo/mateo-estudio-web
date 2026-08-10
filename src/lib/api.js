@@ -20,6 +20,7 @@ export async function api(path, opts = {}) {
 
 export const list = (col, params = '') =>
   api(`/api/collections/${col}/records?perPage=200${params}`).then(d => d.items || [])
+export const getRec = (col, id) => api(`/api/collections/${col}/records/${id}`)
 export const createRec = (col, body, isForm) =>
   api(`/api/collections/${col}/records`, isForm ? { method: 'POST', body } : { method: 'POST', json: body })
 export const updateRec = (col, id, body, isForm) =>
@@ -61,6 +62,25 @@ export async function notifyTeam({ title, message = '', type = 'info', task = ''
     await Promise.all(team.map(u => notifyUser(u.id, { title, message, type, task, project, client })))
   } catch { /* silencioso */ }
   sendEmailAlert({ subject: title, title, message })
+}
+
+/** Avisa a todos los "involucrados" de un proyecto: quien lo tiene asignado del equipo,
+ *  y el usuario del cliente — pensado para que se entere cualquiera que tenga algo que ver
+ *  con ese proyecto en particular, sin mandarle nada a todo el resto del equipo. */
+export async function notifyProjectInvolved(projectId, { title, message = '', type = 'info', excludeUserId = '' }) {
+  try {
+    const proj = await getRec('projects', projectId).catch(() => null)
+    if (!proj) return
+    const targets = new Set()
+    if (proj.assigned_to) targets.add(proj.assigned_to)
+    if (proj.client) {
+      const cli = await getRec('clients', proj.client).catch(() => null)
+      if (cli?.user) targets.add(cli.user)
+      if (cli?.collaborator) targets.add(cli.collaborator)
+    }
+    if (excludeUserId) targets.delete(excludeUserId)
+    await Promise.all([...targets].map(id => notifyUser(id, { title, message, type, project: projectId, client: proj.client || '' })))
+  } catch { /* silencioso */ }
 }
 
 /* ── Reenvío de avisos del equipo a un correo real, vía EmailJS (no requiere servidor propio) ── */

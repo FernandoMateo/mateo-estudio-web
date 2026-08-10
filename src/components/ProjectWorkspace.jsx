@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, fmtByCurrency, notifyUser, logActivity } from '../lib/api'
+import { list, createRec, updateRec, fmtByCurrency, notifyUser, logActivity, notifyProjectInvolved } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { PHASE_ORDER, PHASES } from '../lib/constants'
 import ProjectFiles from './ProjectFiles'
@@ -78,7 +78,17 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
       list('activity_log', '&filter=' + encodeURIComponent(`project="${project.id}"`) + '&sort=-created&expand=user').then(setActivity).catch(() => setActivity([]))
     }
     if (canAddTasks) {
-      list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"') + '&sort=name').then(setTeamOptions).catch(() => setTeamOptions([]))
+      list('users', '&filter=' + encodeURIComponent('role="admin" || role="equipo"') + '&sort=name').then(async team => {
+        let clientOpt = []
+        if (project.client) {
+          try {
+            const c = await list('clients', '&filter=' + encodeURIComponent(`id="${project.client}"`))
+            const cli = c[0]
+            if (cli?.user) clientOpt = [{ id: cli.user, name: `${cli.name} (cliente)`, email: '' }]
+          } catch { /* no bloquea */ }
+        }
+        setTeamOptions([...clientOpt, ...team])
+      }).catch(() => setTeamOptions([]))
     }
   }, [project?.id])
 
@@ -118,6 +128,7 @@ export default function ProjectWorkspace({ project, onClose, canManage = false, 
     try {
       await updateRec('tasks', taskId, { title: editForm.title.trim(), description: editForm.description.trim(), status: editForm.status })
       logActivity({ action: 'actualizar', entity: 'tarea', entity_name: editForm.title.trim(), project: project.id })
+      notifyProjectInvolved(project.id, { title: `${project.name}: tarea actualizada`, message: `"${editForm.title.trim()}" — ${editForm.status.replace('_', ' ')}`, type: 'tarea' })
       setEditingTaskId(null); toast('Tarea actualizada ✓'); loadTasks()
     } catch { toast('No se pudieron guardar los cambios.', true) }
   }

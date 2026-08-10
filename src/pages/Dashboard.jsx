@@ -7,8 +7,37 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'rec
 import CountUp from '../components/CountUp'
 import { useFx } from '../context/FxContext'
 
-const stagger = { animate: { transition: { staggerChildren: 0.07 } } }
+const stagger = { animate: { transition: { staggerChildren: 0.06 } } }
 const rise = { initial: { opacity: 0, y: 20, scale: 0.98 }, animate: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 260, damping: 24 } } }
+
+function greetingWord() {
+  const h = new Date().getHours()
+  return h < 12 ? 'Buen día' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
+}
+
+function Hero({ name }) {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(id) }, [])
+  return (
+    <motion.div variants={rise} className="relative overflow-hidden rounded-[26px] p-6 sm:p-7"
+      style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.14), rgba(244,114,240,.06) 55%, rgba(255,255,255,.02))', border: '1px solid rgba(167,139,250,.22)' }}>
+      <motion.div className="absolute w-[380px] h-[380px] rounded-full blur-[100px] opacity-50 pointer-events-none"
+        style={{ top: '-140px', right: '-100px', background: 'radial-gradient(circle, #8B5CF6, transparent 70%)' }}
+        animate={{ x: [0, 20, 0], y: [0, 15, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
+      <div className="relative z-[1] flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <div className="text-[11px] uppercase font-bold tracking-[.12em] text-violet-light/80">{greetingWord()}</div>
+          <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-tight mt-1.5 leading-none">
+            {name} <span className="inline-block">👋</span>
+          </h1>
+          <p className="text-[12.5px] text-white/45 mt-2 capitalize">
+            {now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
 
 function GlowTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -20,17 +49,36 @@ function GlowTooltip({ active, payload, label }) {
   )
 }
 
-function Kpi({ label, value, sub, accent, children, className = '' }) {
+function Trend({ pct }) {
+  if (pct == null || !isFinite(pct)) return null
+  const up = pct >= 0
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold ${up ? 'text-mint' : 'text-coral'}`}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: up ? 'none' : 'rotate(180deg)' }}>
+        <path d="M12 19V5" /><path d="M5 12l7-7 7 7" />
+      </svg>
+      {Math.abs(Math.round(pct))}%
+    </span>
+  )
+}
+
+function Kpi({ label, value, sub, accent, icon, trend, children, className = '' }) {
   return (
     <motion.div variants={rise} whileHover={{ y: -4 }} className={`card relative overflow-hidden group ${className}`}>
       <div className="absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{ background: 'radial-gradient(200px circle at 50% 0%, rgba(139,92,246,.14), transparent 70%)' }} />
-      <div className="text-[11px] uppercase font-bold tracking-[.08em] text-white/40">{label}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] uppercase font-bold tracking-[.08em] text-white/40">{label}</div>
+        {icon && <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,.12)', border: '1px solid rgba(167,139,250,.25)' }}>{icon}</div>}
+      </div>
       <div className="flex items-center justify-between gap-2.5 mt-3">
         <div className={`text-[28px] font-extrabold tracking-tight ${accent || ''}`}>{value}</div>
         {children}
       </div>
-      <div className="text-[11.5px] text-white/35 mt-2">{sub}</div>
+      <div className="flex items-center gap-2 mt-2">
+        <span className="text-[11.5px] text-white/35">{sub}</span>
+        <Trend pct={trend} />
+      </div>
     </motion.div>
   )
 }
@@ -72,7 +120,7 @@ function MiniStatus({ items, empty, statusOf }) {
   )
 }
 
-function Panel({ title, badge, delay = 0, className = '', children }) {
+function Panel({ title, badge, className = '', children }) {
   return (
     <motion.div variants={rise} className={`card ${className}`}>
       <h3 className="text-[13.5px] font-bold mb-4 flex items-center gap-2">
@@ -84,14 +132,24 @@ function Panel({ title, badge, delay = 0, className = '', children }) {
   )
 }
 
+const ICONS = {
+  money: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M12 1v22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
+  folder: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /></svg>,
+  check: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>,
+  users: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+}
+
 export default function Dashboard() {
   const { me } = useOutletContext()
   const isAdmin = me.role === 'admin'
+  const firstName = (me.name || me.email || '').split(' ')[0].split('@')[0]
   const [projects, setProjects] = useState([])
   const [tasks, setTasks] = useState([])
   const [clients, setClients] = useState([])
   const [chartData, setChartData] = useState([])
   const [monthIncome, setMonthIncome] = useState(0)
+  const [incomeTrend, setIncomeTrend] = useState(null)
+  const [activity, setActivity] = useState([])
   const { rates: crypto } = useFx()
 
   useEffect(() => {
@@ -99,12 +157,17 @@ export default function Dashboard() {
     list('tasks', '&sort=-created').then(setTasks).catch(() => {})
     list('clients').then(setClients).catch(() => {})
     if (isAdmin) {
+      list('activity_log', '&sort=-created&perPage=12&expand=user').then(setActivity).catch(() => {})
       list('transactions', '&sort=-date').then(items => {
         const now = new Date(), y = now.getFullYear(), m = now.getMonth()
         const income = items.filter(t => t.type === 'ingreso')
         const cur = income.filter(t => { const d = new Date(t.date || t.created); return d.getFullYear() === y && d.getMonth() === m })
           .reduce((a, t) => a + (Number(t.amount_ars ?? t.amount) || 0), 0)
+        const prevD = new Date(y, m - 1, 1)
+        const prev = income.filter(t => { const d = new Date(t.date || t.created); return d.getFullYear() === prevD.getFullYear() && d.getMonth() === prevD.getMonth() })
+          .reduce((a, t) => a + (Number(t.amount_ars ?? t.amount) || 0), 0)
         setMonthIncome(cur)
+        setIncomeTrend(prev > 0 ? ((cur - prev) / prev) * 100 : null)
         const arr = []
         for (let i = 5; i >= 0; i--) {
           const d = new Date(y, m - i, 1)
@@ -130,16 +193,18 @@ export default function Dashboard() {
 
   return (
     <motion.div initial="initial" animate="animate" variants={stagger} className="grid gap-5">
+      <Hero name={firstName} />
+
       {/* KPIs — se auto-acomodan según el ancho disponible */}
       <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(210px,100%),1fr))' }}>
         {isAdmin && (
-          <Kpi label="Ingresos del mes" value={<CountUp value={monthIncome} format={fmtMoney} />} sub="Transacciones registradas" accent="text-gradient" />
+          <Kpi label="Ingresos del mes" value={<CountUp value={monthIncome} format={fmtMoney} />} sub="vs. mes anterior" trend={incomeTrend} accent="text-gradient" icon={ICONS.money} />
         )}
-        <Kpi label="Proyectos activos" value={activeProjects.length} sub={`${doneProjects.length} completados de ${projects.length}`}>
+        <Kpi label="Proyectos activos" value={activeProjects.length} sub={`${doneProjects.length} completados de ${projects.length}`} icon={ICONS.folder}>
           <Donut pct={pct} />
         </Kpi>
-        <Kpi label="Tareas pendientes" value={pendingTasks.length} sub={urgentTasks.length ? `${urgentTasks.length} de alta prioridad` : 'Sin urgentes por ahora'} />
-        <Kpi label="Clientes activos" value={activeClients.length} sub={`${clients.length} en cartera total`} />
+        <Kpi label="Tareas pendientes" value={pendingTasks.length} sub={urgentTasks.length ? `${urgentTasks.length} de alta prioridad` : 'Sin urgentes por ahora'} icon={ICONS.check} />
+        <Kpi label="Clientes activos" value={activeClients.length} sub={`${clients.length} en cartera total`} icon={ICONS.users} />
       </div>
 
       {/* Mosaico real con Grid: en pantallas anchas se reparte en 4 columnas para aprovechar todo el espacio */}
@@ -184,6 +249,33 @@ export default function Dashboard() {
         <Panel title="Tareas" className="lg:col-span-1 xl:col-span-2">
           <MiniStatus items={tasks} empty="Sin tareas todavía." statusOf={t => ({ ...statusColor(t.status === 'completada' ? 'completada' : t.priority), label: t.title, sub: t.priority })} />
         </Panel>
+
+        {isAdmin && (
+          <Panel title="Novedades del sistema" className="xl:col-span-4">
+            {!activity.length ? (
+              <p className="text-[12.5px] text-white/35">Todavía no hay actividad registrada.</p>
+            ) : (
+              <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(280px,100%),1fr))' }}>
+                {activity.map((a, i) => {
+                  const who = a.expand?.user?.name || a.expand?.user?.email || 'Alguien'
+                  const verb = a.action === 'crear' ? 'creó' : a.action === 'eliminar' ? 'eliminó' : 'actualizó'
+                  const { color, glow } = statusColor(a.action === 'eliminar' ? 'urgente' : a.action === 'crear' ? 'completado' : undefined)
+                  return (
+                    <motion.div key={a.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                      className="flex items-start gap-2.5 px-2 py-2 rounded-xl hover:bg-white/[.04] transition-colors">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: color, boxShadow: `0 0 8px ${glow}` }} />
+                      <div className="text-[12px] min-w-0">
+                        <span className="font-semibold">{who}</span> <span className="text-white/45">{verb} {a.entity}</span>
+                        {a.entity_name && <span className="font-medium"> "{a.entity_name}"</span>}
+                        <div className="text-[10px] text-white/30 mt-0.5">{new Date(a.created).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+          </Panel>
+        )}
       </div>
     </motion.div>
   )

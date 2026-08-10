@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, removeRec } from '../lib/api'
+import { list, createRec, updateRec, removeRec, notifyUser, getAuth } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Field, Pill, ModuleHead, EmptyState, Select } from '../components/ui'
 import TaskComments from '../components/TaskComments'
@@ -68,7 +68,15 @@ export default function Tareas() {
     if (!editId) body.from_client = false
     try {
       if (editId) await updateRec('tasks', editId, body)
-      else await createRec('tasks', body)
+      else {
+        await createRec('tasks', body)
+        const me = getAuth()?.record
+        const admins = await list('users', '&filter=' + encodeURIComponent('role="admin"')).catch(() => [])
+        const targets = new Set(admins.map(a => a.id))
+        if (body.assigned_to) targets.add(body.assigned_to)
+        if (me?.id) targets.delete(me.id)
+        targets.forEach(id => notifyUser(id, { title: 'Nueva tarea creada', message: form.title.trim(), type: 'tarea', project: form.project || '' }))
+      }
       setOpen(false); toast(editId ? 'Tarea actualizada ✓' : '✦ Tarea creada con éxito'); load()
     } catch (err) {
       toast(err?.data?.data?.link ? 'El enlace debe iniciar con https://' : 'No se pudo guardar la tarea.', true)

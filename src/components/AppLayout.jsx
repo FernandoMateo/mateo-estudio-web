@@ -5,7 +5,9 @@ import Sidebar from './Sidebar'
 import AuroraBackground from './AuroraBackground'
 import NotificationBell from './NotificationBell'
 import InstallPrompt from './InstallPrompt'
+import NotificationPermissionBanner from './NotificationPermissionBanner'
 import { getAuth, list, updateRec, notifyUser } from '../lib/api'
+import { startNotificationPolling } from '../lib/pushNotifications'
 
 const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -16,6 +18,12 @@ export default function AppLayout() {
   const loc = useLocation()
   const [open, setOpen] = useState(false)
   const auth = getAuth()
+
+  // Avisos del navegador: revisa cada tanto si hay notificaciones nuevas y las muestra (si hay permiso).
+  useEffect(() => {
+    if (!auth?.token) return
+    return startNotificationPolling()
+  }, [auth?.token])
 
   // Reviso vencimientos recurrentes próximos (≤2 días) y aviso al cliente una sola vez por ciclo.
   useEffect(() => {
@@ -73,6 +81,7 @@ export default function AppLayout() {
         <Outlet context={{ me }} />
       </main>
       <InstallPrompt />
+      <NotificationPermissionBanner />
     </div>
   )
 }

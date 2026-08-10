@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'mateo-shell-v3'
+const SHELL_CACHE = 'mateo-shell-v4'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -41,5 +41,15 @@ self.addEventListener('fetch', (event) => {
         // para que el navegador nunca reciba "undefined" (eso rompía la pestaña).
         return new Response('', { status: 503, statusText: 'Sin conexión' })
       })
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(list => {
+      if (list.length > 0) return list[0].focus()
+      return self.clients.openWindow('/')
+    })
   )
 })

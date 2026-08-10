@@ -991,3 +991,59 @@ Mismo mecanismo honesto que ya usamos para gastos recurrentes y vencimientos (si
 ### Sobre el "editor de formato" que pediste
 
 Te soy honesto con el alcance: no armé un editor visual de plantillas (eso sería un proyecto en sí mismo). Lo que sí tenés es **flexibilidad real por factura**: campos personalizados ilimitados, ítems libres, notas — cubre la gran mayoría de los casos sin necesitar tocar código. Si en algún momento necesitás cambiar el diseño visual de la plantilla en sí (colores, orden de las secciones), eso sí lo edito yo en el código cuando me digas qué querés cambiar.
+
+---
+
+## Monto real de facturas pendientes, alerta de vencimiento, notificación de tareas al admin, novedades del sistema
+
+**Sin cambios de esquema** — solo código.
+
+### 1. El monto de facturas pendientes — corregido
+
+Encontré la causa: el Portal calculaba "lo que debe" desde las transacciones sueltas viejas, no desde las **facturas formales** que armamos la vez pasada (que tienen sus propios estados: borrador/enviada/pagada/vencida). Ya lo corregí — ahora toma el monto real de las facturas con estado "enviada" o "vencida".
+
+### 2. Alerta de vencimiento próximo
+
+Cualquier factura enviada cuyo vencimiento esté a **3 días o menos** (y todavía no venció) se marca con una etiqueta ámbar "vence pronto" en la lista, y el aviso de arriba de la pestaña Facturas prioriza avisar de esto antes que un genérico "tenés facturas pendientes".
+
+### 3. El admin se entera cuando se crea una tarea
+
+Antes, solo se notificaba cuando la tarea se creaba desde dentro de un proyecto (Portal o el detalle de proyecto). Ahora, crear una tarea **desde el módulo de Tareas directo** también avisa a todos los admin (y a la persona asignada, si le pusiste una) — así ya no importa desde dónde se cree, siempre llega el aviso.
+
+### 4. Novedades del sistema en el Dashboard
+
+Nuevo panel al final del Dashboard (solo admin) con las últimas acciones de todo el sistema — quién hizo qué y cuándo, en toda la cuenta, no solo de un proyecto puntual. Reutiliza el mismo historial que ya tenías, pero a nivel general.
+
+---
+
+## Avisos del navegador, asignar tareas al cliente, y Dashboard renovado
+
+**Sin cambios de esquema** — solo código.
+
+### ⚠️ Sé honesto sobre el alcance de "notificaciones"
+
+Lo que armé son **avisos reales del sistema operativo** (esos carteles que aparecen arriba a la derecha en la compu, o como notificación en el celular) — pero con una limitación técnica real que quiero que conozcas: **solo llegan mientras la app esté abierta** en alguna pestaña o como PWA instalada (puede estar de fondo, no hace falta que esté enfocada). Si el navegador está **completamente cerrado**, no va a llegar nada.
+
+Para que llegaran avisos con el navegador 100% cerrado, se necesita "push" de verdad — eso requiere un servidor aparte con claves de seguridad (VAPID) mandando los avisos, algo que no tenemos armado y que sería un proyecto en sí mismo. Si en algún momento te interesa esa inversión, avisame y lo charlamos con las implicancias de infraestructura que tiene.
+
+### 1. Avisos del navegador
+
+Al entrar (admin, equipo, cliente o colaborador) aparece un cartelito discreto abajo preguntando si querés activarlos. Si aceptás, el navegador te pide el permiso nativo — a partir de ahí, cada vez que te llegue una notificación nueva (mientras tengas la app abierta en algún lado), va a aparecer también como aviso del sistema, y tocarlo abre la app.
+
+### 2. Asignar tareas al cliente, no solo al equipo
+
+Al crear una tarea dentro de un proyecto, el selector de "asignar a" ahora también incluye **al contacto del cliente** (marcado como "(cliente)" en la lista), además del equipo.
+
+### 3. Notificaciones ampliadas a cambios del proyecto
+
+Agregué un aviso conjunto a "todos los involucrados de un proyecto" (la persona del equipo asignada + el cliente/colaborador) para:
+- Cambios de fase del proyecto
+- Cambios de estado en cualquier tarea del proyecto
+
+Antes esto solo avisaba en casos puntuales; ahora cualquiera de estos dos cambios notifica a quien corresponda.
+
+### 4. Dashboard renovado
+
+- Encabezado nuevo con saludo según la hora del día, tu nombre, y la fecha/hora actualizándose sola
+- Las tarjetas de KPI ahora tienen un ícono propio y, en Ingresos, una flechita de tendencia comparando contra el mes anterior
+- El resto (gráfico, dólar cripto, proyectos, tareas, novedades) se mantiene — no toqué la lógica de datos, solo la presentación

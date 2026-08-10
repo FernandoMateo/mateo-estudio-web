@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { list, createRec, updateRec, removeRec, logActivity } from '../lib/api'
+import { list, createRec, updateRec, removeRec, logActivity, notifyProjectInvolved } from '../lib/api'
 import { PHASES, PHASE_PROGRESS } from '../lib/constants'
 import { useToast } from '../context/ToastContext'
 import { Modal, ModalHead, Stepper, StepPanel, Field, Pill, IconBtn, EditIcon, TrashIcon, ModuleHead, EmptyState, Select, MoneyField } from '../components/ui'
@@ -126,6 +126,7 @@ export default function Proyectos() {
     try {
       await updateRec('projects', p.id, buildBody(phase))
       logActivity({ action: 'actualizar', entity: 'proyecto', entity_name: p.name, summary: `cambió la fase a ${PHASES[phase]}`, project: p.id })
+      notifyProjectInvolved(p.id, { title: `${p.name}: cambió de fase`, message: `Ahora está en "${PHASES[phase]}"`, type: 'info' })
     }
     catch { toast('No se pudo actualizar la fase.', true); load() }
   }
