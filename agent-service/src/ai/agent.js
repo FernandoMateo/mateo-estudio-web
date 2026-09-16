@@ -8,6 +8,11 @@
 // Groq (https://console.groq.com) tiene un tier gratis generoso y sin tarjeta — recomendado
 // si no querés pagar. Gemini hoy (sept. 2026) tiene un bug conocido de Google con las claves
 // nuevas formato "AQ." que rompe la autenticación — evitalo hasta que Google lo resuelva.
+//
+// Redacción de respuestas: las tools específicas (list_tasks, get_summary, etc.) ya devuelven
+// texto prolijo en español. Pero query_collection/get_record traen datos crudos de PocketBase
+// (JSON), así que antes de contestarle al usuario se los volvemos a pasar al modelo pidiéndole
+// que redacte una respuesta natural en base a esos datos — así nunca le llega JSON en Telegram.
 
 import * as data from '../data.js'
 import { fmtDate, label } from '../lib/format.js'
@@ -17,6 +22,10 @@ import { getSchemaMapText } from '../schemaMap.js'
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY
 const GROQ_KEY = process.env.GROQ_API_KEY
 const GEMINI_KEY = process.env.GEMINI_API_KEY
+
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929'
+const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b'
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
 
 // ── Definición de tools, en formato agnóstico (JSON-schema simple) ──
 const TOOLS = [
@@ -102,7 +111,7 @@ const TOOLS = [
 const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid'])
 
 const BASE_SYSTEM_PROMPT = `Sos el agente interno del Dashboard Mateo Estudio (agencia de desarrollo web y marketing digital, con clientes en Argentina, Panamá y Miami).
-Te escriben por Telegram en español rioplatense, de forma informal y directa.
+Te escriben por Telegram en español rioplatense, de forma informal, cálida y directa — como un compañero de equipo copado, nunca como un sistema robótico.
 
 El sistema tiene estos módulos (todos viven en la misma base PocketBase, cada uno con su/s colección/es):
 - Clientes y proyectos (con su estado, progreso y renovaciones recurrentes)
@@ -131,6 +140,22 @@ function buildSystemPrompt() {
   return BASE_SYSTEM_PROMPT.replace('{{SCHEMA_MAP}}', getSchemaMapText())
 }
 
+// Prompt para la segunda pasada: redactar en natural el JSON crudo que devuelve PocketBase.
+function buildNarratePrompt(userText, rawData) {
+  return `El usuario te preguntó esto por Telegram: "${userText}"
+
+Corriste una consulta a la base de datos y esto es lo que encontraste (JSON crudo, puede ser un array o un solo objeto):
+${JSON.stringify(rawData)}
+
+Redactá la respuesta para el usuario en español rioplatense, natural y conversacional — como si se lo estuvieras contando vos, no como un volcado de datos. Reglas:
+- NUNCA muestres JSON, llaves, corchetes, ids técnicos ni nombres de campos en inglés (collectionId, fx_rate, etc.).
+- Si hay varios resultados, armá una lista prolija (con guiones o numeración), lo más relevante primero.
+- Si hay montos, mostralos con el símbolo de moneda que corresponda (ARS, USD, MXN) y redondeados si tiene sentido.
+- Si algo no tiene dato (vacío, null), simplemente omitilo, no lo menciones como "null" o "undefined".
+- Sé breve y directo, pero completo: respondé específicamente lo que te preguntaron.
+- No inventes nada que no esté en los datos de arriba.`
+}
+
 // ────────────────────────────── Punto de entrada único ──────────────────────────────
 
 export async function interpretFreeText(userText) {
@@ -143,15 +168,19 @@ export async function interpretFreeText(userText) {
 // ────────────────────────────── Proveedor: Claude (Anthropic) ──────────────────────────────
 
 let anthropicClient = null
-async function callClaude(userText) {
+async function ensureAnthropicClient() {
   if (!anthropicClient) {
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     anthropicClient = new Anthropic({ apiKey: ANTHROPIC_KEY })
   }
-  const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929'
+  return anthropicClient
+}
 
-  const msg = await anthropicClient.messages.create({
-    model: MODEL,
+async function callClaude(userText) {
+  const client = await ensureAnthropicClient()
+
+  const msg = await client.messages.create({
+    model: CLAUDE_MODEL,
     max_tokens: 1024,
     system: buildSystemPrompt(),
     tools: TOOLS,
@@ -165,7 +194,18 @@ async function callClaude(userText) {
   }
 
   if (WRITE_TOOLS.has(toolUse.name)) return buildWriteAction({ name: toolUse.name, input: toolUse.input })
-  return { type: 'read', text: await runReadTool({ name: toolUse.name, input: toolUse.input }) }
+  const result = await runReadTool({ name: toolUse.name, input: toolUse.input })
+  return { type: 'read', text: await finalizeReadResult(userText, result, narrateClaude) }
+}
+
+async function narrateClaude(prompt) {
+  const client = await ensureAnthropicClient()
+  const msg = await client.messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: 800,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  return msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
 }
 
 // ────────────────────────────── Proveedor: Groq (gratis, formato OpenAI) ──────────────────────────────
@@ -176,15 +216,19 @@ const GROQ_TOOLS = TOOLS.map(t => ({
   function: { name: t.name, description: t.description, parameters: t.input_schema },
 }))
 
-async function callGroq(userText) {
+async function ensureGroqClient() {
   if (!groqClient) {
     const { default: Groq } = await import('groq-sdk')
     groqClient = new Groq({ apiKey: GROQ_KEY })
   }
-  const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b'
+  return groqClient
+}
 
-  const completion = await groqClient.chat.completions.create({
-    model: MODEL,
+async function callGroq(userText) {
+  const client = await ensureGroqClient()
+
+  const completion = await client.chat.completions.create({
+    model: GROQ_MODEL,
     messages: [
       { role: 'system', content: buildSystemPrompt() },
       { role: 'user', content: userText },
@@ -203,12 +247,21 @@ async function callGroq(userText) {
   try { input = JSON.parse(toolCall.function.arguments || '{}') } catch { /* deja input vacío si viene mal formado */ }
   const toolUse = { name: toolCall.function.name, input }
   if (WRITE_TOOLS.has(toolUse.name)) return buildWriteAction(toolUse)
-  return { type: 'read', text: await runReadTool(toolUse) }
+  const result = await runReadTool(toolUse)
+  return { type: 'read', text: await finalizeReadResult(userText, result, narrateGroq) }
+}
+
+async function narrateGroq(prompt) {
+  const client = await ensureGroqClient()
+  const completion = await client.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  return completion.choices[0].message.content?.trim() || ''
 }
 
 // ────────────────────────────── Proveedor: Gemini (Google) ──────────────────────────────
 
-let geminiModel = null
 function toGeminiSchema(schema, SchemaType) {
   if (!schema) return undefined
   const typeMap = { object: SchemaType.OBJECT, string: SchemaType.STRING, number: SchemaType.NUMBER, boolean: SchemaType.BOOLEAN, array: SchemaType.ARRAY }
@@ -226,26 +279,29 @@ function toGeminiSchema(schema, SchemaType) {
 
 let geminiGenAI = null
 let geminiSchemaTypeRef = null
-async function getGeminiModel() {
+async function ensureGeminiGenAI() {
   if (!geminiGenAI) {
     const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
     geminiGenAI = new GoogleGenerativeAI(GEMINI_KEY)
     geminiSchemaTypeRef = SchemaType
   }
+  return geminiGenAI
+}
+
+async function getGeminiModel() {
+  const genAI = await ensureGeminiGenAI()
   // Se reconstruye en cada llamada (es liviano) para que el system prompt siempre lleve el
   // mapa de datos al día, incluso si se agregó una colección desde la última vez.
-  const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
   const functionDeclarations = TOOLS.map(t => ({
     name: t.name,
     description: t.description,
     parameters: toGeminiSchema(t.input_schema, geminiSchemaTypeRef),
   }))
-  geminiModel = geminiGenAI.getGenerativeModel({
-    model: MODEL,
+  return genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
     systemInstruction: buildSystemPrompt(),
     tools: [{ functionDeclarations }],
   })
-  return geminiModel
 }
 
 async function callGemini(userText) {
@@ -262,10 +318,33 @@ async function callGemini(userText) {
   const call = calls[0]
   const toolUse = { name: call.name, input: call.args || {} }
   if (WRITE_TOOLS.has(toolUse.name)) return buildWriteAction(toolUse)
-  return { type: 'read', text: await runReadTool(toolUse) }
+  const toolResult = await runReadTool(toolUse)
+  return { type: 'read', text: await finalizeReadResult(userText, toolResult, narrateGemini) }
+}
+
+async function narrateGemini(prompt) {
+  const genAI = await ensureGeminiGenAI()
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL })
+  const result = await model.generateContent(prompt)
+  return result.response.text()?.trim() || ''
 }
 
 // ────────────────────────────── Lógica común (agnóstica del proveedor) ──────────────────────────────
+
+// Si el resultado de la tool trae datos crudos (query_collection/get_record), le pide al
+// modelo que los redacte en natural antes de devolvérselos al usuario. Si ya viene un texto
+// prolijo (list_tasks, get_summary, etc.) lo devuelve tal cual, sin gastar una llamada extra.
+async function finalizeReadResult(userText, result, narrateFn) {
+  if (!result.raw) return result.text
+  try {
+    const prompt = buildNarratePrompt(userText, result.raw)
+    const narrated = await narrateFn(prompt)
+    return narrated || result.text
+  } catch (err) {
+    console.error('[ai] error redactando respuesta natural, devuelvo el resumen crudo:', err)
+    return result.text
+  }
+}
 
 async function runReadTool({ name, input }) {
   try {
@@ -273,49 +352,49 @@ async function runReadTool({ name, input }) {
       case 'list_tasks': {
         const tasks = await data.listTasks(input.status ? { status: input.status } : {})
         const filtered = input.status ? tasks : tasks.filter(t => t.status !== 'completada')
-        if (!filtered.length) return 'No hay tareas ahí 🎉'
-        return filtered.slice(0, 20).map(data.formatTask).join('\n\n')
+        if (!filtered.length) return { text: 'No hay tareas ahí 🎉' }
+        return { text: filtered.slice(0, 20).map(data.formatTask).join('\n\n') }
       }
       case 'get_project_status': {
         const info = await data.getProjectStatus(input.name)
-        if (!info) return `No encontré ningún proyecto que coincida con "${input.name}".`
+        if (!info) return { text: `No encontré ningún proyecto que coincida con "${input.name}".` }
         const pend = info.tasks.filter(t => t.status !== 'completada')
-        return `*${info.project.name}* — ${info.client?.name || 'sin cliente'}\nEstado: ${label(info.project.status)} · Progreso: ${info.project.progress || 0}%\nTareas pendientes: ${pend.length}`
+        return { text: `*${info.project.name}* — ${info.client?.name || 'sin cliente'}\nEstado: ${label(info.project.status)} · Progreso: ${info.project.progress || 0}%\nTareas pendientes: ${pend.length}` }
       }
       case 'get_client_summary': {
         const info = await data.getClientSummary(input.name)
-        if (!info) return `No encontré ningún cliente que coincida con "${input.name}".`
+        if (!info) return { text: `No encontré ningún cliente que coincida con "${input.name}".` }
         const pendingInvoices = info.invoices.filter(i => i.status !== 'pagada' && i.status !== 'borrador')
-        return `*${info.client.name}*\nProyectos: ${info.projects.length}\nFacturas pendientes: ${pendingInvoices.length}`
+        return { text: `*${info.client.name}*\nProyectos: ${info.projects.length}\nFacturas pendientes: ${pendingInvoices.length}` }
       }
       case 'list_invoices': {
         const invoices = await data.listInvoices(input.status ? { status: input.status } : {})
-        if (!invoices.length) return 'No hay facturas ahí.'
-        return invoices.slice(0, 20).map(data.formatInvoice).join('\n')
+        if (!invoices.length) return { text: 'No hay facturas ahí.' }
+        return { text: invoices.slice(0, 20).map(data.formatInvoice).join('\n') }
       }
       case 'get_summary': {
         const summary = await data.buildSummary({ sinceDays: input.days === 7 ? 7 : 1 })
-        return renderSummary(summary, { title: input.days === 7 ? 'Resumen semanal' : 'Resumen del día' })
+        return { text: renderSummary(summary, { title: input.days === 7 ? 'Resumen semanal' : 'Resumen del día' }) }
       }
       case 'query_collection': {
         const { error, items } = await data.queryCollection({
           collection: input.collection, filter: input.filter, sort: input.sort, limit: input.limit,
         })
-        if (error) return `⚠️ ${error}`
-        if (!items.length) return `No encontré nada en "${input.collection}" con eso.`
-        return items.map(it => '```\n' + JSON.stringify(it, null, 0) + '\n```').join('\n')
+        if (error) return { text: `⚠️ ${error}` }
+        if (!items.length) return { text: `No encontré nada en "${input.collection}" con eso.` }
+        return { text: `Encontré ${items.length} resultado(s) en "${input.collection}".`, raw: items }
       }
       case 'get_record': {
         const { error, item } = await data.getRecordById({ collection: input.collection, id: input.id })
-        if (error) return `⚠️ ${error}`
-        return '```\n' + JSON.stringify(item, null, 0) + '\n```'
+        if (error) return { text: `⚠️ ${error}` }
+        return { text: `Encontré el registro en "${input.collection}".`, raw: item }
       }
       default:
-        return 'No sé cómo resolver eso todavía.'
+        return { text: 'No sé cómo resolver eso todavía.' }
     }
   } catch (err) {
     console.error('[ai] error ejecutando tool de lectura', name, err)
-    return '⚠️ Tuve un error consultando eso.'
+    return { text: '⚠️ Tuve un error consultando eso.' }
   }
 }
 
