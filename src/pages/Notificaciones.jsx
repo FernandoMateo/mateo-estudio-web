@@ -7,6 +7,7 @@ export default function Notificaciones() {
   function handleNavigate(n) {
     if (n.task) nav('/app/tareas')
     else if (n.project) nav('/app/proyectos')
+    else if (n.type === 'pago_reportado') nav('/app/facturas')
     else if (n.type === 'pago') nav('/app/cotizador')
     else if (n.client) nav('/app/clientes')
   }
