@@ -1,0 +1,22 @@
+{
+  "name": "mateo-estudio-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agente del Dashboard Mateo Estudio: ejecuta tareas sobre PocketBase, manda resúmenes/alertas por email y responde por Telegram.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.5",
+    "groq-sdk": "^0.7.0",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "nodemailer": "^6.9.14",
+    "pocketbase": "^0.25.1"
+  }
+}

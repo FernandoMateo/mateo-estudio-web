@@ -1,0 +1,15 @@
+# No reemplaza tu docker-compose.yml del VPS — es el bloque para AGREGAR a tu compose
+# existente (el que ya tiene el servicio "pocketbase"), como un servicio hermano.
+# Copiá este bloque bajo "services:" en tu compose real y ajustá la red si hace falta
+# para que "agent" pueda llegar a "pocketbase-d4iq-pocketbase-1" por PB_URL.
+
+services:
+  mateo-estudio-agent:
+    build: ./agent-service      # o la ruta donde subas esta carpeta en el VPS
+    container_name: mateo-estudio-agent
+    restart: unless-stopped
+    env_file:
+      - ./agent-service/.env
+    # Si tu PocketBase corre en la misma red de Docker, podés usar su nombre de servicio
+    # interno en PB_URL del .env en vez de la URL pública (más rápido y no depende de internet
+    # para hablar con la base). Si no, dejá la URL pública y andará igual.
