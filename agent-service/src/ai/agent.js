@@ -19,6 +19,7 @@ import { fmtDate, label } from '../lib/format.js'
 import { renderSummary } from '../jobs/summaryText.js'
 import { getSchemaMapText, listCollectionNames } from '../schemaMap.js'
 import { getExtraInstructionsText } from '../aiSettings.js'
+import { sendEmail } from '../email/mailer.js'
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY
 const GROQ_KEY = process.env.GROQ_API_KEY
@@ -132,13 +133,26 @@ const TOOLS = [
       required: ['collection', 'id', 'fields'],
     },
   },
+  {
+    name: 'send_email',
+    description: 'ACCIÓN DE ESCRITURA: manda un email real (por Gmail). Si no te dicen destinatario, se manda a la casilla de alertas del estudio (Fer). Usala solo cuando te lo pidan explícitamente ("mandame un mail con...", "avisale por mail a..."), nunca por tu cuenta. Requiere confirmación del usuario antes de enviarse.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'email destinatario. Si no se especifica, se manda a la casilla de alertas por defecto.' },
+        subject: { type: 'string' },
+        body: { type: 'string', description: 'cuerpo del mail en texto plano' },
+      },
+      required: ['subject', 'body'],
+    },
+  },
 ]
 
 // Colecciones donde las tools genéricas de escritura NUNCA pueden tocar nada, aunque el modelo
 // lo pida — altas/bajas de usuarios tienen su propio flujo (contraseñas, portal) en el dashboard.
 const WRITE_BLOCKED_COLLECTIONS = new Set(['users'])
 
-const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid', 'create_record', 'update_record'])
+const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid', 'create_record', 'update_record', 'send_email'])
 
 const BASE_SYSTEM_PROMPT = `Sos el agente interno del Dashboard Mateo Estudio (agencia de desarrollo web y marketing digital, con clientes en Argentina, Panamá y Miami).
 Te escriben por Telegram en español rioplatense, de forma informal, cálida y directa — como un compañero de equipo copado, nunca como un sistema robótico.
@@ -163,6 +177,7 @@ Reglas:
 - Si el pedido no da para ninguna tool (charla, saludo, pregunta general), respondé en texto sin usar tools.
 - Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada, o crear/modificar cualquier otro registro con create_record/update_record) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada. query_collection y get_record son de solo lectura, nunca crean ni modifican nada.
 - create_record/update_record son las tools "comodín" para todo lo que no tenga una tool específica: cotizaciones, servicios, gastos recurrentes, planificador de redes, documentos, comentarios, etc. Fijate bien los nombres de campo exactos en el mapa de datos antes de usarlas. Nunca las uses con la colección "users".
+- send_email manda un correo real: usala solo si te lo piden explícitamente (no la uses como forma de "avisar" algo por tu cuenta).
 - Sé breve. Nada de relleno.
 
 Mapa de datos actual (colección: campos — se actualiza solo cuando se agrega algo nuevo al sistema, no hace falta que lo memorices, es tu referencia en cada mensaje):
@@ -520,6 +535,18 @@ function buildWriteAction({ name, input }) {
         const { error, item } = await data.updateRecordGeneric({ collection, id: input.id, fields: input.fields || {} })
         if (error) return `⚠️ ${error}`
         return `✅ Listo, actualicé el registro en *${collection}* (id: ${item.id}).`
+      },
+    }
+  }
+  if (name === 'send_email') {
+    const to = (input.to || '').trim()
+    return {
+      type: 'write',
+      confirmText: `Mandar un mail${to ? ` a *${to}*` : ' (a la casilla de alertas por defecto)'}:\n*Asunto:* ${input.subject}\n\n${input.body}`,
+      execute: async () => {
+        const ok = await sendEmail({ subject: input.subject, text: input.body, to: to || undefined })
+        if (!ok) return '⚠️ No pude mandar el mail — el agente todavía no tiene configurado el envío de correo (faltan GMAIL_USER/GMAIL_APP_PASSWORD).'
+        return `✅ Mail enviado${to ? ` a ${to}` : ''}.`
       },
     }
   }
