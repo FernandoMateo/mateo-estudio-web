@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, createRec, updateRec, removeRec, getAuth, clearAuth, fileUrl, fmtARS, fmtByCurrency, notifyTeam, logActivity } from '../lib/api'
@@ -136,6 +136,9 @@ export default function Portal() {
   const [tasks, setTasks] = useState([])
   const [invoices, setInvoices] = useState([])
   const [formalInvoices, setFormalInvoices] = useState([])
+  const [reportInvoice, setReportInvoice] = useState(null)
+  const [reportingPayment, setReportingPayment] = useState(false)
+  const reportFileRef = useRef(null)
   const [viewingInvoice, setViewingInvoice] = useState(null)
   const [creds, setCreds] = useState([])
   const [loading, setLoading] = useState(true)
@@ -214,6 +217,28 @@ export default function Portal() {
     } catch {
       toast('No se pudo cargar tu información. Recarga la página.', true)
     } finally { setLoading(false) }
+  }
+
+  // El cliente avisa que pagó una factura, adjuntando el comprobante — queda "en revisión" hasta
+  // que alguien del equipo lo confirme desde Facturas (nunca se marca "pagada" sola).
+  async function reportPayment(inv, file) {
+    if (!file) return
+    setReportingPayment(true)
+    try {
+      const fd = new FormData()
+      fd.append('payment_proof', file)
+      fd.append('payment_claimed', 'true')
+      await updateRec('invoices', inv.id, fd, true)
+      logActivity({ action: 'actualizar', entity: 'factura', entity_name: inv.title, summary: 'cliente reportó el pago, pendiente de confirmación' })
+      notifyTeam({
+        title: 'Pago reportado por un cliente',
+        message: `${client?.name || 'Un cliente'} dice haber pagado "${inv.title}" y adjuntó el comprobante — confirmalo en Facturas.`,
+        type: 'pago_reportado', client: client?.id || '',
+      })
+      toast('✦ ¡Gracias! Avisamos al equipo, lo vamos a confirmar en breve.')
+      loadAll()
+    } catch { toast('No se pudo enviar el aviso de pago. Probá de nuevo.', true) }
+    finally { setReportingPayment(false); setReportInvoice(null); if (reportFileRef.current) reportFileRef.current.value = '' }
   }
 
   const firstName = (client?.contact_name || auth?.record?.name || auth?.record?.email || '').split(' ')[0].split('@')[0]
@@ -577,7 +602,6 @@ export default function Portal() {
                 </div>
               </div>
             )}
-
             {/* ═══════════ MIS DATOS ═══════════ */}
             {tab === 'datos' && (
               <div className="grid gap-5 max-w-2xl">
@@ -629,7 +653,6 @@ export default function Portal() {
                 </div>
               </div>
             )}
-
             {/* ═══════════ PRESUPUESTOS (marca blanca) ═══════════ */}
             {tab === 'presupuestos' && (
               <div className="grid gap-5">
@@ -767,7 +790,6 @@ export default function Portal() {
                 )}
               </div>
             )}
-
             {/* ═══════════ FACTURAS ═══════════ */}
             {tab === 'facturas' && (
               <div className="grid gap-5">
@@ -816,11 +838,25 @@ export default function Portal() {
                             {!isOverdue && isDueSoon && <span className="pill text-amber bg-amber/[.1] border border-amber/30 flex-shrink-0">vence pronto</span>}
                             <span className="text-[13px] font-bold flex-shrink-0">{fmtByCurrency(inv.total, inv.currency)}</span>
                             <Pill value={inv.status || 'borrador'} />
+                            {inv.status !== 'pagada' && (
+                              inv.payment_claimed ? (
+                                <span className="pill text-amber bg-amber/[.1] border border-amber/30 flex-shrink-0" title="Ya avisaste que pagaste, lo estamos confirmando">pago reportado</span>
+                              ) : (
+                                <button onClick={e => { e.stopPropagation(); setReportInvoice(inv); reportFileRef.current?.click() }}
+                                  disabled={reportingPayment}
+                                  className="pill text-mint bg-mint/[.1] border border-mint/30 flex-shrink-0 hover:bg-mint/20 transition disabled:opacity-50">
+                                  {reportingPayment && reportInvoice?.id === inv.id ? 'Enviando…' : 'He pagado'}
+                                </button>
+                              )
+                            )}
                           </motion.div>
                         )
                       })}
                     </div>
                   )}
+                  <p className="text-[10.5px] text-white/30 mt-3">Tocá "He pagado" en una factura para adjuntar el comprobante — lo vamos a confirmar nosotros, no hace falta que esperes respuesta para seguir usando el portal.</p>
+                  <input type="file" ref={reportFileRef} accept="image/*,.pdf" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f && reportInvoice) reportPayment(reportInvoice, f) }} />
                 </div>
 
                 <div className="card">
@@ -862,7 +898,6 @@ export default function Portal() {
                 </div>
               </div>
             )}
-
             {/* ═══════════ CREDENCIALES ═══════════ */}
             {tab === 'credenciales' && (
               <div className="grid gap-5">
