@@ -13,6 +13,14 @@ const emptyForm = {
   contact_name: '', phone: '', email: '', website: '', instagram: '', facebook: '',
   rfc: '', tax_regime: '', legal_name: '', tax_address: '',
   status: 'prospecto', source: '', interested_service: '', estimated_value: '', estimated_value_currency: 'ARS', user: '', notes: '',
+  access_mode: 'none', access_name: '', access_email: '', access_password: '',
+}
+
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+  let s = ''
+  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)]
+  return s
 }
 
 export default function Clientes() {
@@ -31,6 +39,10 @@ export default function Clientes() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [changingPw, setChangingPw] = useState(false)
+  const [credsOpen, setCredsOpen] = useState(false)
+  const [lastCreds, setLastCreds] = useState(null)
+  const linkedUser = portalUsers.find(u => u.id === form.user)
 
   const load = () => list('clients', '&sort=-created').then(setClients).catch(() => toast('No se pudieron cargar los clientes.', true))
   useEffect(() => {
@@ -45,7 +57,7 @@ export default function Clientes() {
     return [c.name, c.company, c.contact_name, c.email].some(v => (v || '').toLowerCase().includes(q))
   })
 
-  function openNew() { setEditId(null); setForm(emptyForm); setStep(0); setOpen(true) }
+  function openNew() { setEditId(null); setForm(emptyForm); setChangingPw(false); setStep(0); setOpen(true) }
   function openEdit(c) {
     setEditId(c.id)
     setForm({
@@ -54,7 +66,10 @@ export default function Clientes() {
       logoPreview: c.logo ? fileUrl('clients', c.id, c.logo, '100x100') : '',
       estimated_value: c.estimated_value || '',
       estimated_value_currency: c.estimated_value_currency || 'ARS',
+      access_mode: c.user ? 'linked' : 'none',
+      access_name: '', access_email: '', access_password: '',
     })
+    setChangingPw(false)
     setStep(0); setOpen(true)
   }
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
@@ -66,7 +81,39 @@ export default function Clientes() {
 
   async function save() {
     if (!form.name.trim()) { toast('El nombre del cliente es obligatorio.', true); return }
+    if (form.access_mode === 'create' && (!form.access_email.trim() || !form.access_password || form.access_password.length < 8)) {
+      toast('Para crear el acceso, completá el correo y una contraseña de al menos 8 caracteres.', true); return
+    }
+    if (form.access_mode === 'linked' && changingPw && form.access_password && form.access_password.length < 8) {
+      toast('La contraseña nueva debe tener al menos 8 caracteres.', true); return
+    }
     setSaving(true)
+
+    // Si eligió crear el acceso al portal ahora mismo, primero armamos la cuenta (sin mandar
+    // ningún link de alta) y usamos su id para vincularla al cliente en el mismo guardado.
+    let userId = form.user || ''
+    let createdCreds = null
+    try {
+      if (form.access_mode === 'create') {
+        const newUser = await createRec('users', {
+          name: form.access_name.trim() || form.contact_name.trim() || form.name.trim(),
+          email: form.access_email.trim(),
+          password: form.access_password, passwordConfirm: form.access_password,
+          role: 'cliente',
+        })
+        userId = newUser.id
+        createdCreds = { name: newUser.name, email: form.access_email.trim(), password: form.access_password, clientName: form.name.trim(), phone: form.phone }
+      } else if (form.access_mode === 'linked' && changingPw && form.access_password) {
+        await updateRec('users', userId, { password: form.access_password, passwordConfirm: form.access_password })
+      } else if (form.access_mode === 'none') {
+        userId = ''
+      }
+    } catch (err) {
+      const d = err?.data?.data
+      toast(d?.email?.message ? 'Ese correo ya tiene una cuenta.' : 'No se pudo crear el acceso al portal.', true)
+      setSaving(false); return
+    }
+
     const fd = new FormData()
     const fields = ['name', 'company', 'country', 'brand_color', 'contact_name', 'phone', 'website', 'instagram', 'facebook',
       'rfc', 'tax_regime', 'legal_name', 'tax_address', 'status', 'source', 'interested_service', 'notes']
@@ -80,13 +127,14 @@ export default function Clientes() {
     fd.append('estimated_value_fx_rate', (form.estimated_value_currency && form.estimated_value_currency !== 'ARS') ? (val ? valArs / val : 0) : 1)
     fd.append('estimated_value_ars', valArs)
   }
-    fd.append('user', form.user || '')
+    fd.append('user', userId || '')
     if (form.logoFile) fd.append('logo', form.logoFile)
     try {
       if (editId) await updateRec('clients', editId, fd, true)
       else await createRec('clients', fd, true)
       logActivity({ action: editId ? 'actualizar' : 'crear', entity: 'cliente', entity_name: form.name?.trim() })
       setOpen(false); toast(editId ? 'Cliente actualizado ✓' : '✦ Cliente creado con éxito'); load()
+      if (createdCreds) { setLastCreds(createdCreds); setCredsOpen(true) }
     } catch (err) {
       const d = err?.data?.data
       let msg = 'No se pudo guardar. Revisa los datos.'
@@ -224,8 +272,56 @@ export default function Clientes() {
                       onAmount={v => set('estimated_value', v)} onCurrency={v => set('estimated_value_currency', v)} />
                   </Field>
                   <Field label="Acceso al portal de cliente" full>
-                    <Select value={form.user} onChange={v => set('user', v)} placeholder="Sin acceso todavía"
-                      options={portalUsers.map(u => ({ value: u.id, label: u.name || u.email }))} />
+                    {form.access_mode === 'linked' ? (
+                      <div className="rounded-xl p-3.5" style={{ background: 'rgba(52,211,153,.06)', border: '1px solid rgba(52,211,153,.25)' }}>
+                        <div className="flex items-center gap-2.5">
+                          <svg className="w-4 h-4 text-mint flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 13l4 4 10-11" /></svg>
+                          <span className="text-[12.5px] font-semibold text-mint">Ya tiene acceso al portal</span>
+                        </div>
+                        <p className="text-[12px] text-white/50 ml-[26px] mt-0.5 truncate">{linkedUser?.name || 'Cuenta vinculada'}{linkedUser?.email ? ` · ${linkedUser.email}` : ''}</p>
+                        <div className="flex gap-2 mt-3 ml-[26px]">
+                          <button type="button" className="btn-ghost !py-1.5 !px-2.5 text-[11.5px]" onClick={() => { setChangingPw(v => !v); set('access_password', '') }}>
+                            {changingPw ? 'Cancelar' : 'Cambiar contraseña'}
+                          </button>
+                          <button type="button" className="btn-ghost !py-1.5 !px-2.5 text-[11.5px] !text-coral" onClick={() => { set('user', ''); set('access_mode', 'none'); setChangingPw(false) }}>
+                            Quitar acceso
+                          </button>
+                        </div>
+                        {changingPw && (
+                          <div className="flex gap-2 mt-3 ml-[26px]">
+                            <input className="field flex-1" value={form.access_password} onChange={e => set('access_password', e.target.value)} placeholder="Nueva contraseña (mín. 8)" />
+                            <button type="button" className="btn-ghost !px-3" onClick={() => set('access_password', genPassword())}>Generar</button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-1.5 mb-2.5 flex-wrap">
+                          {[['none', 'Sin acceso'], ['link', 'Vincular cuenta existente'], ['create', 'Crear acceso ahora']].map(([k, l]) => (
+                            <button key={k} type="button" onClick={() => set('access_mode', k)}
+                              className={`text-[11.5px] font-bold px-3 py-1.5 rounded-full border transition-colors
+                                ${form.access_mode === k ? 'text-white bg-violet/[.28] border-violet-light/50' : 'text-white/40 border-white/10 hover:text-white/70'}`}>
+                              {l}
+                            </button>
+                          ))}
+                        </div>
+                        {form.access_mode === 'link' && (
+                          <Select value={form.user} onChange={v => set('user', v)} placeholder="Elegí una cuenta…"
+                            options={portalUsers.map(u => ({ value: u.id, label: u.name || u.email }))} />
+                        )}
+                        {form.access_mode === 'create' && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <input className="field" value={form.access_name} onChange={e => set('access_name', e.target.value)} placeholder="Nombre para el login" />
+                            <input type="email" className="field" value={form.access_email} onChange={e => set('access_email', e.target.value)} placeholder="Correo de acceso" />
+                            <div className="flex gap-2 sm:col-span-2">
+                              <input className="field flex-1" value={form.access_password} onChange={e => set('access_password', e.target.value)} placeholder="Contraseña (mín. 8)" />
+                              <button type="button" className="btn-ghost !px-3" onClick={() => set('access_password', genPassword())}>Generar</button>
+                            </div>
+                            <p className="text-[10.5px] text-white/30 sm:col-span-2">Se crea al instante — se la pasás vos mismo, no se manda ningún link de alta.</p>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </Field>
                   <Field label="Notas" full><textarea className="field min-h-[64px]" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Acuerdos, contexto, detalles…" /></Field>
                 </div>
@@ -251,6 +347,42 @@ export default function Clientes() {
             <p className="text-[12px] text-white/35 -mt-2 mb-4">Estos son los documentos que el propio cliente cargó desde su Portal (o los que le subas vos acá).</p>
             <ClientDocuments clientId={docsClient.id} />
           </>
+        )}
+      </Modal>
+
+      {/* ── Modal: credenciales del acceso recién creado (nunca se manda link, se le pasan directo) ── */}
+      <Modal open={credsOpen} onClose={() => setCredsOpen(false)}>
+        {lastCreds && (
+          <div className="flex flex-col items-center text-center py-4 px-2">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg,#8B5CF6,#F472F0)', boxShadow: '0 0 30px rgba(139,92,246,.5)' }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><path d="M5 13l4 4 10-11" /></svg>
+            </div>
+            <h3 className="text-[17px] font-extrabold">¡Acceso creado!</h3>
+            <p className="text-[12.5px] text-white/40 mt-1.5 mb-5 max-w-xs">Pasale estos datos a {lastCreds.clientName} para que entre a su portal. No se mandó ningún link.</p>
+            <div className="w-full max-w-xs flex flex-col gap-2.5 text-left mb-5">
+              <div className="rounded-xl px-3.5 py-2.5" style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)' }}>
+                <div className="text-[10px] uppercase tracking-wide text-white/35 font-bold">Correo</div>
+                <div className="text-[13.5px] font-semibold">{lastCreds.email}</div>
+              </div>
+              <div className="rounded-xl px-3.5 py-2.5" style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)' }}>
+                <div className="text-[10px] uppercase tracking-wide text-white/35 font-bold">Contraseña</div>
+                <div className="text-[13.5px] font-semibold">{lastCreds.password}</div>
+              </div>
+            </div>
+            <div className="flex gap-2.5 w-full max-w-xs">
+              <button className="btn-ghost flex-1 justify-center" onClick={() => navigator.clipboard?.writeText(`Correo: ${lastCreds.email}\nContraseña: ${lastCreds.password}`)}>
+                Copiar datos
+              </button>
+              {lastCreds.phone && (
+                <button className="btn-glass flex-1 justify-center" onClick={() => {
+                  const phone = lastCreds.phone.replace(/[^\d+]/g, '').replace(/^\+/, '')
+                  const msg = encodeURIComponent(`¡Hola! Ya tenés acceso a tu portal de Mateo Estudio.\nCorreo: ${lastCreds.email}\nContraseña: ${lastCreds.password}`)
+                  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
+                }}>WhatsApp</button>
+              )}
+            </div>
+            <button className="btn-ghost mt-4 !border-transparent !bg-transparent" onClick={() => setCredsOpen(false)}>Cerrar</button>
+          </div>
         )}
       </Modal>
     </div>
