@@ -8,6 +8,7 @@ import { renderSummary } from '../jobs/summaryText.js'
 import { interpretFreeText } from '../ai/agent.js'
 import { transcribeAudio } from '../ai/transcribe.js'
 import { refreshSchemaMap, listCollectionNames } from '../schemaMap.js'
+import { refreshAiSettings } from '../aiSettings.js'
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ALLOWED = new Set((process.env.TELEGRAM_ALLOWED_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean))
@@ -208,11 +209,11 @@ async function handleCommand(chatId, text) {
     }
 
     case 'actualizar': {
-      // Fuerza el refresco del mapa de datos, por si acabás de agregar una colección/campo
-      // nuevo en el dashboard y no querés esperar al refresco automático (cada 6hs).
-      await refreshSchemaMap()
+      // Fuerza el refresco del mapa de datos y de las instrucciones del módulo "Herramienta IA",
+      // por si acabás de agregar algo en el dashboard y no querés esperar al refresco automático.
+      const [, settings] = await Promise.all([refreshSchemaMap(), refreshAiSettings()])
       const names = listCollectionNames()
-      return reply(chatId, `🔄 Mapa de datos actualizado — ${names.length} colecciones: ${names.join(', ')}`)
+      return reply(chatId, `🔄 Actualizado — ${names.length} colecciones: ${names.join(', ')}.${settings.text ? '\nInstrucciones extra: sí, cargadas.' : ''}`)
     }
 
     default:
