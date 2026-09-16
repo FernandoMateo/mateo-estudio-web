@@ -17,7 +17,7 @@
 import * as data from '../data.js'
 import { fmtDate, label } from '../lib/format.js'
 import { renderSummary } from '../jobs/summaryText.js'
-import { getSchemaMapText } from '../schemaMap.js'
+import { getSchemaMapText, listCollectionNames } from '../schemaMap.js'
 import { getExtraInstructionsText } from '../aiSettings.js'
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY
@@ -107,9 +107,38 @@ const TOOLS = [
       required: ['collection', 'id'],
     },
   },
+  {
+    name: 'create_record',
+    description: 'ACCIÓN DE ESCRITURA genérica: crea un registro nuevo en CUALQUIER colección del sistema (cotizaciones, servicios, servicios recurrentes, gastos recurrentes, planificador de redes, documentos de cliente, etc.), usando los nombres de campo del mapa de datos. Para tareas y facturas preferí siempre create_task (es más preciso). No sirve para la colección "users" (las altas de usuarios/clientes se hacen desde el dashboard). Requiere confirmación del usuario antes de ejecutarse.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        collection: { type: 'string', description: 'nombre exacto de la colección, tal como aparece en el mapa de datos' },
+        fields: { type: 'object', description: 'campos del registro nuevo como pares clave-valor, según el mapa de datos de esa colección' },
+      },
+      required: ['collection', 'fields'],
+    },
+  },
+  {
+    name: 'update_record',
+    description: 'ACCIÓN DE ESCRITURA genérica: modifica campos de un registro existente en CUALQUIER colección, identificado por su id (si no lo tenés, buscalo antes con query_collection). Para tareas y facturas preferí siempre las tools específicas. No sirve para la colección "users". Requiere confirmación del usuario antes de ejecutarse.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        collection: { type: 'string' },
+        id: { type: 'string' },
+        fields: { type: 'object', description: 'solo los campos que hay que cambiar, como pares clave-valor' },
+      },
+      required: ['collection', 'id', 'fields'],
+    },
+  },
 ]
 
-const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid'])
+// Colecciones donde las tools genéricas de escritura NUNCA pueden tocar nada, aunque el modelo
+// lo pida — altas/bajas de usuarios tienen su propio flujo (contraseñas, portal) en el dashboard.
+const WRITE_BLOCKED_COLLECTIONS = new Set(['users'])
+
+const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid', 'create_record', 'update_record'])
 
 const BASE_SYSTEM_PROMPT = `Sos el agente interno del Dashboard Mateo Estudio (agencia de desarrollo web y marketing digital, con clientes en Argentina, Panamá y Miami).
 Te escriben por Telegram en español rioplatense, de forma informal, cálida y directa — como un compañero de equipo copado, nunca como un sistema robótico.
@@ -129,9 +158,11 @@ Tu trabajo es responder consultas de estado sobre CUALQUIERA de estos módulos y
 
 Reglas:
 - Para tareas, proyectos, clientes, facturas y resúmenes usá las tools específicas primero (son más precisas). Para todo lo demás — o si una tool específica no alcanza — usá query_collection/get_record con el mapa de datos de abajo.
+- Para pedidos que necesitan varios pasos (por ejemplo: "buscá la cotización de tal cliente y marcala como aceptada") podés encadenar tools: primero consultá con query_collection para encontrar el id, y recién después usá update_record con ese id. No inventes ids.
 - Nunca inventes datos, números ni estados: si no tenés la info, consultala con una tool.
 - Si el pedido no da para ninguna tool (charla, saludo, pregunta general), respondé en texto sin usar tools.
-- Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada. query_collection y get_record son de solo lectura, nunca crean ni modifican nada.
+- Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada, o crear/modificar cualquier otro registro con create_record/update_record) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada. query_collection y get_record son de solo lectura, nunca crean ni modifican nada.
+- create_record/update_record son las tools "comodín" para todo lo que no tenga una tool específica: cotizaciones, servicios, gastos recurrentes, planificador de redes, documentos, comentarios, etc. Fijate bien los nombres de campo exactos en el mapa de datos antes de usarlas. Nunca las uses con la colección "users".
 - Sé breve. Nada de relleno.
 
 Mapa de datos actual (colección: campos — se actualiza solo cuando se agrega algo nuevo al sistema, no hace falta que lo memorices, es tu referencia en cada mensaje):
@@ -182,36 +213,50 @@ async function ensureAnthropicClient() {
   return anthropicClient
 }
 
+// Claude puede encadenar varios pasos de lectura antes de contestar (por ejemplo: "buscá la
+// cotización de Aires y contame el total" primero busca con query_collection y recién ahí
+// redacta). Si en algún paso pide una tool de ESCRITURA, cortamos ahí mismo: se arma el texto
+// de confirmación y no se sigue de largo — nunca se escribe nada sin que el usuario diga "sí".
+// Tope de 5 idas y vueltas por mensaje, para no gastar de más si el modelo se traba en loop.
 async function callClaude(userText) {
   const client = await ensureAnthropicClient()
+  const system = buildSystemPrompt()
+  const messages = [{ role: 'user', content: userText }]
 
-  const msg = await client.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 1024,
-    system: buildSystemPrompt(),
-    tools: TOOLS,
-    messages: [{ role: 'user', content: userText }],
-  })
+  for (let step = 0; step < 5; step++) {
+    const msg = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system,
+      tools: TOOLS,
+      messages,
+    })
 
-  const toolUse = msg.content.find(b => b.type === 'tool_use')
-  if (!toolUse) {
-    const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
-    return { type: 'reply', text: text || 'No entendí bien, ¿podés reformular?' }
+    const toolUseBlocks = msg.content.filter(b => b.type === 'tool_use')
+    if (!toolUseBlocks.length) {
+      const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
+      return { type: 'reply', text: text || 'No entendí bien, ¿podés reformular?' }
+    }
+
+    const writeBlock = toolUseBlocks.find(b => WRITE_TOOLS.has(b.name))
+    if (writeBlock) return buildWriteAction({ name: writeBlock.name, input: writeBlock.input })
+
+    // Todas las tools pedidas en este paso son de lectura: las corremos y le devolvemos los
+    // resultados al modelo para que siga razonando (o redacte la respuesta final).
+    messages.push({ role: 'assistant', content: msg.content })
+    const toolResults = []
+    for (const block of toolUseBlocks) {
+      const result = await runReadTool({ name: block.name, input: block.input })
+      toolResults.push({
+        type: 'tool_result',
+        tool_use_id: block.id,
+        content: JSON.stringify(result.raw !== undefined ? result.raw : result.text),
+      })
+    }
+    messages.push({ role: 'user', content: toolResults })
   }
 
-  if (WRITE_TOOLS.has(toolUse.name)) return buildWriteAction({ name: toolUse.name, input: toolUse.input })
-  const result = await runReadTool({ name: toolUse.name, input: toolUse.input })
-  return { type: 'read', text: await finalizeReadResult(userText, result, narrateClaude) }
-}
-
-async function narrateClaude(prompt) {
-  const client = await ensureAnthropicClient()
-  const msg = await client.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 800,
-    messages: [{ role: 'user', content: prompt }],
-  })
-  return msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
+  return { type: 'reply', text: 'Se me complicó resolver eso en varios pasos — probá pedírmelo más simple o de a partes.' }
 }
 
 // ────────────────────────────── Proveedor: Groq (gratis, formato OpenAI) ──────────────────────────────
@@ -440,6 +485,41 @@ function buildWriteAction({ name, input }) {
       execute: async () => {
         const updated = await data.markInvoicePaid(input.invoice_query)
         return updated ? `✅ Factura marcada como pagada: ${updated.number || updated.title}` : `No encontré ninguna factura que coincida con "${input.invoice_query}".`
+      },
+    }
+  }
+  if (name === 'create_record' || name === 'update_record') {
+    const collection = input.collection
+    const blocked = WRITE_BLOCKED_COLLECTIONS.has(collection)
+    const known = listCollectionNames()
+    const unknown = known.length && !known.includes(collection)
+    if (blocked || unknown) {
+      return {
+        type: 'reply',
+        text: blocked
+          ? `⚠️ No puedo crear ni modificar registros en "${collection}" — esa colección se maneja desde el dashboard, no desde acá.`
+          : `⚠️ "${collection}" no es una colección que exista ahora mismo.`,
+      }
+    }
+    const fieldsPreview = Object.entries(input.fields || {}).map(([k, v]) => `${k}: ${v}`).join(', ')
+    if (name === 'create_record') {
+      return {
+        type: 'write',
+        confirmText: `Crear un registro nuevo en *${collection}* con estos datos:\n${fieldsPreview || '(sin campos)'}`,
+        execute: async () => {
+          const { error, item } = await data.createRecordGeneric({ collection, fields: input.fields || {} })
+          if (error) return `⚠️ ${error}`
+          return `✅ Listo, creé el registro en *${collection}* (id: ${item.id}).`
+        },
+      }
+    }
+    return {
+      type: 'write',
+      confirmText: `Modificar el registro ${input.id} en *${collection}* — cambiar:\n${fieldsPreview || '(sin campos)'}`,
+      execute: async () => {
+        const { error, item } = await data.updateRecordGeneric({ collection, id: input.id, fields: input.fields || {} })
+        if (error) return `⚠️ ${error}`
+        return `✅ Listo, actualicé el registro en *${collection}* (id: ${item.id}).`
       },
     }
   }
