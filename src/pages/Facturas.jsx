@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { list, updateRec, removeRec, createRec, fmtByCurrency, notifyUser, logActivity } from '../lib/api'
+import { list, updateRec, removeRec, createRec, fmtByCurrency, notifyUser, logActivity, fileUrl } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { ModuleHead, EmptyState, FilterTabs, Pill } from '../components/ui'
 import InvoiceBuilder from '../components/InvoiceBuilder'
@@ -75,7 +75,7 @@ export default function Facturas() {
 
   async function markPaid(inv) {
     try {
-      await updateRec('invoices', inv.id, { status: 'pagada' })
+      await updateRec('invoices', inv.id, { status: 'pagada', payment_claimed: false })
       if (inv.transaction) await updateRec('transactions', inv.transaction, { status: 'pagado' })
       logActivity({ action: 'actualizar', entity: 'factura', entity_name: inv.title, summary: 'marcada como pagada', project: inv.project || '' })
       toast('✓ Factura marcada como pagada'); load()
@@ -123,6 +123,13 @@ export default function Facturas() {
               <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap sm:ml-auto" onClick={e => e.stopPropagation()}>
                 <span className="text-[14px] font-extrabold flex-shrink-0">{fmtByCurrency(inv.total, inv.currency)}</span>
                 <Pill value={inv.status || 'borrador'} />
+                {inv.status !== 'pagada' && inv.payment_claimed && (
+                  <a href={fileUrl('invoices', inv.id, inv.payment_proof)} target="_blank" rel="noreferrer"
+                    title="El cliente avisó que pagó — ver comprobante"
+                    className="pill text-amber bg-amber/[.1] border border-amber/30 flex-shrink-0 hover:bg-amber/20 transition">
+                    pago reportado · ver comprobante
+                  </a>
+                )}
                 {inv.status !== 'pagada' && (
                   <button onClick={() => markPaid(inv)} title="Marcar como pagada" className="w-8 h-8 rounded-lg flex items-center justify-center text-white/35 hover:text-mint hover:bg-mint/10 transition">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
