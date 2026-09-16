@@ -17,7 +17,14 @@ export default function AppLayout() {
   const nav = useNavigate()
   const loc = useLocation()
   const [open, setOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === '1' } catch { return false }
+  })
   const auth = getAuth()
+
+  useEffect(() => {
+    try { localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0') } catch { /* sin storage, no pasa nada */ }
+  }, [collapsed])
 
   // Avisos del navegador: revisa cada tanto si hay notificaciones nuevas y las muestra (si hay permiso).
   useEffect(() => {
@@ -66,8 +73,8 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen relative">
       <AuroraBackground />
-      <Sidebar me={me} open={open} setOpen={setOpen} />
-      <main className="md:ml-[248px] px-4 md:px-8 pt-5 md:pt-6 pb-10 max-w-[1260px] relative z-10">
+      <Sidebar me={me} open={open} setOpen={setOpen} collapsed={collapsed} setCollapsed={setCollapsed} />
+      <main className={`${collapsed ? 'md:ml-[76px]' : 'md:ml-[248px]'} transition-[margin] duration-300 px-4 md:px-8 pt-5 md:pt-6 pb-10 max-w-[1260px] relative z-10`}>
         <div className="flex items-center gap-3.5 mb-7">
           <button className="md:hidden p-2 text-white/55 flex-shrink-0" onClick={() => setOpen(o => !o)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
