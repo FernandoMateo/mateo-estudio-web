@@ -4,8 +4,37 @@
 
 import { pb, withAuth } from './pocketbase.js'
 import { fmtByCurrency, fmtDate, isOverdue, label, PRIORITY_EMOJI } from './lib/format.js'
+import { listCollectionNames } from './schemaMap.js'
 
 const esc = (s) => String(s).replace(/"/g, '\\"')
+
+// ── Consulta genérica: cubre cualquier colección del sistema, incluidas las que se agreguen
+//    a futuro — el agente no necesita una función a medida por cada módulo nuevo. ──
+export async function queryCollection({ collection, filter = '', sort = '', limit = 15 }) {
+  const known = listCollectionNames()
+  if (known.length && !known.includes(collection)) {
+    return { error: `"${collection}" no es una colección que exista ahora mismo. Colecciones disponibles: ${known.join(', ')}` }
+  }
+  const perPage = Math.min(Math.max(Number(limit) || 15, 1), 50)
+  try {
+    const result = await withAuth((pb) => pb.collection(collection).getList(1, perPage, { filter, sort: sort || '-created' }))
+    return { items: result.items }
+  } catch (err) {
+    return { error: `Error consultando "${collection}": ${err.message}` }
+  }
+}
+
+export async function getRecordById({ collection, id }) {
+  const known = listCollectionNames()
+  if (known.length && !known.includes(collection)) {
+    return { error: `"${collection}" no es una colección que exista ahora mismo.` }
+  }
+  try {
+    return { item: await withAuth((pb) => pb.collection(collection).getOne(id)) }
+  } catch (err) {
+    return { error: `No encontré el registro ${id} en "${collection}".` }
+  }
+}
 
 // ── Búsqueda difusa por nombre (para que en Telegram puedas escribir "QX" en vez del id) ──
 async function findOneByName(collection, nameField, query) {
