@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { PB_URL, setAuth } from '../lib/api'
 import Logo from '../components/Logo'
+import AccessGrantedOverlay from '../components/AccessGrantedOverlay'
 
 export default function Login() {
   const nav = useNavigate()
@@ -10,11 +11,12 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [granted, setGranted] = useState(null)
 
   async function submit(e) {
     e.preventDefault()
     setError('')
-    if (!email || !password) { setError('Escribe tu correo y tu contraseña para continuar.'); return }
+    if (!email || !password) { setError('Escribe tu correo y tu contrasena para continuar.'); return }
     setLoading(true)
     try {
       const res = await fetch(`${PB_URL}/api/collections/users/auth-with-password`, {
@@ -23,18 +25,26 @@ export default function Login() {
         body: JSON.stringify({ identity: email, password }),
       })
       const data = await res.json()
-      if (!res.ok) { setError('Correo o contraseña incorrectos. Revisa tus datos e inténtalo de nuevo.'); setLoading(false); return }
+      if (!res.ok) { setError('Correo o contrasena incorrectos. Revisa tus datos e intentalo de nuevo.'); setLoading(false); return }
       setAuth({ token: data.token, record: data.record })
-      nav((data.record?.role === 'cliente' || data.record?.role === 'colaborador') ? '/portal' : '/app')
+      const firstName = (data.record?.name || data.record?.email || '').split(' ')[0].split('@')[0]
+      setGranted({ name: firstName, role: data.record?.role })
     } catch {
-      setError('No se pudo conectar con el servidor. Verifica tu conexión.')
+      setError('No se pudo conectar con el servidor. Verifica tu conexion.')
       setLoading(false)
     }
   }
 
+  useEffect(() => {
+    if (!granted) return
+    const t = setTimeout(() => {
+      nav((granted.role === 'cliente' || granted.role === 'colaborador') ? '/portal' : '/app')
+    }, 1650)
+    return () => clearTimeout(t)
+  }, [granted])
+
   return (
     <div className="h-[100dvh] flex items-center justify-center overflow-hidden relative bg-[#04030A]">
-      {/* Estelas de luz */}
       <svg className="fixed inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden>
         <defs>
           <linearGradient id="t1" gradientUnits="userSpaceOnUse" x1="-80" y1="640" x2="1180" y2="180">
@@ -58,7 +68,6 @@ export default function Login() {
         <path d="M -120 140 C 260 40, 560 130, 900 60" stroke="url(#t3)" strokeWidth="1.1" fill="none" />
       </svg>
 
-      {/* Dot grid + grano + vignette */}
       <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       <svg className="fixed inset-0 w-full h-full pointer-events-none opacity-[.055] mix-blend-overlay" aria-hidden>
         <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch" /></filter>
@@ -66,7 +75,7 @@ export default function Login() {
       </svg>
       <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%)' }} />
 
-      <div className="fixed top-6 left-8 text-[11px] font-semibold tracking-[.32em] text-white/55 select-none z-10">MATEO&nbsp;ESTUDIO</div>
+      <div className="fixed top-6 left-8 text-[11px] font-semibold tracking-[.32em] text-white/55 select-none z-10">MATEO ESTUDIO</div>
 
       <div className="fixed w-[42vw] h-[42vw] rounded-full blur-[110px] pointer-events-none animate-aurora"
         style={{ top: '38%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(circle, rgba(139,92,246,.22), transparent 65%)' }} />
@@ -99,14 +108,14 @@ export default function Login() {
         <form onSubmit={submit} noValidate>
           <div className="relative mb-3.5">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo electrónico" autoComplete="username" className="field pl-10" />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo electronico" autoComplete="username" className="field pl-10" />
           </div>
           <div className="relative mb-3.5">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña" autoComplete="current-password" className="field pl-10" />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contrasena" autoComplete="current-password" className="field pl-10" />
           </div>
-          <motion.button whileTap={{ scale: 0.985 }} disabled={loading} type="submit" className="btn-glass w-full justify-center py-3 group">
-            {loading ? 'Ingresando…' : 'Iniciar sesión'}
+          <motion.button whileTap={{ scale: 0.985 }} disabled={loading || !!granted} type="submit" className="btn-glass w-full justify-center py-3 group">
+            {loading ? 'Ingresando...' : 'Iniciar sesion'}
             {!loading && (
               <span className="opacity-0 -translate-x-1.5 group-hover:opacity-100 group-hover:translate-x-0 transition inline-flex">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
@@ -115,14 +124,18 @@ export default function Login() {
           </motion.button>
         </form>
 
-        <p className="mt-5 text-center text-[11px] text-white/30 tracking-wide">Acceso exclusivo · Mateo Estudio</p>
+        <p className="mt-5 text-center text-[11px] text-white/30 tracking-wide">Acceso exclusivo - Mateo Estudio</p>
       </motion.main>
 
       <div className="fixed bottom-5 right-7 flex items-center gap-2 text-[11px] text-white/55 z-10">
         <motion.span animate={{ opacity: [1, 0.45, 1] }} transition={{ duration: 2.4, repeat: Infinity }}
           className="w-[7px] h-[7px] rounded-full bg-mint shadow-[0_0_8px_rgba(52,211,153,.8)]" />
-        Sistema en línea
+        Sistema en linea
       </div>
+
+      <AnimatePresence>
+        {granted && <AccessGrantedOverlay name={granted.name} />}
+      </AnimatePresence>
     </div>
   )
 }
