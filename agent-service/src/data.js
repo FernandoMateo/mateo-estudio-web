@@ -36,6 +36,33 @@ export async function getRecordById({ collection, id }) {
   }
 }
 
+// ── Escritura genérica: igual que queryCollection/getRecordById pero para crear/modificar,
+//    así el agente no necesita una tool a medida por cada módulo nuevo que se agregue. La
+//    validación de qué colecciones están permitidas (ej. "users" bloqueada) vive en agent.js. ──
+export async function createRecordGeneric({ collection, fields }) {
+  const known = listCollectionNames()
+  if (known.length && !known.includes(collection)) {
+    return { error: `"${collection}" no es una colección que exista ahora mismo.` }
+  }
+  try {
+    return { item: await withAuth((pb) => pb.collection(collection).create(fields)) }
+  } catch (err) {
+    return { error: `No pude crear el registro en "${collection}": ${err.message}` }
+  }
+}
+
+export async function updateRecordGeneric({ collection, id, fields }) {
+  const known = listCollectionNames()
+  if (known.length && !known.includes(collection)) {
+    return { error: `"${collection}" no es una colección que exista ahora mismo.` }
+  }
+  try {
+    return { item: await withAuth((pb) => pb.collection(collection).update(id, fields)) }
+  } catch (err) {
+    return { error: `No pude actualizar el registro ${id} en "${collection}": ${err.message}` }
+  }
+}
+
 // ── Búsqueda difusa por nombre (para que en Telegram puedas escribir "QX" en vez del id) ──
 async function findOneByName(collection, nameField, query) {
   if (!query) return null
