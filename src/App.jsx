@@ -16,6 +16,7 @@ import Notificaciones from './pages/Notificaciones'
 import Reportes from './pages/Reportes'
 import Calendario from './pages/Calendario'
 import Historial from './pages/Historial'
+import IA from './pages/IA'
 import Portal from './pages/Portal'
 import Alta from './pages/Alta'
 
@@ -40,6 +41,7 @@ export default function App() {
               <Route path="reportes" element={<Reportes />} />
               <Route path="calendario" element={<Calendario />} />
               <Route path="historial" element={<Historial />} />
+              <Route path="ia" element={<IA />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />
