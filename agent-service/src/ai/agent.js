@@ -18,6 +18,7 @@ import * as data from '../data.js'
 import { fmtDate, label } from '../lib/format.js'
 import { renderSummary } from '../jobs/summaryText.js'
 import { getSchemaMapText } from '../schemaMap.js'
+import { getExtraInstructionsText } from '../aiSettings.js'
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY
 const GROQ_KEY = process.env.GROQ_API_KEY
@@ -137,7 +138,12 @@ Mapa de datos actual (colección: campos — se actualiza solo cuando se agrega 
 {{SCHEMA_MAP}}`
 
 function buildSystemPrompt() {
-  return BASE_SYSTEM_PROMPT.replace('{{SCHEMA_MAP}}', getSchemaMapText())
+  let prompt = BASE_SYSTEM_PROMPT.replace('{{SCHEMA_MAP}}', getSchemaMapText())
+  const extra = getExtraInstructionsText()
+  if (extra) {
+    prompt += `\n\nInstrucciones adicionales que te dejó el equipo de Mateo Estudio desde el módulo "Herramienta IA" (seguilas siempre; si entran en conflicto con algo de arriba, priorizalas a ellas):\n${extra}`
+  }
+  return prompt
 }
 
 // Prompt para la segunda pasada: redactar en natural el JSON crudo que devuelve PocketBase.
