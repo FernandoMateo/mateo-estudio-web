@@ -7,6 +7,7 @@ import { fmtByCurrency, fmtDate, label } from '../lib/format.js'
 import { renderSummary } from '../jobs/summaryText.js'
 import { interpretFreeText } from '../ai/agent.js'
 import { transcribeAudio } from '../ai/transcribe.js'
+import { refreshSchemaMap, listCollectionNames } from '../schemaMap.js'
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ALLOWED = new Set((process.env.TELEGRAM_ALLOWED_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean))
@@ -206,6 +207,14 @@ async function handleCommand(chatId, text) {
       return await createTaskFromCommand(chatId, rest.slice(5).trim())
     }
 
+    case 'actualizar': {
+      // Fuerza el refresco del mapa de datos, por si acabás de agregar una colección/campo
+      // nuevo en el dashboard y no querés esperar al refresco automático (cada 6hs).
+      await refreshSchemaMap()
+      const names = listCollectionNames()
+      return reply(chatId, `🔄 Mapa de datos actualizado — ${names.length} colecciones: ${names.join(', ')}`)
+    }
+
     default:
       return reply(chatId, `No conozco el comando /${cmd}. Mandá /ayuda para ver la lista.`)
   }
@@ -266,5 +275,6 @@ const HELP_TEXT = `*Agente Mateo Estudio* 🤖
 /resumen — resumen del día
 /resumen semana — resumen semanal
 /crear tarea <título> | proyecto: X | responsable: Y | fecha: YYYY-MM-DD | prioridad: alta
+/actualizar — refresca lo que sé sobre el sistema (usalo después de agregar algo nuevo)
 
-También podés escribirme en texto libre o mandarme una nota de voz (si está activado el modo lenguaje natural) y te voy a pedir confirmación antes de crear o modificar algo.`
+También podés escribirme en texto libre o mandarme una nota de voz (si está activado el modo lenguaje natural). Ahora entiendo todos los módulos del sistema (cotizador, servicios, recurrentes, planificador de redes, documentos, historial, usuarios, etc.), no solo tareas y facturas — preguntame lo que necesites. Te voy a pedir confirmación antes de crear o modificar algo.`
