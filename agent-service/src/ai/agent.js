@@ -12,6 +12,7 @@
 import * as data from '../data.js'
 import { fmtDate, label } from '../lib/format.js'
 import { renderSummary } from '../jobs/summaryText.js'
+import { getSchemaMapText } from '../schemaMap.js'
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY
 const GROQ_KEY = process.env.GROQ_API_KEY
@@ -73,18 +74,62 @@ const TOOLS = [
     description: 'ACCIÓN DE ESCRITURA. Marca una factura como pagada (buscada por número o título). Requiere confirmación.',
     input_schema: { type: 'object', properties: { invoice_query: { type: 'string' } }, required: ['invoice_query'] },
   },
+  {
+    name: 'query_collection',
+    description: 'Consulta CUALQUIER colección del sistema (más allá de tareas/facturas: cotizaciones, servicios, servicios recurrentes, gastos recurrentes, planificador de redes, documentos de cliente, comentarios, historial de actividad, usuarios, invitaciones, etc.) usando el mapa de datos que se te dio. Usala para cualquier pregunta que no cubran las tools específicas de arriba.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        collection: { type: 'string', description: 'nombre exacto de la colección, tal como aparece en el mapa de datos' },
+        filter: { type: 'string', description: 'filtro en sintaxis PocketBase, ej: status = "pendiente" && client = "abc123". Vacío para traer todo.' },
+        sort: { type: 'string', description: 'ej: -created, due_date' },
+        limit: { type: 'number', description: 'máximo de resultados, por defecto 15, tope 50' },
+      },
+      required: ['collection'],
+    },
+  },
+  {
+    name: 'get_record',
+    description: 'Trae un registro puntual de cualquier colección por su id (por ejemplo para ver el detalle completo de algo que devolvió query_collection).',
+    input_schema: {
+      type: 'object',
+      properties: { collection: { type: 'string' }, id: { type: 'string' } },
+      required: ['collection', 'id'],
+    },
+  },
 ]
 
 const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid'])
 
-const SYSTEM_PROMPT = `Sos el agente interno del Dashboard Mateo Estudio (agencia de desarrollo web y marketing digital).
+const BASE_SYSTEM_PROMPT = `Sos el agente interno del Dashboard Mateo Estudio (agencia de desarrollo web y marketing digital, con clientes en Argentina, Panamá y Miami).
 Te escriben por Telegram en español rioplatense, de forma informal y directa.
-Tu trabajo es responder consultas de estado y, cuando te lo pidan, proponer crear o modificar registros.
+
+El sistema tiene estos módulos (todos viven en la misma base PocketBase, cada uno con su/s colección/es):
+- Clientes y proyectos (con su estado, progreso y renovaciones recurrentes)
+- Tareas del equipo (con prioridad, responsable y vencimiento)
+- Cotizador: presupuestos/propuestas para clientes, con líneas de servicio y estado de aceptación/rechazo
+- Servicios (catálogo, incluidos los de facturación recurrente: mensual/trimestral/anual)
+- Facturas y transacciones (pagos, vencimientos, moneda ARS/USD/MXN)
+- Gastos recurrentes del estudio
+- Planificador de contenido / redes sociales
+- Documentos y comentarios de cliente, historial de actividad
+- Usuarios y roles (admin, equipo, cliente, colaborador) e invitaciones de clientes al portal
+
+Tu trabajo es responder consultas de estado sobre CUALQUIERA de estos módulos y, cuando te lo pidan, proponer crear o modificar registros.
+
 Reglas:
-- Usá las tools disponibles para responder con datos reales, nunca inventes números ni estados.
+- Para tareas, proyectos, clientes, facturas y resúmenes usá las tools específicas primero (son más precisas). Para todo lo demás — o si una tool específica no alcanza — usá query_collection/get_record con el mapa de datos de abajo.
+- Nunca inventes datos, números ni estados: si no tenés la info, consultala con una tool.
 - Si el pedido no da para ninguna tool (charla, saludo, pregunta general), respondé en texto sin usar tools.
-- Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada.
-- Sé breve. Nada de relleno.`
+- Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada. query_collection y get_record son de solo lectura, nunca crean ni modifican nada.
+- Sé breve. Nada de relleno.
+
+Mapa de datos actual (colección: campos — se actualiza solo cuando se agrega algo nuevo al sistema, no hace falta que lo memorices, es tu referencia en cada mensaje):
+{{SCHEMA_MAP}}`
+
+function buildSystemPrompt() {
+  return BASE_SYSTEM_PROMPT.replace('{{SCHEMA_MAP}}', getSchemaMapText())
+}
 
 // ────────────────────────────── Punto de entrada único ──────────────────────────────
 
@@ -108,7 +153,7 @@ async function callClaude(userText) {
   const msg = await anthropicClient.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(),
     tools: TOOLS,
     messages: [{ role: 'user', content: userText }],
   })
@@ -141,7 +186,7 @@ async function callGroq(userText) {
   const completion = await groqClient.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: buildSystemPrompt() },
       { role: 'user', content: userText },
     ],
     tools: GROQ_TOOLS,
@@ -179,19 +224,25 @@ function toGeminiSchema(schema, SchemaType) {
   return out
 }
 
+let geminiGenAI = null
+let geminiSchemaTypeRef = null
 async function getGeminiModel() {
-  if (geminiModel) return geminiModel
-  const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
-  const genAI = new GoogleGenerativeAI(GEMINI_KEY)
+  if (!geminiGenAI) {
+    const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
+    geminiGenAI = new GoogleGenerativeAI(GEMINI_KEY)
+    geminiSchemaTypeRef = SchemaType
+  }
+  // Se reconstruye en cada llamada (es liviano) para que el system prompt siempre lleve el
+  // mapa de datos al día, incluso si se agregó una colección desde la última vez.
   const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
   const functionDeclarations = TOOLS.map(t => ({
     name: t.name,
     description: t.description,
-    parameters: toGeminiSchema(t.input_schema, SchemaType),
+    parameters: toGeminiSchema(t.input_schema, geminiSchemaTypeRef),
   }))
-  geminiModel = genAI.getGenerativeModel({
+  geminiModel = geminiGenAI.getGenerativeModel({
     model: MODEL,
-    systemInstruction: SYSTEM_PROMPT,
+    systemInstruction: buildSystemPrompt(),
     tools: [{ functionDeclarations }],
   })
   return geminiModel
@@ -245,6 +296,19 @@ async function runReadTool({ name, input }) {
       case 'get_summary': {
         const summary = await data.buildSummary({ sinceDays: input.days === 7 ? 7 : 1 })
         return renderSummary(summary, { title: input.days === 7 ? 'Resumen semanal' : 'Resumen del día' })
+      }
+      case 'query_collection': {
+        const { error, items } = await data.queryCollection({
+          collection: input.collection, filter: input.filter, sort: input.sort, limit: input.limit,
+        })
+        if (error) return `⚠️ ${error}`
+        if (!items.length) return `No encontré nada en "${input.collection}" con eso.`
+        return items.map(it => '```\n' + JSON.stringify(it, null, 0) + '\n```').join('\n')
+      }
+      case 'get_record': {
+        const { error, item } = await data.getRecordById({ collection: input.collection, id: input.id })
+        if (error) return `⚠️ ${error}`
+        return '```\n' + JSON.stringify(item, null, 0) + '\n```'
       }
       default:
         return 'No sé cómo resolver eso todavía.'
