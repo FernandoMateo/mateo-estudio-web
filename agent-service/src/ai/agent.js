@@ -208,12 +208,62 @@ Redactá la respuesta para el usuario en español rioplatense, natural y convers
 - No inventes nada que no esté en los datos de arriba.`
 }
 
+// ────────────────────────────── Memoria de conversación (por chat) ──────────────────────────────
+// El agente ahora recuerda los últimos mensajes de cada chat de Telegram, para poder responder
+// cosas como "¿y esa misma pero para el otro cliente?" sin que el usuario repita todo el contexto.
+// Se guarda en memoria del proceso (se pierde si el agente reinicia) — no hace falta que sea
+// persistente entre reinicios, es solo para que la charla fluya dentro de una misma sesión.
+
+const MAX_HISTORY_TURNS = 12 // últimos 12 mensajes (6 idas y vueltas) por chat, para no inflar el prompt
+const HISTORY_TTL_MS = 60 * 60 * 1000 // si pasó más de 1h sin mensajes, arranca de cero
+
+const conversations = new Map() // chatId -> { turns: [{ role, content }], lastActive }
+
+function getHistory(chatId) {
+  const conv = conversations.get(chatId)
+  if (!conv) return []
+  if (Date.now() - conv.lastActive > HISTORY_TTL_MS) {
+    conversations.delete(chatId)
+    return []
+  }
+  return conv.turns
+}
+
+function pushHistory(chatId, role, content) {
+  if (!content) return
+  const conv = conversations.get(chatId) || { turns: [], lastActive: Date.now() }
+  conv.turns.push({ role, content })
+  if (conv.turns.length > MAX_HISTORY_TURNS) conv.turns.splice(0, conv.turns.length - MAX_HISTORY_TURNS)
+  conv.lastActive = Date.now()
+  conversations.set(chatId, conv)
+}
+
+// Guarda el intercambio (mensaje del usuario + lo que le contestamos) en el historial del chat,
+// y devuelve el resultado tal cual para no romper el flujo de las funciones que la llaman.
+function finalizeResult(chatId, userText, result) {
+  pushHistory(chatId, 'user', userText)
+  const assistantText = result?.type === 'write' ? result.confirmText : result?.text
+  pushHistory(chatId, 'assistant', assistantText)
+  return result
+}
+
+// Se usa después de que el usuario confirma una acción de escritura, para que el agente
+// "recuerde" lo que efectivamente pasó (y no solo lo que se propuso hacer).
+export function recordOutcome(chatId, text) {
+  pushHistory(chatId, 'assistant', text)
+}
+
+// Para el comando /reiniciar — borra el contexto de ese chat y arranca una charla nueva.
+export function resetConversation(chatId) {
+  conversations.delete(chatId)
+}
+
 // ────────────────────────────── Punto de entrada único ──────────────────────────────
 
-export async function interpretFreeText(userText) {
-  if (ANTHROPIC_KEY) return callClaude(userText)
-  if (GROQ_KEY) return callGroq(userText)
-  if (GEMINI_KEY) return callGemini(userText)
+export async function interpretFreeText(chatId, userText) {
+  if (ANTHROPIC_KEY) return callClaude(chatId, userText)
+  if (GROQ_KEY) return callGroq(chatId, userText)
+  if (GEMINI_KEY) return callGemini(chatId, userText)
   return null
 }
 
@@ -227,16 +277,17 @@ async function ensureAnthropicClient() {
   }
   return anthropicClient
 }
-
 // Claude puede encadenar varios pasos de lectura antes de contestar (por ejemplo: "buscá la
 // cotización de Aires y contame el total" primero busca con query_collection y recién ahí
 // redacta). Si en algún paso pide una tool de ESCRITURA, cortamos ahí mismo: se arma el texto
 // de confirmación y no se sigue de largo — nunca se escribe nada sin que el usuario diga "sí".
 // Tope de 5 idas y vueltas por mensaje, para no gastar de más si el modelo se traba en loop.
-async function callClaude(userText) {
+async function callClaude(chatId, userText) {
   const client = await ensureAnthropicClient()
   const system = buildSystemPrompt()
-  const messages = [{ role: 'user', content: userText }]
+  // El historial guardado son solo turnos de texto plano (user/assistant) — los pasos intermedios
+  // de tool-use de este mensaje viven únicamente en la variable local "messages", nunca se persisten.
+  const messages = [...getHistory(chatId), { role: 'user', content: userText }]
 
   for (let step = 0; step < 5; step++) {
     const msg = await client.messages.create({
@@ -250,11 +301,11 @@ async function callClaude(userText) {
     const toolUseBlocks = msg.content.filter(b => b.type === 'tool_use')
     if (!toolUseBlocks.length) {
       const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
-      return { type: 'reply', text: text || 'No entendí bien, ¿podés reformular?' }
+      return finalizeResult(chatId, userText, { type: 'reply', text: text || 'No entendí bien, ¿podés reformular?' })
     }
 
     const writeBlock = toolUseBlocks.find(b => WRITE_TOOLS.has(b.name))
-    if (writeBlock) return buildWriteAction({ name: writeBlock.name, input: writeBlock.input })
+    if (writeBlock) return finalizeResult(chatId, userText, buildWriteAction({ name: writeBlock.name, input: writeBlock.input }))
 
     // Todas las tools pedidas en este paso son de lectura: las corremos y le devolvemos los
     // resultados al modelo para que siga razonando (o redacte la respuesta final).
@@ -271,7 +322,7 @@ async function callClaude(userText) {
     messages.push({ role: 'user', content: toolResults })
   }
 
-  return { type: 'reply', text: 'Se me complicó resolver eso en varios pasos — probá pedírmelo más simple o de a partes.' }
+  return finalizeResult(chatId, userText, { type: 'reply', text: 'Se me complicó resolver eso en varios pasos — probá pedírmelo más simple o de a partes.' })
 }
 
 // ────────────────────────────── Proveedor: Groq (gratis, formato OpenAI) ──────────────────────────────
@@ -290,13 +341,14 @@ async function ensureGroqClient() {
   return groqClient
 }
 
-async function callGroq(userText) {
+async function callGroq(chatId, userText) {
   const client = await ensureGroqClient()
 
   const completion = await client.chat.completions.create({
     model: GROQ_MODEL,
     messages: [
       { role: 'system', content: buildSystemPrompt() },
+      ...getHistory(chatId),
       { role: 'user', content: userText },
     ],
     tools: GROQ_TOOLS,
@@ -306,15 +358,16 @@ async function callGroq(userText) {
   const choice = completion.choices[0].message
   const toolCall = choice.tool_calls?.[0]
   if (!toolCall) {
-    return { type: 'reply', text: choice.content?.trim() || 'No entendí bien, ¿podés reformular?' }
+    return finalizeResult(chatId, userText, { type: 'reply', text: choice.content?.trim() || 'No entendí bien, ¿podés reformular?' })
   }
 
   let input = {}
   try { input = JSON.parse(toolCall.function.arguments || '{}') } catch { /* deja input vacío si viene mal formado */ }
   const toolUse = { name: toolCall.function.name, input }
-  if (WRITE_TOOLS.has(toolUse.name)) return buildWriteAction(toolUse)
+  if (WRITE_TOOLS.has(toolUse.name)) return finalizeResult(chatId, userText, buildWriteAction(toolUse))
   const result = await runReadTool(toolUse)
-  return { type: 'read', text: await finalizeReadResult(userText, result, narrateGroq) }
+  const text = await finalizeReadResult(userText, result, narrateGroq)
+  return finalizeResult(chatId, userText, { type: 'read', text })
 }
 
 async function narrateGroq(prompt) {
@@ -370,22 +423,25 @@ async function getGeminiModel() {
   })
 }
 
-async function callGemini(userText) {
+async function callGemini(chatId, userText) {
   const model = await getGeminiModel()
-  const result = await model.generateContent(userText)
+  const history = getHistory(chatId).map(h => ({ role: h.role === 'assistant' ? 'model' : 'user', parts: [{ text: h.content }] }))
+  const chat = model.startChat({ history })
+  const result = await chat.sendMessage(userText)
   const response = result.response
   const calls = response.functionCalls?.() || []
 
   if (!calls.length) {
     const text = response.text()?.trim()
-    return { type: 'reply', text: text || 'No entendí bien, ¿podés reformular?' }
+    return finalizeResult(chatId, userText, { type: 'reply', text: text || 'No entendí bien, ¿podés reformular?' })
   }
 
   const call = calls[0]
   const toolUse = { name: call.name, input: call.args || {} }
-  if (WRITE_TOOLS.has(toolUse.name)) return buildWriteAction(toolUse)
+  if (WRITE_TOOLS.has(toolUse.name)) return finalizeResult(chatId, userText, buildWriteAction(toolUse))
   const toolResult = await runReadTool(toolUse)
-  return { type: 'read', text: await finalizeReadResult(userText, toolResult, narrateGemini) }
+  const text = await finalizeReadResult(userText, toolResult, narrateGemini)
+  return finalizeResult(chatId, userText, { type: 'read', text })
 }
 
 async function narrateGemini(prompt) {
@@ -411,7 +467,6 @@ async function finalizeReadResult(userText, result, narrateFn) {
     return result.text
   }
 }
-
 async function runReadTool({ name, input }) {
   try {
     switch (name) {
