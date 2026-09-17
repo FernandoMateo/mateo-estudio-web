@@ -153,7 +153,7 @@ export default function Dashboard() {
   const { rates: crypto } = useFx()
 
   useEffect(() => {
-    list('projects', '&sort=-created').then(setProjects).catch(() => {})
+    list('projects', '&sort=-created&expand=client').then(setProjects).catch(() => {})
     list('tasks', '&sort=-created').then(setTasks).catch(() => {})
     list('clients').then(setClients).catch(() => {})
     if (isAdmin) {
@@ -244,7 +244,7 @@ export default function Dashboard() {
         </motion.div>
 
         <Panel title="Proyectos recientes" className="lg:col-span-1 xl:col-span-2">
-          <MiniStatus items={projects} empty="Aún no hay proyectos." statusOf={p => ({ ...statusColor(p.status), label: p.name, sub: (p.status || '').replace('_', ' ') })} />
+          <MiniStatus items={projects} empty="Aún no hay proyectos." statusOf={p => ({ ...statusColor(p.status), label: p.expand?.client?.name ? `${p.name} - ${p.expand.client.name}` : p.name, sub: (p.status || '').replace('_', ' ') })} />
         </Panel>
         <Panel title="Tareas" className="lg:col-span-1 xl:col-span-2">
           <MiniStatus items={tasks} empty="Sin tareas todavía." statusOf={t => ({ ...statusColor(t.status === 'completada' ? 'completada' : t.priority), label: t.title, sub: t.priority })} />
