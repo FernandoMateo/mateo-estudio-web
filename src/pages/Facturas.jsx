@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { list, updateRec, removeRec, createRec, fmtByCurrency, notifyUser, logActivity, fileUrl } from '../lib/api'
 import { useToast } from '../context/ToastContext'
+import { useFx, convertAmount, toArs } from '../context/FxContext'
 import { ModuleHead, EmptyState, FilterTabs, Pill } from '../components/ui'
 import InvoiceBuilder from '../components/InvoiceBuilder'
 import InvoiceViewer from '../components/InvoiceViewer'
@@ -11,6 +12,7 @@ const PERIOD_MONTHS = { mensual: 1, trimestral: 3, anual: 12 }
 
 export default function Facturas() {
   const toast = useToast()
+  const { rates } = useFx()
   const [invoices, setInvoices] = useState([])
   const [clients, setClients] = useState([])
   const [search, setSearch] = useState('')
@@ -42,10 +44,17 @@ export default function Facturas() {
         const due = new Date(p.next_renewal_date.slice(0, 10) + 'T00:00:00')
         if (due > today) continue
         try {
-          const total = Number(p.budget) || 0
+          const budgetCurrency = p.budget_currency || 'ARS'
+          // Las facturas siempre se emiten en la moneda configurada en el cliente (si existe);
+          // si el proyecto tenía el presupuesto en otra moneda, se convierte el total al vuelo.
+          const clientCurrency = p.expand?.client?.default_currency || budgetCurrency
+          const rawTotal = Number(p.budget) || 0
+          const total = clientCurrency === budgetCurrency ? rawTotal : Math.round(convertAmount(rawTotal, budgetCurrency, clientCurrency, rates) * 100) / 100
+          const totalArs = clientCurrency === 'ARS' ? total : Math.round(toArs(total, clientCurrency, rates) * 100) / 100
+          const fx = clientCurrency === 'ARS' ? 1 : (total ? totalArs / total : 1)
           const invBody = {
-            client: p.client, project: p.id, title: `Factura recurrente — ${p.name}`, currency: p.budget_currency || 'ARS',
-            fx_rate: p.budget_fx_rate || 1, subtotal: total, total, total_ars: p.budget_ars || total,
+            client: p.client, project: p.id, title: `Factura recurrente — ${p.name}`, currency: clientCurrency,
+            fx_rate: fx, subtotal: total, total, total_ars: totalArs,
             status: 'enviada', issue_date: p.next_renewal_date, recurring: true,
           }
           const inv = await createRec('invoices', invBody)
