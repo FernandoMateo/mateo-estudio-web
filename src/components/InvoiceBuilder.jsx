@@ -7,6 +7,9 @@ import { useFx, convertAmount } from '../context/FxContext'
 
 const emptyLine = () => ({ tempId: crypto.randomUUID(), description: '', quantity: 1, unit_price: '' })
 const emptyExtra = () => ({ tempId: crypto.randomUUID(), label: '', value: '' })
+const CURRENCY_LABEL = { ARS: 'Pesos (ARS)', USD: 'Dólares (USD)', MXN: 'Pesos MXN' }
+// "Proyecto - Cliente", para no confundir proyectos de distintos clientes en el mismo listado.
+const projectLabel = p => p.expand?.client?.name ? `${p.name} - ${p.expand.client.name}` : p.name
 
 export default function InvoiceBuilder({ open, onClose, editingInvoice, onSaved }) {
   const toast = useToast()
@@ -28,7 +31,7 @@ export default function InvoiceBuilder({ open, onClose, editingInvoice, onSaved 
   useEffect(() => {
     if (!open) return
     list('clients', '&sort=name').then(setClients).catch(() => {})
-    list('projects', '&sort=name').then(setProjects).catch(() => {})
+    list('projects', '&sort=name&expand=client').then(setProjects).catch(() => {})
     if (editingInvoice) {
       setClient(editingInvoice.client || ''); setProject(editingInvoice.project || '')
       setTitle(editingInvoice.title || ''); setCurrency(editingInvoice.currency || 'ARS')
@@ -113,16 +116,16 @@ export default function InvoiceBuilder({ open, onClose, editingInvoice, onSaved 
       <ModalHead title={editingInvoice ? 'Editar factura' : 'Nueva factura'} onClose={onClose} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <Field label="Cliente *">
-          <Select value={client} onChange={v => { setClient(v); setProject('') }} placeholder="Elegí un cliente…"
+          <Select value={client} onChange={v => { setClient(v); setProject(''); const c = clients.find(x => x.id === v); setCurrency(c?.default_currency || 'ARS') }} placeholder="Elegí un cliente…"
             options={clients.map(c => ({ value: c.id, label: c.name }))} />
         </Field>
         <Field label="Proyecto (opcional)">
           <Select value={project} onChange={setProject} placeholder={client ? 'Sin proyecto' : 'Elegí un cliente primero'}
-            options={clientProjects.map(p => ({ value: p.id, label: p.name }))} />
+            options={clientProjects.map(p => ({ value: p.id, label: projectLabel(p) }))} />
         </Field>
         <Field label="Título / concepto *" full><input className="field" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej. Factura de agosto — Manejo de redes" /></Field>
         <Field label="Moneda">
-          <Select value={currency} onChange={setCurrency} options={[{ value: 'ARS', label: 'Pesos (ARS)' }, { value: 'USD', label: 'Dólares (USD)' }, { value: 'MXN', label: 'Pesos MXN' }]} />
+          <input className="field opacity-70 cursor-not-allowed" value={CURRENCY_LABEL[currency] || currency} readOnly disabled title="La moneda se define en la configuración del cliente" />
         </Field>
         <Field label="Fecha de emisión"><input type="date" className="field" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></Field>
         <Field label="Vence"><input type="date" className="field" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field>
