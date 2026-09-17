@@ -7,6 +7,8 @@ import { Modal, ModalHead, Field, Pill, ModuleHead, EmptyState, Select } from '.
 import TaskComments from '../components/TaskComments'
 
 const emptyForm = { title: '', project: '', assigned_to: '', due_date: '', status: 'pendiente', priority: 'media', link: '', description: '' }
+// "Proyecto - Cliente", para no confundir proyectos de distintos clientes en el mismo listado.
+const projectLabel = p => p.expand?.client?.name ? `${p.name} - ${p.expand.client.name}` : p.name
 const COLUMNS = [
   { key: 'pendiente', label: 'Pendientes', color: '#A78BFA' },
   { key: 'en_progreso', label: 'En progreso', color: '#FBBF24' },
@@ -30,7 +32,7 @@ export default function Tareas() {
   const load = () => list('tasks', '&sort=-created&expand=project,assigned_to').then(setTasks).catch(() => toast('No se pudieron cargar las tareas.', true))
   useEffect(() => {
     load()
-    list('projects', '&sort=name').then(setProjects).catch(() => {})
+    list('projects', '&sort=name&expand=client').then(setProjects).catch(() => {})
     list('users', '&filter=' + encodeURIComponent('role!="cliente"')).then(setTeam).catch(() => {})
   }, [])
 
@@ -191,7 +193,7 @@ export default function Tareas() {
           <Field label="Título de la tarea *" full><input className="field" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Ej. Diseñar propuesta de logo" /></Field>
           <Field label="Proyecto" full>
             <Select value={form.project} onChange={v => set('project', v)} placeholder="Sin proyecto"
-              options={projects.map(p => ({ value: p.id, label: p.name }))} />
+              options={projects.map(p => ({ value: p.id, label: projectLabel(p) }))} />
           </Field>
           <Field label="Responsable">
             <Select value={form.assigned_to} onChange={v => set('assigned_to', v)} placeholder="Sin asignar"
