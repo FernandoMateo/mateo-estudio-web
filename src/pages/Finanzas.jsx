@@ -14,6 +14,8 @@ const TABS = [['todas', 'Todas'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']
 const PIE_COLORS = ['#8B5CF6', '#F472F0', '#5EEAD4', '#A78BFA', '#7C3AED']
 const RECUR_DIVISOR = { mensual: 1, trimestral: 3, anual: 12 }
 const MONTHLY_GOAL_ARS = 4000000
+// "Proyecto - Cliente", para no confundir proyectos de distintos clientes en el mismo listado.
+const projectLabel = p => p.expand?.client?.name ? `${p.name} - ${p.expand.client.name}` : p.name
 
 function monthSum(items, y, m, type) {
   return items.filter(t => t.type === type && (() => { const d = new Date(t.date || t.created); return d.getFullYear() === y && d.getMonth() === m })())
@@ -52,7 +54,7 @@ export default function Finanzas() {
   useEffect(() => {
     load()
     list('clients', '&sort=name').then(setClients).catch(() => {})
-    list('projects', '&sort=name&expand=service').then(setProjects).catch(() => {})
+    list('projects', '&sort=name&expand=service,client').then(setProjects).catch(() => {})
     loadRecurring().then(() => generateDueRecurringExpenses())
   }, [])
 
@@ -452,7 +454,7 @@ export default function Finanzas() {
           </Field>
           <Field label="Proyecto">
             <Select value={form.project} onChange={v => set('project', v)} placeholder={form.client ? 'Sin proyecto' : 'Elegí un cliente primero'}
-              options={projects.filter(p => !form.client || p.client === form.client).map(p => ({ value: p.id, label: p.name }))} />
+              options={projects.filter(p => !form.client || p.client === form.client).map(p => ({ value: p.id, label: projectLabel(p) }))} />
           </Field>
           {form.type === 'ingreso' && <Field label="Vence (si es factura por cobrar)" full><input type="date" className="field" value={form.due_date} onChange={e => set('due_date', e.target.value)} /></Field>}
           <Field label="Notas" full><textarea className="field min-h-[64px]" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Referencia, factura, detalles…" /></Field>
