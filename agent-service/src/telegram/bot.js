@@ -5,7 +5,7 @@ import path from 'path'
 import * as data from '../data.js'
 import { fmtByCurrency, fmtDate, label } from '../lib/format.js'
 import { renderSummary } from '../jobs/summaryText.js'
-import { interpretFreeText } from '../ai/agent.js'
+import { interpretFreeText, recordOutcome, resetConversation } from '../ai/agent.js'
 import { transcribeAudio } from '../ai/transcribe.js'
 import { refreshSchemaMap, listCollectionNames } from '../schemaMap.js'
 import { refreshAiSettings } from '../aiSettings.js'
@@ -216,6 +216,13 @@ async function handleCommand(chatId, text) {
       return reply(chatId, `🔄 Actualizado — ${names.length} colecciones: ${names.join(', ')}.${settings.text ? '\nInstrucciones extra: sí, cargadas.' : ''}`)
     }
 
+    case 'reiniciar': {
+      // Borra la memoria de esta charla — útil si el agente se enredó con contexto viejo
+      // o si querés arrancar un tema nuevo de cero.
+      resetConversation(chatId)
+      return reply(chatId, '🧹 Listo, empezamos de cero — no me acuerdo de nada de esta charla hasta ahora.')
+    }
+
     default:
       return reply(chatId, `No conozco el comando /${cmd}. Mandá /ayuda para ver la lista.`)
   }
@@ -246,7 +253,7 @@ async function createTaskFromCommand(chatId, rest) {
 // ────────────────────────────── Lenguaje natural ──────────────────────────────
 
 async function handleFreeText(chatId, text) {
-  const result = await interpretFreeText(text)
+  const result = await interpretFreeText(chatId, text)
   if (!result) {
     return reply(chatId, 'No tengo el modo de lenguaje natural activado (falta ANTHROPIC_API_KEY). Probá con un comando, por ejemplo /ayuda.')
   }
@@ -260,6 +267,7 @@ async function handleFreeText(chatId, text) {
 
 async function executeConfirmedAction(chatId, pending) {
   const outcome = await pending.execute()
+  recordOutcome(chatId, outcome) // así el agente "sabe" qué pasó si le preguntan después
   return reply(chatId, outcome)
 }
 
@@ -277,5 +285,6 @@ const HELP_TEXT = `*Agente Mateo Estudio* 🤖
 /resumen semana — resumen semanal
 /crear tarea <título> | proyecto: X | responsable: Y | fecha: YYYY-MM-DD | prioridad: alta
 /actualizar — refresca lo que sé sobre el sistema (usalo después de agregar algo nuevo)
+/reiniciar — borra el contexto de esta charla y arranca de cero
 
-También podés escribirme en texto libre o mandarme una nota de voz (si está activado el modo lenguaje natural). Ahora entiendo todos los módulos del sistema (cotizador, servicios, recurrentes, planificador de redes, documentos, historial, usuarios, etc.), no solo tareas y facturas — preguntame lo que necesites. Te voy a pedir confirmación antes de crear o modificar algo.`
+También podés escribirme en texto libre o mandarme una nota de voz (si está activado el modo lenguaje natural). Ahora entiendo todos los módulos del sistema (cotizador, servicios, recurrentes, planificador de redes, documentos, historial, usuarios, etc.), no solo tareas y facturas — preguntame lo que necesites. Me acuerdo de lo último que hablamos en esta charla, así que podés hacer preguntas de seguimiento sin repetir todo el contexto. Te voy a pedir confirmación antes de crear o modificar algo.`
