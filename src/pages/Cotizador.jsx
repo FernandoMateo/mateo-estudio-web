@@ -38,7 +38,7 @@ export default function Cotizador() {
   })
 
   const catalogFromServices = services.map(s => ({ id: s.id, name: s.name, unit_cost: 0, currency: 'ARS', unit: 'unidad' }))
-  const clientOptions = clients.map(c => ({ value: c.id, label: c.name, phone: c.phone, email: c.email, user: c.user }))
+  const clientOptions = clients.map(c => ({ value: c.id, label: c.name, phone: c.phone, email: c.email, user: c.user, currency: c.estimated_value_currency || 'ARS' }))
 
   async function del(q) {
     if (!confirm(`¿Eliminar la cotización "${q.title}"?`)) return
