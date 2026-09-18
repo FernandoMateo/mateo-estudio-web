@@ -47,7 +47,7 @@ export default function Facturas() {
           const budgetCurrency = p.budget_currency || 'ARS'
           // Las facturas siempre se emiten en la moneda configurada en el cliente (si existe);
           // si el proyecto tenía el presupuesto en otra moneda, se convierte el total al vuelo.
-          const clientCurrency = p.expand?.client?.default_currency || budgetCurrency
+          const clientCurrency = p.expand?.client?.estimated_value_currency || budgetCurrency
           const rawTotal = Number(p.budget) || 0
           const total = clientCurrency === budgetCurrency ? rawTotal : Math.round(convertAmount(rawTotal, budgetCurrency, clientCurrency, rates) * 100) / 100
           const totalArs = clientCurrency === 'ARS' ? total : Math.round(toArs(total, clientCurrency, rates) * 100) / 100
