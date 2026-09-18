@@ -270,6 +270,7 @@ export default function Clientes() {
                   <Field label="Valor estimado" full>
                     <MoneyField amount={form.estimated_value} currency={form.estimated_value_currency}
                       onAmount={v => set('estimated_value', v)} onCurrency={v => set('estimated_value_currency', v)} />
+                    <p className="text-[11px] text-white/35 mt-1.5">La moneda que elijas acá (aunque no cargues un monto) es la que se usa siempre para las facturas, cotizaciones y saldos de este cliente.</p>
                   </Field>
                   <Field label="Acceso al portal de cliente" full>
                     {form.access_mode === 'linked' ? (
