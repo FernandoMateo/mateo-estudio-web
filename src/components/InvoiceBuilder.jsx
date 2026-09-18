@@ -116,7 +116,7 @@ export default function InvoiceBuilder({ open, onClose, editingInvoice, onSaved 
       <ModalHead title={editingInvoice ? 'Editar factura' : 'Nueva factura'} onClose={onClose} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <Field label="Cliente *">
-          <Select value={client} onChange={v => { setClient(v); setProject(''); const c = clients.find(x => x.id === v); setCurrency(c?.default_currency || 'ARS') }} placeholder="Elegí un cliente…"
+          <Select value={client} onChange={v => { setClient(v); setProject(''); const c = clients.find(x => x.id === v); setCurrency(c?.estimated_value_currency || 'ARS') }} placeholder="Elegí un cliente…"
             options={clients.map(c => ({ value: c.id, label: c.name }))} />
         </Field>
         <Field label="Proyecto (opcional)">
