@@ -6,6 +6,7 @@ import { useFx, convertAmount, toArs } from '../context/FxContext'
 import { Modal, ModalHead, Field, Select } from './ui'
 
 const CURRENCIES = [{ value: 'ARS', label: 'Pesos (ARS)' }, { value: 'USD', label: 'Dólares (USD)' }, { value: 'MXN', label: 'Pesos MX (MXN)' }]
+const CURRENCY_LABEL = { ARS: 'Pesos (ARS)', USD: 'Dólares (USD)', MXN: 'Pesos MX (MXN)' }
 const PAYMENT_METHODS = [{ value: 'efectivo', label: 'Efectivo' }, { value: 'transferencia', label: 'Transferencia' }, { value: 'cheque', label: 'Cheque' }, { value: 'otro', label: 'Otro' }]
 
 /**
@@ -197,7 +198,7 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
 
             {mode === 'estudio' ? (
               <Field label="Dirigida a *" full>
-                <Select value={client} onChange={setClient} placeholder="Elegí un cliente de tu cartera…" options={clientOptions} />
+                <Select value={client} onChange={v => { setClient(v); const opt = clientOptions.find(o => o.value === v); setCurrency(opt?.currency || 'ARS') }} placeholder="Elegí un cliente de tu cartera…" options={clientOptions} />
               </Field>
             ) : (
               <>
@@ -206,7 +207,13 @@ export default function QuoteBuilder({ open, onClose, mode, clientOptions = [], 
               </>
             )}
 
-            <Field label="Moneda"><Select value={currency} onChange={setCurrency} options={CURRENCIES} /></Field>
+            {mode === 'estudio' ? (
+              <Field label="Moneda">
+                <input className="field opacity-70 cursor-not-allowed" value={CURRENCY_LABEL[currency] || currency} readOnly disabled title="La moneda se define en la configuración del cliente" />
+              </Field>
+            ) : (
+              <Field label="Moneda"><Select value={currency} onChange={setCurrency} options={CURRENCIES} /></Field>
+            )}
             <Field label="Margen de ganancia (%)"><input type="number" min="0" max="100" className="field" value={marginPct} onChange={e => setMarginPct(e.target.value)} /></Field>
             <Field label="Método de pago"><Select value={paymentMethod} onChange={setPaymentMethod} options={PAYMENT_METHODS} /></Field>
             <Field label="Estado">
