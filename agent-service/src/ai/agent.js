@@ -267,6 +267,37 @@ export async function interpretFreeText(chatId, userText) {
   return null
 }
 
+// Punto de entrada "liviano": un system prompt + un prompt de usuario, sin tools ni historial
+// de conversación — pensado para generación de contenido (por ejemplo, propuestas comerciales)
+// en vez del loop de lectura/escritura del bot. Mismo orden de preferencia de proveedor.
+export async function generateText({ system = '', prompt, maxTokens = 4096 }) {
+  if (ANTHROPIC_KEY) {
+    const client = await ensureAnthropicClient()
+    const msg = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    return msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
+  }
+  if (GROQ_KEY) {
+    const client = await ensureGroqClient()
+    const completion = await client.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }],
+    })
+    return completion.choices[0].message.content?.trim() || ''
+  }
+  if (GEMINI_KEY) {
+    const genAI = await ensureGeminiGenAI()
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction: system })
+    const result = await model.generateContent(prompt)
+    return result.response.text()?.trim() || ''
+  }
+  throw new Error('No hay ningún proveedor de IA configurado (ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY).')
+}
+
 // ────────────────────────────── Proveedor: Claude (Anthropic) ──────────────────────────────
 
 let anthropicClient = null
