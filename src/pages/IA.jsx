@@ -73,8 +73,8 @@ export default function IA() {
               <svg className="w-[18px] h-[18px] text-violet-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="9" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.4" fill="currentColor" stroke="none"/><path d="M8.5 15c1 .8 2 1.2 3.5 1.2s2.5-.4 3.5-1.2"/><path d="M12 4V2"/></svg>
             </div>
             <div className="min-w-0">
-              <h3 className="text-[14px] font-bold">Instrucciones adicionales para el agente de Telegram</h3>
-              <p className="text-[12px] text-white/40 mt-0.5">Escribí en texto libre lo que quieras que tenga en cuenta siempre — tono, cosas que nunca debe decir, avisos fijos, prioridades. Se lo pasamos junto con el resto de sus instrucciones en cada mensaje.</p>
+              <h3 className="text-[14px] font-bold">Instrucciones adicionales para la IA del estudio</h3>
+              <p className="text-[12px] text-white/40 mt-0.5">Escribí en texto libre lo que quieras que tenga en cuenta siempre — tono, cosas que nunca debe decir, avisos fijos, prioridades. Se usa tanto en el agente de Telegram como al redactar propuestas comerciales en el módulo Propuestas.</p>
             </div>
           </div>
 
@@ -125,4 +125,3 @@ export default function IA() {
     </div>
   )
 }
-
