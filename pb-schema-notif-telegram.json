@@ -1,0 +1,166 @@
+[
+  {
+    "id": "pbc_notifs_00001",
+    "name": "notifications",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\" || user = @request.auth.id",
+    "viewRule": "@request.auth.role = \"admin\" || user = @request.auth.id",
+    "createRule": "@request.auth.id != \"\"",
+    "updateRule": "@request.auth.role = \"admin\" || user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\" || user = @request.auth.id",
+    "fields": [
+      {
+        "hidden": false,
+        "id": "text_nt_id",
+        "name": "id",
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "text",
+        "max": 15,
+        "min": 15,
+        "pattern": "^[a-z0-9]+$",
+        "primaryKey": true,
+        "autogeneratePattern": "[a-z0-9]{15}"
+      },
+      {
+        "hidden": false,
+        "id": "rel_nt_user",
+        "name": "user",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "sel_nt_type",
+        "name": "type",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "maxSelect": 1,
+        "values": [
+          "info",
+          "tarea",
+          "proyecto",
+          "pago",
+          "alerta"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "text_nt_title",
+        "name": "title",
+        "presentable": true,
+        "required": true,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_nt_message",
+        "name": "message",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "bool_nt_read",
+        "name": "read",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "rel_nt_task",
+        "name": "task",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": false,
+        "collectionId": "pbc_tasks_000001",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "rel_nt_project",
+        "name": "project",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": false,
+        "collectionId": "pbc_projects_0001",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "rel_nt_client",
+        "name": "client",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "cascadeDelete": false,
+        "collectionId": "pbc_clients_00001",
+        "maxSelect": 1,
+        "minSelect": 0
+      },
+      {
+        "hidden": false,
+        "id": "auto_nt_created",
+        "name": "created",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "hidden": false,
+        "id": "auto_nt_updated",
+        "name": "updated",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true
+      },
+      {
+        "hidden": false,
+        "id": "bool_nt_tgsent",
+        "name": "telegram_sent",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      }
+    ],
+    "indexes": []
+  }
+]
+
