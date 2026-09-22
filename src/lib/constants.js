@@ -28,7 +28,10 @@ export const PILL = {
   inactivo:'text-white/40 bg-white/5 border border-white/10',
   en_progreso:'text-violet-light bg-violet/10 border border-violet/35',
   media:'text-violet-light bg-violet/10 border border-violet/35',
+  generando:'text-violet-light bg-violet/10 border border-violet/35',
+  listo:'text-mint bg-mint/10 border border-mint/30',
   cancelado:'text-coral bg-coral/10 border border-coral/30',
   urgente:'text-coral bg-coral/10 border border-coral/30',
   vencido:'text-coral bg-coral/10 border border-coral/30',
+  error:'text-coral bg-coral/10 border border-coral/30',
 }
