@@ -11,6 +11,7 @@ import Finanzas from './pages/Finanzas'
 import Facturas from './pages/Facturas'
 import Servicios from './pages/Servicios'
 import Cotizador from './pages/Cotizador'
+import Propuestas from './pages/Propuestas'
 import Usuarios from './pages/Usuarios'
 import Notificaciones from './pages/Notificaciones'
 import Reportes from './pages/Reportes'
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="facturas" element={<Facturas />} />
               <Route path="servicios" element={<Servicios />} />
               <Route path="cotizador" element={<Cotizador />} />
+              <Route path="propuestas" element={<Propuestas />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="notificaciones" element={<Notificaciones />} />
               <Route path="reportes" element={<Reportes />} />
