@@ -105,6 +105,34 @@ Para ver logs en vivo: `docker logs -f mateo-estudio-agent`.
 /crear tarea <título> | proyecto: X | responsable: Y | fecha: YYYY-MM-DD | prioridad: alta
 ```
 
+## Notificaciones al teléfono (reenvío por Telegram)
+
+Cada ~20s (`NOTIFY_PHONE_POLL_MS`), el agente revisa la colección `notifications` del dashboard
+(la misma que alimenta la campanita) buscando avisos nuevos dirigidos al usuario admin y sin
+reenviar todavía, y te los manda por Telegram apenas aparecen — así te enterás en el momento,
+no solo con el resumen diario/semanal. Usa un campo nuevo `telegram_sent` en `notifications`
+para no repetir un aviso ya mandado (ver `pb-schema-notif-telegram.json` en la raíz del repo:
+hay que importarlo una vez en el panel de PocketBase, `Configuración → Importar colecciones`).
+No es push real de navegador (eso necesitaría VAPID + service worker aparte) — es un reenvío al
+bot, pero llega igual de rápido al teléfono porque el bot ya está probado y funcionando.
+
+## Generador de propuestas con IA
+
+El módulo "Propuestas" del dashboard (`/app/propuestas`) arma una propuesta comercial completa
+con un click: Fer completa el objetivo del cliente, elige servicios del catálogo, tono y moneda,
+y el agente (cada ~15s, `PROPOSAL_POLL_MS`) toma esa solicitud, arma un prompt con la info real
+del estudio + el catálogo + los datos cargados, y le pide al mismo proveedor de IA que ya usa el
+bot (Anthropic > Groq > Gemini) que redacte la propuesta completa en JSON estructurado. El
+dashboard la muestra con un diseño premium (hero, servicios, timeline, cierre), y apenas está
+lista se manda un aviso por Telegram con el link para verla. Usa una colección nueva `proposals`
+(no había ninguna existente que sirviera para esto — se evaluó reusar `quotes`, pero esa es para
+presupuestos con ítems y totales, no para propuestas narrativas) — hay que importar
+`pb-schema-propuestas.json` (raíz del repo) una vez en el panel de PocketBase.
+
+Las "Instrucciones adicionales" que cargues en el módulo "Herramienta IA" del dashboard (colección
+`ai_settings`) ahora también se usan acá, además de en el bot de Telegram — así tenés un solo
+lugar para ajustarle el tono/criterio a la IA del estudio en general.
+
 ## Seguridad
 
 - Solo los `chat_id` en `TELEGRAM_ALLOWED_CHAT_IDS` pueden usar el bot — cualquier otro mensaje se
