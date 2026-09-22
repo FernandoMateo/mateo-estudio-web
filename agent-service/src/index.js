@@ -2,6 +2,8 @@ import 'dotenv/config'
 import { ensureAuth } from './pocketbase.js'
 import { bot } from './telegram/bot.js'
 import { startScheduler } from './jobs/scheduler.js'
+import { startPhoneNotifications } from './jobs/notifyPhone.js'
+import { startProposalGenerator } from './jobs/proposalGenerator.js'
 import { refreshSchemaMap } from './schemaMap.js'
 import { refreshAiSettings } from './aiSettings.js'
 
@@ -16,6 +18,8 @@ async function main() {
   // que un cambio que Fer guarde ahí se note casi al toque sin tener que mandar /actualizar.
   setInterval(() => refreshAiSettings().catch(err => console.error('[ai-settings] error refrescando', err)), 15 * 60 * 1000)
   startScheduler(bot)
+  startPhoneNotifications(bot)
+  startProposalGenerator(bot)
   console.log('[agent] listo. Escuchando Telegram por polling.')
 }
 
