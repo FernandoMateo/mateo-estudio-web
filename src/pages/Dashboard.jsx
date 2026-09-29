@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { list, fmtMoney } from '../lib/api'
 import { MONTHS } from '../lib/constants'
@@ -132,6 +132,51 @@ function Panel({ title, badge, className = '', children }) {
   )
 }
 
+// ── Fila estilo "watchlist" — avatar con inicial + nombre + una métrica a la derecha,
+// el mismo lenguaje de las filas de mercado (ticker, precio, variación) pero aplicado
+// a la cartera de clientes: cuántos proyectos activos tiene cada uno ahora mismo.
+function WatchlistRow({ initial, name, sub, metric, tone = 'violet', i = 0 }) {
+  const toneBg = tone === 'mint' ? 'linear-gradient(135deg,#34D399,#0EA5A5)' : tone === 'amber' ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : 'linear-gradient(135deg,#7C3AED,#F472F0)'
+  return (
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+      whileHover={{ x: 3 }} className="flex items-center gap-2.5 py-2 rounded-xl hover:bg-white/[.04] transition-colors">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ background: toneBg }}>
+        {initial}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[12.5px] font-semibold truncate">{name}</div>
+        <div className="text-[10.5px] text-white/35 truncate">{sub}</div>
+      </div>
+      <div className="text-[12px] font-bold text-white/80 flex-shrink-0">{metric}</div>
+    </motion.div>
+  )
+}
+
+// ── Panel promocional del asistente IA — mismo rol que la tarjeta "Decisions powered
+// by data" de referencia: un atajo visual y directo hacia la herramienta más potente
+// del sistema (Toto/Fabian y el resto del equipo de agentes).
+function AiPromoPanel({ onClick }) {
+  return (
+    <motion.div variants={rise} className="relative overflow-hidden rounded-[20px] p-5 cursor-pointer group" onClick={onClick}
+      style={{ background: 'linear-gradient(160deg, rgba(139,92,246,.22), rgba(244,114,240,.10) 60%, rgba(255,255,255,.02))', border: '1px solid rgba(167,139,250,.3)' }}>
+      <motion.div className="absolute w-[180px] h-[180px] rounded-full blur-[70px] opacity-60 pointer-events-none"
+        style={{ bottom: '-70px', right: '-40px', background: 'radial-gradient(circle, #F472F0, transparent 70%)' }}
+        animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }} />
+      <div className="relative z-[1]">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.18)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z" /></svg>
+        </div>
+        <h3 className="text-[14px] font-bold leading-snug">Decisiones con ayuda de IA</h3>
+        <p className="text-[12px] text-white/55 mt-1.5 leading-snug">Pedile a Toto un resumen, una tarea o una propuesta — en segundos.</p>
+        <div className="inline-flex items-center gap-1.5 mt-3.5 text-[11.5px] font-bold text-white bg-white/[.12] group-hover:bg-white/[.2] border border-white/20 rounded-full px-3.5 py-2 transition-colors">
+          Abrir Herramienta IA
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-0.5 transition-transform"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 const ICONS = {
   money: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M12 1v22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
   folder: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /></svg>,
@@ -141,6 +186,7 @@ const ICONS = {
 
 export default function Dashboard() {
   const { me } = useOutletContext()
+  const nav = useNavigate()
   const isAdmin = me.role === 'admin'
   const firstName = (me.name || me.email || '').split(' ')[0].split('@')[0]
   const [projects, setProjects] = useState([])
@@ -187,6 +233,12 @@ export default function Dashboard() {
   const urgentTasks = pendingTasks.filter(t => t.priority === 'urgente' || t.priority === 'alta')
   const activeClients = clients.filter(c => c.status === 'activo')
 
+  // Ranking de clientes por proyectos activos — alimenta el panel "Clientes en foco".
+  const clientFocus = activeClients.map(c => ({
+    client: c,
+    activeCount: activeProjects.filter(p => (p.expand?.client?.id || p.client) === c.id).length,
+  })).sort((a, b) => b.activeCount - a.activeCount).slice(0, 5)
+
   const statusColor = s => s === 'completado' || s === 'completada' ? { color: '#34D399', glow: 'rgba(52,211,153,.6)' }
     : s === 'urgente' || s === 'cancelado' ? { color: '#FB7185', glow: 'rgba(251,113,133,.6)' }
     : { color: '#A78BFA', glow: 'rgba(139,92,246,.6)' }
@@ -207,14 +259,14 @@ export default function Dashboard() {
         <Kpi label="Clientes activos" value={activeClients.length} sub={`${clients.length} en cartera total`} icon={ICONS.users} />
       </div>
 
-      {/* Mosaico real con Grid: en pantallas anchas se reparte en 4 columnas para aprovechar todo el espacio */}
-      <div className="grid gap-5 grid-cols-1 lg:grid-cols-2 xl:grid-cols-4">
+      {/* Área principal: gráfico grande a la izquierda + columna lateral tipo "watchlist" a la derecha */}
+      <div className="grid gap-5 grid-cols-1 lg:grid-cols-12">
         {isAdmin && (
-          <motion.div variants={rise} className="xl:col-span-3 card relative overflow-hidden">
+          <motion.div variants={rise} className="lg:col-span-8 card relative overflow-hidden">
             <div className="absolute -inset-[30%] pointer-events-none opacity-60" style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(139,92,246,.16), transparent 60%)' }} />
             <div className="relative z-[1]">
               <h3 className="text-[13.5px] font-bold mb-4 flex items-center gap-2">Ingresos <span className="text-[10px] font-bold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2 py-0.5">últimos 6 meses</span></h3>
-              <div style={{ width: '100%', height: 210 }}>
+              <div style={{ width: '100%', height: 250 }}>
                 <ResponsiveContainer>
                   <AreaChart data={chartData}>
                     <defs>
@@ -232,26 +284,47 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        <motion.div variants={rise} className="xl:col-span-1 card">
-          <h3 className="text-[13.5px] font-bold mb-4 flex items-center gap-2">Dólar Cripto <span className="text-[10px] font-bold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2 py-0.5">{crypto?.live ? 'en vivo' : 'referencia'}</span></h3>
-          {[['USDT / ARS', 'Tether', crypto?.usdtArs], ['USDC / ARS', 'USD Coin', crypto?.usdcArs], ['Oficial / ARS', 'BCRA', crypto?.oficialArs]].map(([label, sub, val]) => (
-            <div key={label} className="flex items-center justify-between py-2.5 border-b border-white/[.06] last:border-0">
-              <div className="text-[12.5px] font-semibold">{label}<span className="block text-[10.5px] text-white/35 font-normal mt-0.5">{sub}</span></div>
-              <div className="text-[15px] font-extrabold text-gradient">{val != null ? '$' + Number(val).toLocaleString('es-AR', { maximumFractionDigits: 0 }) : '—'}</div>
-            </div>
-          ))}
-          <div className="text-[10px] text-white/30 mt-3 text-right">{crypto?.live ? `Fuente: ${crypto.source}` : 'Sin conexión — valores de referencia'}</div>
-        </motion.div>
+        <div className={`${isAdmin ? 'lg:col-span-4' : 'lg:col-span-12'} grid gap-5 content-start`}>
+          <Panel title="Clientes en foco" badge={`${clientFocus.length}`}>
+            {!clientFocus.length ? (
+              <p className="text-[12.5px] text-white/35">Sin clientes activos todavía.</p>
+            ) : (
+              <div className="flex flex-col">
+                {clientFocus.map((cf, i) => (
+                  <WatchlistRow key={cf.client.id} i={i}
+                    initial={(cf.client.name || '?')[0].toUpperCase()}
+                    name={cf.client.name}
+                    sub={cf.activeCount === 1 ? '1 proyecto activo' : `${cf.activeCount} proyectos activos`}
+                    metric={cf.activeCount > 0 ? `${cf.activeCount}` : '—'}
+                    tone={cf.activeCount > 0 ? 'violet' : 'amber'} />
+                ))}
+              </div>
+            )}
+          </Panel>
 
-        <Panel title="Proyectos recientes" className="lg:col-span-1 xl:col-span-2">
+          {isAdmin && <AiPromoPanel onClick={() => nav('/app/ia')} />}
+
+          <div className="card">
+            <h3 className="text-[13.5px] font-bold mb-4 flex items-center gap-2">Dólar Cripto <span className="text-[10px] font-bold text-violet-light bg-violet/[.14] border border-violet/30 rounded-full px-2 py-0.5">{crypto?.live ? 'en vivo' : 'referencia'}</span></h3>
+            {[['USDT / ARS', 'Tether', crypto?.usdtArs], ['USDC / ARS', 'USD Coin', crypto?.usdcArs], ['Oficial / ARS', 'BCRA', crypto?.oficialArs]].map(([label, sub, val]) => (
+              <div key={label} className="flex items-center justify-between py-2.5 border-b border-white/[.06] last:border-0">
+                <div className="text-[12.5px] font-semibold">{label}<span className="block text-[10.5px] text-white/35 font-normal mt-0.5">{sub}</span></div>
+                <div className="text-[15px] font-extrabold text-gradient">{val != null ? '$' + Number(val).toLocaleString('es-AR', { maximumFractionDigits: 0 }) : '—'}</div>
+              </div>
+            ))}
+            <div className="text-[10px] text-white/30 mt-3 text-right">{crypto?.live ? `Fuente: ${crypto.source}` : 'Sin conexión — valores de referencia'}</div>
+          </div>
+        </div>
+
+        <Panel title="Proyectos recientes" className="lg:col-span-6">
           <MiniStatus items={projects} empty="Aún no hay proyectos." statusOf={p => ({ ...statusColor(p.status), label: p.expand?.client?.name ? `${p.name} - ${p.expand.client.name}` : p.name, sub: (p.status || '').replace('_', ' ') })} />
         </Panel>
-        <Panel title="Tareas" className="lg:col-span-1 xl:col-span-2">
+        <Panel title="Tareas" className="lg:col-span-6">
           <MiniStatus items={tasks} empty="Sin tareas todavía." statusOf={t => ({ ...statusColor(t.status === 'completada' ? 'completada' : t.priority), label: t.title, sub: t.priority })} />
         </Panel>
 
         {isAdmin && (
-          <Panel title="Novedades del sistema" className="xl:col-span-4">
+          <Panel title="Novedades del sistema" className="lg:col-span-12">
             {!activity.length ? (
               <p className="text-[12.5px] text-white/35">Todavía no hay actividad registrada.</p>
             ) : (
