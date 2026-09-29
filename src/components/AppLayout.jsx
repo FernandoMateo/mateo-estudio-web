@@ -42,6 +42,7 @@ function AskToto({ onClick }) {
 export default function AppLayout() {
   const nav = useNavigate()
   const loc = useLocation()
+  const isDashboardHome = loc.pathname === '/app' || loc.pathname === '/app/'
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('sidebar_collapsed') === '1' } catch { return false }
@@ -110,7 +111,7 @@ export default function AppLayout() {
             <h1 className="text-[22px] font-extrabold tracking-tight truncate">Hola, {firstName} <span className="inline-block animate-[float_2.5s_ease-in-out_infinite]">👋</span></h1>
             <p className="text-[12.5px] text-white/40 mt-0.5">{dateline}</p>
           </motion.div>
-          {isAdmin && <AskToto onClick={() => nav('/app/ia')} />}
+          {isAdmin && !isDashboardHome && <AskToto onClick={() => nav('/app/ia')} />}
           <div className="flex-1 md:hidden" />
           <NotificationBell refreshKey={loc.pathname} onClick={() => nav('/app/notificaciones')} />
         </div>

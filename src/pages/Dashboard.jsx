@@ -15,26 +15,90 @@ function greetingWord() {
   return h < 12 ? 'Buen día' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
 }
 
-function Hero({ name }) {
+// ── Hero protagonista: saludo + mini-pulso del día + la barra de IA como pieza
+// central (no una pill chica escondida arriba) — es lo primero que se ve al entrar.
+function Hero({ name, pendingTasks, activeProjects, onAsk }) {
   const [now, setNow] = useState(new Date())
+  const [q, setQ] = useState('')
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(id) }, [])
   return (
-    <motion.div variants={rise} className="relative overflow-hidden rounded-[26px] p-6 sm:p-7"
-      style={{ background: 'linear-gradient(135deg, rgba(139,92,246,.14), rgba(244,114,240,.06) 55%, rgba(255,255,255,.02))', border: '1px solid rgba(167,139,250,.22)' }}>
-      <motion.div className="absolute w-[380px] h-[380px] rounded-full blur-[100px] opacity-50 pointer-events-none"
-        style={{ top: '-140px', right: '-100px', background: 'radial-gradient(circle, #8B5CF6, transparent 70%)' }}
-        animate={{ x: [0, 20, 0], y: [0, 15, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
-      <div className="relative z-[1] flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <div className="text-[11px] uppercase font-bold tracking-[.12em] text-violet-light/80">{greetingWord()}</div>
-          <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-tight mt-1.5 leading-none">
-            {name} <span className="inline-block">👋</span>
-          </h1>
-          <p className="text-[12.5px] text-white/45 mt-2 capitalize">
-            {now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
+    <motion.div variants={rise} className="relative overflow-hidden rounded-[28px] p-6 sm:p-8"
+      style={{ background: 'linear-gradient(140deg, rgba(139,92,246,.22), rgba(244,114,240,.10) 45%, rgba(94,234,212,.05) 80%)', border: '1px solid rgba(167,139,250,.28)' }}>
+      <motion.div className="absolute w-[420px] h-[420px] rounded-full blur-[110px] opacity-60 pointer-events-none"
+        style={{ top: '-160px', right: '-110px', background: 'radial-gradient(circle, #8B5CF6, transparent 70%)' }}
+        animate={{ x: [0, 25, 0], y: [0, 18, 0] }} transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }} />
+      <motion.div className="absolute w-[280px] h-[280px] rounded-full blur-[90px] opacity-40 pointer-events-none"
+        style={{ bottom: '-100px', left: '10%', background: 'radial-gradient(circle, #F472F0, transparent 70%)' }}
+        animate={{ x: [0, -18, 0], y: [0, -12, 0] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }} />
+
+      <div className="relative z-[1]">
+        <div className="flex items-start justify-between flex-wrap gap-5">
+          <div>
+            <div className="text-[11px] uppercase font-bold tracking-[.16em] text-violet-light/85">{greetingWord()}</div>
+            <h1 className="text-[30px] sm:text-[38px] font-extrabold tracking-tight mt-1.5 leading-none">
+              {name} <span className="inline-block animate-[float_2.5s_ease-in-out_infinite]">👋</span>
+            </h1>
+            <p className="text-[12.5px] text-white/45 mt-2.5 capitalize">
+              {now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-bold" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber flex-shrink-0" />
+              {pendingTasks} tarea{pendingTasks === 1 ? '' : 's'} pendiente{pendingTasks === 1 ? '' : 's'}
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-bold" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-light flex-shrink-0" />
+              {activeProjects} proyecto{activeProjects === 1 ? '' : 's'} activo{activeProjects === 1 ? '' : 's'}
+            </div>
+          </div>
         </div>
+
+        {/* Barra de IA — la pieza central del hero, no un detalle chico */}
+        <motion.form onSubmit={e => { e.preventDefault(); onAsk(q); setQ('') }} whileHover={{ y: -1 }}
+          className="relative flex items-center gap-3 mt-6 rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4"
+          style={{ background: 'rgba(5,5,10,.4)', border: '1px solid rgba(255,255,255,.14)', backdropFilter: 'blur(14px)' }}>
+          <motion.span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#7C3AED,#F472F0)', boxShadow: '0 0 18px rgba(139,92,246,.55)' }}
+            animate={{ rotate: [0, 8, 0, -8, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z" /></svg>
+          </motion.span>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Preguntale lo que sea a Toto — “¿qué facturas vencen esta semana?”"
+            className="flex-1 min-w-0 bg-transparent outline-none text-[14px] placeholder:text-white/35" />
+          <button type="submit" className="hidden sm:flex items-center gap-1.5 text-[12px] font-bold text-white bg-white/[.12] hover:bg-white/[.2] border border-white/20 rounded-full px-3.5 py-2 transition-colors flex-shrink-0">
+            Preguntar
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </button>
+        </motion.form>
       </div>
+    </motion.div>
+  )
+}
+
+// ── Fila de accesos rápidos — cápsulas de vidrio con ícono, al estilo "riel" de
+// las referencias (imagen 1), pero horizontal y con etiqueta visible.
+function QuickActions({ onNav }) {
+  const ITEMS = [
+    { label: 'Nuevo cliente', to: '/app/clientes', color: '#A78BFA', icon: <><circle cx="9" cy="8" r="3.4" /><path d="M3.5 20c.6-3.4 2.9-5 5.5-5s4.9 1.6 5.5 5" /><path d="M16 8v6M13 11h6" /></> },
+    { label: 'Nueva tarea', to: '/app/tareas', color: '#FBBF24', icon: <><rect x="4" y="4" width="16" height="16" rx="2.5" /><path d="M8.5 12.5l2.5 2.5 4.8-5.5" /></> },
+    { label: 'Nueva factura', to: '/app/facturas', color: '#34D399', icon: <><path d="M9 7h6M9 11h6M9 15h3" /><rect x="4" y="3" width="16" height="18" rx="2" /></> },
+    { label: 'Nueva propuesta', to: '/app/propuestas', color: '#F472F0', icon: <path d="M12 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L7.5 16.8l.9-5L4.8 8.3l5-.7z" /> },
+    { label: 'Prospectar', to: '/app/agentes', color: '#5EEAD4', icon: <><circle cx="12" cy="5.2" r="2.2" /><circle cx="5" cy="17.5" r="2.2" /><circle cx="19" cy="17.5" r="2.2" /><path d="M12 7.4v4.3M12 11.7l-5.8 4M12 11.7l5.8 4" /></> },
+  ]
+  return (
+    <motion.div variants={rise} className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+      {ITEMS.map((it, i) => (
+        <motion.button key={it.label} onClick={() => onNav(it.to)} whileHover={{ y: -3 }} whileTap={{ scale: 0.96 }}
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+          className="flex items-center gap-2.5 rounded-2xl pl-2.5 pr-4 py-2.5 flex-shrink-0"
+          style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015))', border: '1px solid rgba(255,255,255,.09)' }}>
+          <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${it.color}22`, border: `1px solid ${it.color}55` }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={it.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{it.icon}</svg>
+          </span>
+          <span className="text-[12.5px] font-semibold whitespace-nowrap">{it.label}</span>
+        </motion.button>
+      ))}
     </motion.div>
   )
 }
@@ -62,17 +126,19 @@ function Trend({ pct }) {
   )
 }
 
-function Kpi({ label, value, sub, accent, icon, trend, children, className = '' }) {
+// ── KPI con acento de color propio (cada tarjeta se distingue por color, no las 4 iguales) ──
+function Kpi({ label, value, sub, accentText, tint, icon, trend, children, className = '' }) {
   return (
-    <motion.div variants={rise} whileHover={{ y: -4 }} className={`card relative overflow-hidden group ${className}`}>
+    <motion.div variants={rise} whileHover={{ y: -5 }} className={`card relative overflow-hidden group ${className}`}>
       <div className="absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{ background: 'radial-gradient(200px circle at 50% 0%, rgba(139,92,246,.14), transparent 70%)' }} />
+        style={{ background: `radial-gradient(200px circle at 50% 0%, ${tint}28, transparent 70%)` }} />
+      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[20px]" style={{ background: `linear-gradient(90deg, transparent, ${tint}, transparent)`, opacity: .8 }} />
       <div className="flex items-center justify-between">
         <div className="text-[11px] uppercase font-bold tracking-[.08em] text-white/40">{label}</div>
-        {icon && <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,.12)', border: '1px solid rgba(167,139,250,.25)' }}>{icon}</div>}
+        {icon && <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${tint}20`, border: `1px solid ${tint}55` }}>{icon}</div>}
       </div>
       <div className="flex items-center justify-between gap-2.5 mt-3">
-        <div className={`text-[28px] font-extrabold tracking-tight ${accent || ''}`}>{value}</div>
+        <div className={`text-[28px] font-extrabold tracking-tight ${accentText || ''}`}>{value}</div>
         {children}
       </div>
       <div className="flex items-center gap-2 mt-2">
@@ -178,10 +244,10 @@ function AiPromoPanel({ onClick }) {
 }
 
 const ICONS = {
-  money: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M12 1v22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
-  folder: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /></svg>,
-  check: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>,
-  users: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+  money: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F472F0" strokeWidth="1.8"><path d="M12 1v22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
+  folder: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="1.8"><path d="M21 12V7a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /></svg>,
+  check: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="1.8"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>,
+  users: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
 }
 
 export default function Dashboard() {
@@ -245,18 +311,20 @@ export default function Dashboard() {
 
   return (
     <motion.div initial="initial" animate="animate" variants={stagger} className="grid gap-5">
-      <Hero name={firstName} />
+      <Hero name={firstName} pendingTasks={pendingTasks.length} activeProjects={activeProjects.length} onAsk={q => nav('/app/ia', { state: { prefill: q } })} />
 
-      {/* KPIs — se auto-acomodan según el ancho disponible */}
+      <QuickActions onNav={nav} />
+
+      {/* KPIs — cada uno con su propio color de acento */}
       <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(210px,100%),1fr))' }}>
         {isAdmin && (
-          <Kpi label="Ingresos del mes" value={<CountUp value={monthIncome} format={fmtMoney} />} sub="vs. mes anterior" trend={incomeTrend} accent="text-gradient" icon={ICONS.money} />
+          <Kpi label="Ingresos del mes" value={<CountUp value={monthIncome} format={fmtMoney} />} sub="vs. mes anterior" trend={incomeTrend} accentText="text-gradient" tint="#F472F0" icon={ICONS.money} />
         )}
-        <Kpi label="Proyectos activos" value={activeProjects.length} sub={`${doneProjects.length} completados de ${projects.length}`} icon={ICONS.folder}>
+        <Kpi label="Proyectos activos" value={activeProjects.length} sub={`${doneProjects.length} completados de ${projects.length}`} tint="#A78BFA" icon={ICONS.folder}>
           <Donut pct={pct} />
         </Kpi>
-        <Kpi label="Tareas pendientes" value={pendingTasks.length} sub={urgentTasks.length ? `${urgentTasks.length} de alta prioridad` : 'Sin urgentes por ahora'} icon={ICONS.check} />
-        <Kpi label="Clientes activos" value={activeClients.length} sub={`${clients.length} en cartera total`} icon={ICONS.users} />
+        <Kpi label="Tareas pendientes" value={pendingTasks.length} sub={urgentTasks.length ? `${urgentTasks.length} de alta prioridad` : 'Sin urgentes por ahora'} tint="#FBBF24" icon={ICONS.check} />
+        <Kpi label="Clientes activos" value={activeClients.length} sub={`${clients.length} en cartera total`} tint="#34D399" icon={ICONS.users} />
       </div>
 
       {/* Área principal: gráfico grande a la izquierda + columna lateral tipo "watchlist" a la derecha */}
