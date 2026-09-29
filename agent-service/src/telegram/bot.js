@@ -9,6 +9,8 @@ import { interpretFreeText, recordOutcome, resetConversation } from '../ai/agent
 import { transcribeAudio } from '../ai/transcribe.js'
 import { refreshSchemaMap, listCollectionNames } from '../schemaMap.js'
 import { refreshAiSettings } from '../aiSettings.js'
+import { agentDefs, listAgentStatuses, setEnabled } from '../agents.js'
+import { runOnce as runNahuelOnce } from '../jobs/nahuel.js'
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ALLOWED = new Set((process.env.TELEGRAM_ALLOWED_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean))
@@ -20,6 +22,9 @@ export const bot = new TelegramBot(TOKEN, { polling: true })
 
 // Estado de confirmación pendiente por chat (para acciones de escritura pedidas en lenguaje natural)
 const pendingConfirm = new Map() // chatId -> { action, params, expiresAt }
+
+// Agentes "núcleo" — siempre activos, no se pueden pausar desde acá.
+const CORE_AGENTS = new Set(['toto', 'fabian'])
 
 function isAllowed(chatId) { return ALLOWED.has(String(chatId)) }
 
@@ -208,6 +213,41 @@ async function handleCommand(chatId, text) {
       return await createTaskFromCommand(chatId, rest.slice(5).trim())
     }
 
+    case 'agentes': {
+      const statuses = await listAgentStatuses()
+      if (!statuses.length) return reply(chatId, '⚠️ Todavía no hay agentes registrados — ¿importaste `pb-schema-agents.json` en PocketBase?')
+      const lines = ['🧠 *Fabian* — estado del equipo:', '']
+      statuses.forEach((a) => {
+        const state = CORE_AGENTS.has(a.key) ? '🟢 siempre activo' : (a.enabled ? '🟢 activo' : '⏸️ pausado')
+        lines.push(`${a.icon} *${a.display_name}* — ${state}`)
+        if (a.last_message) lines.push(`   _${a.last_message}_`)
+      })
+      lines.push('', 'Pausar: `/pausar <nombre>` · Reanudar: `/reanudar <nombre>` · Buscar ahora: `/prospectar`')
+      return reply(chatId, lines.join('\n'))
+    }
+
+    case 'pausar':
+    case 'reanudar': {
+      if (!rest) return reply(chatId, `Decime a quién: \`/${cmd} renzo\``)
+      const key = rest.toLowerCase().trim()
+      const def = agentDefs().find(a => a.key === key)
+      if (!def) return reply(chatId, `No conozco a "${rest}". Los agentes son: ${agentDefs().map(a => a.display_name).join(', ')}.`)
+      if (CORE_AGENTS.has(key)) return reply(chatId, `${def.display_name} no se puede pausar — es parte del núcleo del sistema.`)
+      const ok = await setEnabled(key, cmd === 'reanudar')
+      if (!ok) return reply(chatId, '⚠️ No pude actualizar eso — ¿existe la colección "agents"?')
+      return reply(chatId, `${cmd === 'reanudar' ? '▶️ Reanudado' : '⏸️ Pausado'}: *${def.display_name}*.`)
+    }
+
+    case 'prospectar': {
+      await reply(chatId, '🗺️ Nahuel se puso a buscar, dame un toque…')
+      try {
+        await runNahuelOnce(bot)
+        return reply(chatId, 'Listo — si encontró algo nuevo te lo mandé arriba 👆')
+      } catch (err) {
+        return reply(chatId, `⚠️ Nahuel tuvo un error: ${err.message}`)
+      }
+    }
+
     case 'actualizar': {
       // Fuerza el refresco del mapa de datos y de las instrucciones del módulo "Herramienta IA",
       // por si acabás de agregar algo en el dashboard y no querés esperar al refresco automático.
@@ -284,7 +324,11 @@ const HELP_TEXT = `*Agente Mateo Estudio* 🤖
 /resumen — resumen del día
 /resumen semana — resumen semanal
 /crear tarea <título> | proyecto: X | responsable: Y | fecha: YYYY-MM-DD | prioridad: alta
+/agentes — estado de todo el equipo (Toto, Renzo, Facundo, Bruno, Nahuel, Lautaro, Fabian)
+/pausar <agente> — pausa un agente (ej. \`/pausar renzo\`)
+/reanudar <agente> — lo vuelve a activar
+/prospectar — manda a Nahuel a buscar leads en Google Maps ahora mismo
 /actualizar — refresca lo que sé sobre el sistema (usalo después de agregar algo nuevo)
 /reiniciar — borra el contexto de esta charla y arranca de cero
 
-También podés escribirme en texto libre o mandarme una nota de voz (si está activado el modo lenguaje natural). Ahora entiendo todos los módulos del sistema (cotizador, servicios, recurrentes, planificador de redes, documentos, historial, usuarios, etc.), no solo tareas y facturas — preguntame lo que necesites. Me acuerdo de lo último que hablamos en esta charla, así que podés hacer preguntas de seguimiento sin repetir todo el contexto. Te voy a pedir confirmación antes de crear o modificar algo.`
+También podés escribirme en texto libre o mandarme una nota de voz (si está activado el modo lenguaje natural). Ahora entiendo todos los módulos del sistema (cotizador, servicios, recurrentes, planificador de redes, documentos, historial, usuarios, leads, agentes, etc.), no solo tareas y facturas — preguntame lo que necesites. Mandame un audio pidiendo una propuesta "innovadora" o "para Lautaro" y te la arma con diseño poco convencional. Me acuerdo de lo último que hablamos en esta charla, así que podés hacer preguntas de seguimiento sin repetir todo el contexto. Te voy a pedir confirmación antes de crear o modificar algo.`

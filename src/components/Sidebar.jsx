@@ -19,6 +19,7 @@ const ICONS = {
   historial: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></>,
   ia: <><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="9" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.4" fill="currentColor" stroke="none"/><path d="M8.5 15c1 .8 2 1.2 3.5 1.2s2.5-.4 3.5-1.2"/><path d="M12 4V2"/></>,
   propuestas: <path d="M12 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L7.5 16.8l.9-5L4.8 8.3l5-.7z"/>,
+  agentes: <><circle cx="12" cy="5.2" r="2.2"/><circle cx="5" cy="17.5" r="2.2"/><circle cx="19" cy="17.5" r="2.2"/><path d="M12 7.4v4.3M12 11.7l-5.8 4M12 11.7l5.8 4"/></>,
 }
 
 const ITEMS = [
@@ -37,6 +38,7 @@ const ITEMS = [
   { to: '/app/reportes', label: 'Reportes', icon: 'reportes', equipoHidden: true },
   { to: '/app/historial', label: 'Historial', icon: 'historial', adminOnly: true },
   { to: '/app/ia', label: 'Herramienta IA', icon: 'ia', adminOnly: true },
+  { to: '/app/agentes', label: 'Agentes', icon: 'agentes', adminOnly: true },
 ]
 
 const itemVariants = {

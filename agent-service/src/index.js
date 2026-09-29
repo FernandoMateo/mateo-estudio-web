@@ -4,13 +4,18 @@ import { bot } from './telegram/bot.js'
 import { startScheduler } from './jobs/scheduler.js'
 import { startPhoneNotifications } from './jobs/notifyPhone.js'
 import { startProposalGenerator } from './jobs/proposalGenerator.js'
+import { startRenzo } from './jobs/renzo.js'
+import { startFacundo } from './jobs/facundo.js'
+import { startBruno } from './jobs/bruno.js'
+import { startNahuel } from './jobs/nahuel.js'
 import { refreshSchemaMap } from './schemaMap.js'
 import { refreshAiSettings } from './aiSettings.js'
+import { ensureAgentsRegistered } from './agents.js'
 
 async function main() {
   console.log('[agent] iniciando agente Mateo Estudio…')
   await ensureAuth()
-  await Promise.all([refreshSchemaMap(), refreshAiSettings()])
+  await Promise.all([refreshSchemaMap(), refreshAiSettings(), ensureAgentsRegistered()])
   // El mapa de datos se refresca cada 6hs: si agregás una colección o un campo nuevo en el
   // dashboard, el agente lo va a "saber" en la próxima corrida sin que haya que redeployar nada.
   setInterval(() => refreshSchemaMap().catch(err => console.error('[schema] error refrescando', err)), 6 * 60 * 60 * 1000)
@@ -20,6 +25,12 @@ async function main() {
   startScheduler(bot)
   startPhoneNotifications(bot)
   startProposalGenerator(bot)
+  // Los agentes proactivos de fondo — Fabian (agents.js) ya sabe si están pausados y no hace
+  // falta esperarlo acá: cada uno se fija solo antes de avisar nada.
+  startRenzo(bot)
+  startFacundo(bot)
+  startBruno(bot)
+  startNahuel(bot)
   console.log('[agent] listo. Escuchando Telegram por polling.')
 }
 

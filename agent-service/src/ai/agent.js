@@ -87,7 +87,7 @@ const TOOLS = [
   },
   {
     name: 'query_collection',
-    description: 'Consulta CUALQUIER colección del sistema (más allá de tareas/facturas: cotizaciones, servicios, servicios recurrentes, gastos recurrentes, planificador de redes, documentos de cliente, comentarios, historial de actividad, usuarios, invitaciones, etc.) usando el mapa de datos que se te dio. Usala para cualquier pregunta que no cubran las tools específicas de arriba.',
+    description: 'Consulta CUALQUIER colección del sistema (más allá de tareas/facturas: cotizaciones, servicios, servicios recurrentes, gastos recurrentes, planificador de redes, documentos de cliente, comentarios, historial de actividad, usuarios, invitaciones, leads de Nahuel, agentes de Fabian, etc.) usando el mapa de datos que se te dio. Usala para cualquier pregunta que no cubran las tools específicas de arriba.',
     input_schema: {
       type: 'object',
       properties: {
@@ -110,7 +110,7 @@ const TOOLS = [
   },
   {
     name: 'create_record',
-    description: 'ACCIÓN DE ESCRITURA genérica: crea un registro nuevo en CUALQUIER colección del sistema (cotizaciones, servicios, servicios recurrentes, gastos recurrentes, planificador de redes, documentos de cliente, etc.), usando los nombres de campo del mapa de datos. Para tareas y facturas preferí siempre create_task (es más preciso). No sirve para la colección "users" (las altas de usuarios/clientes se hacen desde el dashboard). Requiere confirmación del usuario antes de ejecutarse.',
+    description: 'ACCIÓN DE ESCRITURA genérica: crea un registro nuevo en CUALQUIER colección del sistema (cotizaciones, servicios, servicios recurrentes, gastos recurrentes, planificador de redes, documentos de cliente, etc.), usando los nombres de campo del mapa de datos. Para tareas y facturas preferí siempre create_task (es más preciso), y para propuestas innovadoras por audio preferí create_innovative_proposal. No sirve para la colección "users" (las altas de usuarios/clientes se hacen desde el dashboard). Requiere confirmación del usuario antes de ejecutarse.',
     input_schema: {
       type: 'object',
       properties: {
@@ -134,6 +134,21 @@ const TOOLS = [
     },
   },
   {
+    name: 'create_innovative_proposal',
+    description: 'ACCIÓN DE ESCRITURA especial de Lautaro (el "cerrador" del estudio): crea una propuesta comercial en modo INNOVADOR — diseño poco convencional, tono audaz de cerrador de ventas experto. Usala cuando te pidan armar una propuesta con enfoque creativo/distinto, típicamente a partir de una nota de voz ("armame una propuesta innovadora para...", "Lautaro, hacé una propuesta para..."). Nunca uses create_record para esto. Requiere confirmación.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'título corto de la propuesta' },
+        recipient_name: { type: 'string' },
+        recipient_company: { type: 'string' },
+        objective: { type: 'string', description: 'de qué se trata / qué necesita el cliente — si no quedó separado del resto del pedido, usá el texto completo de lo que se dijo' },
+        tone: { type: 'string', enum: ['cercano', 'formal', 'premium'], description: 'por defecto "premium" si no se especifica' },
+      },
+      required: ['title', 'objective'],
+    },
+  },
+  {
     name: 'send_email',
     description: 'ACCIÓN DE ESCRITURA: manda un email real (por Gmail). Si no te dicen destinatario, se manda a la casilla de alertas del estudio (Fer). Usala solo cuando te lo pidan explícitamente ("mandame un mail con...", "avisale por mail a..."), nunca por tu cuenta. Requiere confirmación del usuario antes de enviarse.',
     input_schema: {
@@ -152,7 +167,7 @@ const TOOLS = [
 // lo pida — altas/bajas de usuarios tienen su propio flujo (contraseñas, portal) en el dashboard.
 const WRITE_BLOCKED_COLLECTIONS = new Set(['users'])
 
-const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid', 'create_record', 'update_record', 'send_email'])
+const WRITE_TOOLS = new Set(['create_task', 'update_task_status', 'mark_invoice_paid', 'create_record', 'update_record', 'create_innovative_proposal', 'send_email'])
 
 const BASE_SYSTEM_PROMPT = `Sos el agente interno del Dashboard Mateo Estudio (agencia de desarrollo web y marketing digital, con clientes en Argentina, Panamá y Miami).
 Te escriben por Telegram en español rioplatense, de forma informal, cálida y directa — como un compañero de equipo copado, nunca como un sistema robótico.
@@ -167,15 +182,18 @@ El sistema tiene estos módulos (todos viven en la misma base PocketBase, cada u
 - Planificador de contenido / redes sociales
 - Documentos y comentarios de cliente, historial de actividad
 - Usuarios y roles (admin, equipo, cliente, colaborador) e invitaciones de clientes al portal
+- Propuestas comerciales con IA (estándar desde el dashboard, o innovadoras por audio vía Lautaro)
+- Leads de prospección (Nahuel, Google Maps) y el registro de agentes (Fabian)
 
 Tu trabajo es responder consultas de estado sobre CUALQUIERA de estos módulos y, cuando te lo pidan, proponer crear o modificar registros.
 
 Reglas:
 - Para tareas, proyectos, clientes, facturas y resúmenes usá las tools específicas primero (son más precisas). Para todo lo demás — o si una tool específica no alcanza — usá query_collection/get_record con el mapa de datos de abajo.
+- Si te piden explícitamente una propuesta "innovadora", "audaz", "distinta" o algo para "Lautaro" (muy común que llegue por nota de voz), usá SIEMPRE create_innovative_proposal — nunca create_record para eso.
 - Para pedidos que necesitan varios pasos (por ejemplo: "buscá la cotización de tal cliente y marcala como aceptada") podés encadenar tools: primero consultá con query_collection para encontrar el id, y recién después usá update_record con ese id. No inventes ids.
 - Nunca inventes datos, números ni estados: si no tenés la info, consultala con una tool.
 - Si el pedido no da para ninguna tool (charla, saludo, pregunta general), respondé en texto sin usar tools.
-- Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada, o crear/modificar cualquier otro registro con create_record/update_record) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada. query_collection y get_record son de solo lectura, nunca crean ni modifican nada.
+- Para pedidos de ESCRITURA (crear tarea, cambiar estado, marcar factura pagada, crear una propuesta innovadora, o crear/modificar cualquier otro registro con create_record/update_record) siempre llamá a la tool correspondiente una sola vez — el sistema se encarga de pedir confirmación, vos no confirmes nada. query_collection y get_record son de solo lectura, nunca crean ni modifican nada.
 - create_record/update_record son las tools "comodín" para todo lo que no tenga una tool específica: cotizaciones, servicios, gastos recurrentes, planificador de redes, documentos, comentarios, etc. Fijate bien los nombres de campo exactos en el mapa de datos antes de usarlas. Nunca las uses con la colección "users".
 - send_email manda un correo real: usala solo si te lo piden explícitamente (no la uses como forma de "avisar" algo por tu cuenta).
 - Sé breve. Nada de relleno.
@@ -586,6 +604,30 @@ function buildWriteAction({ name, input }) {
       execute: async () => {
         const updated = await data.markInvoicePaid(input.invoice_query)
         return updated ? `✅ Factura marcada como pagada: ${updated.number || updated.title}` : `No encontré ninguna factura que coincida con "${input.invoice_query}".`
+      },
+    }
+  }
+  if (name === 'create_innovative_proposal') {
+    return {
+      type: 'write',
+      confirmText: `🎯 Armar con *Lautaro* una propuesta *innovadora* — *${input.title}*${input.recipient_name ? ` para ${input.recipient_name}` : ''}`,
+      execute: async () => {
+        const { error } = await data.createRecordGeneric({
+          collection: 'proposals',
+          fields: {
+            title: input.title,
+            recipient_name: input.recipient_name || '',
+            recipient_company: input.recipient_company || '',
+            objective: input.objective,
+            tone: input.tone || 'premium',
+            style: 'innovador',
+            source: 'audio_telegram',
+            audio_transcript: input.objective,
+            status: 'pendiente',
+          },
+        })
+        if (error) return `⚠️ ${error}`
+        return `🎯 Dale, Lautaro se puso a laburar en *${input.title}* — te aviso por Telegram apenas esté lista.`
       },
     }
   }

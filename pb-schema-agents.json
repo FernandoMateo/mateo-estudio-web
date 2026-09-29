@@ -1,0 +1,172 @@
+[
+  {
+    "id": "pbc_agents_00001",
+    "name": "agents",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.role = \"admin\"",
+    "viewRule": "@request.auth.role = \"admin\"",
+    "createRule": "@request.auth.role = \"admin\"",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "hidden": false,
+        "id": "text_ag_id",
+        "name": "id",
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "text",
+        "max": 15,
+        "min": 15,
+        "pattern": "^[a-z0-9]+$",
+        "primaryKey": true,
+        "autogeneratePattern": "[a-z0-9]{15}"
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_name",
+        "name": "name",
+        "presentable": true,
+        "required": true,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_display",
+        "name": "display_name",
+        "presentable": true,
+        "required": true,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_icon",
+        "name": "icon",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 8,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_role",
+        "name": "role",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_schedule",
+        "name": "schedule_label",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "bool_ag_enabled",
+        "name": "enabled",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "sel_ag_status",
+        "name": "status",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "maxSelect": 1,
+        "values": ["inactivo", "corriendo", "ok", "error"]
+      },
+      {
+        "hidden": false,
+        "id": "date_ag_lastrun",
+        "name": "last_run",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_lastmsg",
+        "name": "last_message",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 500,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "text_ag_state",
+        "name": "state",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text",
+        "max": 0,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "hidden": false,
+        "id": "auto_ag_created",
+        "name": "created",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "hidden": false,
+        "id": "auto_ag_updated",
+        "name": "updated",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": ["CREATE UNIQUE INDEX `idx_agents_name` ON `agents` (`name`)"]
+  }
+]

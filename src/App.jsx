@@ -18,6 +18,7 @@ import Reportes from './pages/Reportes'
 import Calendario from './pages/Calendario'
 import Historial from './pages/Historial'
 import IA from './pages/IA'
+import Agentes from './pages/Agentes'
 import Portal from './pages/Portal'
 import Alta from './pages/Alta'
 
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="calendario" element={<Calendario />} />
               <Route path="historial" element={<Historial />} />
               <Route path="ia" element={<IA />} />
+              <Route path="agentes" element={<Agentes />} />
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />

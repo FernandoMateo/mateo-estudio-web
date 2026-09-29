@@ -4,11 +4,19 @@
 // + los datos que cargó Fer, le pedimos a la IA (mismo proveedor que ya usa el bot de Telegram:
 // Anthropic > Groq > Gemini) que redacte la propuesta completa en JSON estructurado, la
 // guardamos, y avisamos por Telegram con un resumen — así llega al teléfono apenas está lista.
+//
+// Modo LAUTARO (style="innovador"): estas propuestas no salen del dashboard, salen de una nota
+// de voz por Telegram (ver create_innovative_proposal en ai/agent.js) — se redactan con un
+// system prompt distinto (cerrador de ventas experto, diseño poco convencional) y, si Fer ya
+// cargó identidad visual del cliente (branding_colors/branding_fonts/branding_notes), se la
+// suma al prompt para que el tono/ángulo vaya acorde. Se reporta en el registro de Fabian bajo
+// la clave "lautaro" — las propuestas estándar del dashboard no pasan por ese registro.
 
 import { withAuth } from '../pocketbase.js'
 import { generateText } from '../ai/agent.js'
 import { getExtraInstructionsText } from '../aiSettings.js'
 import { fmtByCurrency } from '../lib/format.js'
+import { isEnabled, reportRun } from '../agents.js'
 
 const ALLOWED_CHAT_IDS = (process.env.TELEGRAM_ALLOWED_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
 const POLL_MS = Number(process.env.PROPOSAL_POLL_MS) || 15000
@@ -51,6 +59,16 @@ function buildPrompt(proposal, client, services) {
     : 'No se dio un monto de referencia — no inventes cifras, dejá la inversión abierta a definir según alcance.'
   const extra = getExtraInstructionsText()
 
+  const isInnovative = proposal.style === 'innovador'
+  const brandingBits = [
+    proposal.branding_colors && `Colores de marca del cliente: ${proposal.branding_colors}`,
+    proposal.branding_fonts && `Tipografías de marca: ${proposal.branding_fonts}`,
+    proposal.branding_notes && `Notas de identidad visual: ${proposal.branding_notes}`,
+  ].filter(Boolean).join('\n')
+  const innovativeBlock = isInnovative
+    ? `\nModo LAUTARO — cerrador de ventas experto: esta propuesta tiene que sonar audaz y segura de sí misma, con un ángulo de negocio y de diseño POCO CONVENCIONAL (nada de plantilla genérica) — proponé algo que sorprenda y a la vez resuelva el objetivo real del cliente. Si hay identidad visual del cliente cargada, alineate a ella al describir el enfoque de diseño en "sections" y "why_us" (seguís escribiendo texto, no HTML/CSS):\n${brandingBits || '(Fer todavía no cargó la identidad visual de este cliente — no inventes colores ni tipografías, mantené el lenguaje flexible en ese punto y avisá en "next_steps" que falta definir el branding para el diseño final.)'}\n`
+    : ''
+
   return `Redactá una propuesta comercial completa para ${recipient}${company ? ` (${company})` : ''}.
 
 Objetivo/contexto que cargó Fer (el dueño del estudio):
@@ -64,7 +82,7 @@ ${budgetText}
 ${proposal.timeline_hint ? `Plazo de referencia que dio Fer: ${proposal.timeline_hint}` : ''}
 
 Tono: ${TONE_GUIDE[proposal.tone] || TONE_GUIDE.cercano}
-${extra ? `\nInstrucciones adicionales que Fer dejó cargadas para la IA del estudio:\n${extra}\n` : ''}
+${innovativeBlock}${extra ? `\nInstrucciones adicionales que Fer dejó cargadas para la IA del estudio:\n${extra}\n` : ''}
 
 Devolvé ÚNICAMENTE un JSON válido (sin \`\`\`, sin texto antes ni después) con exactamente esta forma:
 ${JSON_SHAPE}
@@ -98,6 +116,12 @@ function stripJsonFences(text) {
 }
 
 async function processOne(bot, proposal) {
+  const isInnovative = proposal.style === 'innovador'
+
+  // Si es una propuesta de Lautaro y lo pausaron desde el panel/Telegram, la dejamos tal cual
+  // ("pendiente") y se reintenta sola en el próximo poll apenas lo reactiven.
+  if (isInnovative && !(await isEnabled('lautaro'))) return
+
   await withAuth((pb) => pb.collection('proposals').update(proposal.id, { status: 'generando' }))
   try {
     const [client, services] = await Promise.all([
@@ -105,11 +129,10 @@ async function processOne(bot, proposal) {
       fetchServices(proposal.services),
     ])
     const prompt = buildPrompt(proposal, client, services)
-    const raw = await generateText({
-      system: `Sos el redactor de propuestas comerciales de Mateo Estudio.\n\n${STUDIO_PROFILE}`,
-      prompt,
-      maxTokens: 4096,
-    })
+    const system = isInnovative
+      ? `Sos Lautaro, el redactor "cerrador de ventas" de Mateo Estudio — el que arma las propuestas más audaces y persuasivas del estudio, con mirada de diseño poco convencional.\n\n${STUDIO_PROFILE}`
+      : `Sos el redactor de propuestas comerciales de Mateo Estudio.\n\n${STUDIO_PROFILE}`
+    const raw = await generateText({ system, prompt, maxTokens: 4096 })
     const parsed = JSON.parse(stripJsonFences(raw))
 
     await withAuth((pb) => pb.collection('proposals').update(proposal.id, {
@@ -120,8 +143,10 @@ async function processOne(bot, proposal) {
 
     const link = `${DASHBOARD_URL}/app/propuestas`
     const recipient = client?.name || proposal.recipient_name || 'el cliente'
-    await broadcast(bot, `✦ *Propuesta lista*\n"${proposal.title}" para *${recipient}*\n\n_${parsed.subheadline || ''}_\n\n${link}`)
-    console.log('[proposals] generada OK:', proposal.id)
+    const tag = isInnovative ? '🎯 *Lautaro* — propuesta innovadora lista' : '✦ *Propuesta lista*'
+    await broadcast(bot, `${tag}\n"${proposal.title}" para *${recipient}*\n\n_${parsed.subheadline || ''}_\n\n${link}`)
+    console.log('[proposals] generada OK:', proposal.id, isInnovative ? '(innovadora — Lautaro)' : '')
+    if (isInnovative) await reportRun('lautaro', { status: 'ok', message: `Propuesta "${proposal.title}" generada para ${recipient}.` })
   } catch (err) {
     console.error('[proposals] error generando', proposal.id, err.message)
     await withAuth((pb) => pb.collection('proposals').update(proposal.id, {
@@ -129,6 +154,7 @@ async function processOne(bot, proposal) {
       error_message: err.message?.slice(0, 500) || 'Error desconocido',
     })).catch(() => {})
     await broadcast(bot, `⚠️ No pude generar la propuesta "${proposal.title}" — revisala en el dashboard.`)
+    if (isInnovative) await reportRun('lautaro', { status: 'error', message: err.message })
   }
 }
 
@@ -146,6 +172,5 @@ export function startProposalGenerator(bot) {
   const loop = () => tick(bot).catch(err => console.error('[proposals] error en el poll:', err.message))
   loop()
   setInterval(loop, POLL_MS)
-  console.log(`[proposals] activo — generando propuestas pendientes cada ${POLL_MS / 1000}s`)
+  console.log(`[proposals] activo — generando propuestas pendientes cada ${POLL_MS / 1000}s (incluye modo Lautaro/innovador)`)
 }
-
