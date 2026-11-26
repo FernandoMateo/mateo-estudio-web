@@ -21,7 +21,6 @@ import IA from './pages/IA'
 import Agentes from './pages/Agentes'
 import Portal from './pages/Portal'
 import Alta from './pages/Alta'
-import Evaluacion from './pages/Evaluacion'
 
 export default function App() {
   return (
@@ -50,7 +49,6 @@ export default function App() {
             </Route>
             <Route path="/portal" element={<Portal />} />
             <Route path="/alta/:id" element={<Alta />} />
-            <Route path="/evaluacion" element={<Evaluacion />} />
           </Routes>
         </BrowserRouter>
       </FxProvider>
